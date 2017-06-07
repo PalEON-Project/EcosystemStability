@@ -1,0 +1,13 @@
+STEPPS,ED2,CLM,LPJ-GUESS,LPJ-WSL,JULES,SiBCASA,LINKAGES.STEPPS
+Hemlock,TeNE.late,TeNE,BNE,TeNE,NE,,hemlock
+Tamarack,TeNE.late,TeNE,BINE,BNE,NE,,tamarack
+Pine,TeNE.early.north,TeNE,BINE,TeNE,NE,,pine
+Birch,TeBS.early,TeBS,TeBS,BBS,BS,,birch
+Oak,TeBS.mid,TeBS,TeBS,TeBS,BS,,oak
+Beech,TeBS.mid,TeBS,TeBS,TeBS,BS,,beech
+Other Conifer,TeNE.late,TeNE,BNE,BNE,NE,,fir
+Spruce,TeNE.late,TeNE,BNE,BNE,NE,,spruce
+Maple,TeBS.late,TeBS,TeBS,TeBS,BS,,maple
+Ash,TeBS.mid,TeBS,TeBS,TeBS,BS,,ash
+Elm,TeBS.mid,TeBS,TeBS,TeBS,BS,,elm
+Other Hardwood,TeBS.mid,TeBS,TeBS,TeBS,BS,,other.hardwood

@@ -1,0 +1,25 @@
+SetVeg,ED2,CLM,LPJ-GUESS,LPJ-WSL,JULES,SiBCASA,LINKAGES.SETVEG
+Ash,TeBS.mid,TeBS,TeBS,TeBS,BS,,ash
+Atlantic white cedar,TeNE.early.north,TeBS,BINE,TeNE,NE,,other.evergreen
+Basswood,TeBS.late,TeBS,TeBS,TeBS,BS,,other.hardwood
+Beech,TeBS.mid,TeBS,TeBS,TeBS,BS,,beech
+Birch,TeBS.early,TeBS,TeBS,BBS,BS,,birch
+Black gum/sweet gum,TeBS.mid,TeBS,TeBS,TeBS,BS,,other.hardwood
+Cedar/juniper,TeNE.early.north,TeNE,BNE,BNE,NE,,other.evergreen
+Cherry,TeBS.early,TeBS,TeIBS,TeBS,BS,,other.hardwood
+Chestnut,TeBS.mid,TeBS,TeBS,TeBS,BS,,chestnut
+Dogwood,TeBS.late,TeBS,TeBS,TeBS,BS,,other.hardwood
+Elm,TeBS.mid,TeBS,TeBS,TeBS,BS,,elm
+Fir,TeNE.early.north,TeNE,BNE,BNE,NE,,fir
+Hemlock,TeNE.late,TeNE,BNE,TeNE,NE,,hemlock
+Hickory,TeBS.mid,TeBS,TeBS,TeBS,BS,,hickory
+Ironwood,TeBS.late,TeBS,TeBS,TeBS,BS,,other.hardwood
+Maple,TeBS.late,TeBS,TeBS,TeBS,BS,,maple
+Oak,TeBS.mid,TeBS,TeBS,TeBS,BS,,oak
+Other Conifer,TeNE.late,TeNE,BNE,BNE,NE,,fir
+Other hardwood,TeBS.mid,TeBS,TeBS,TeBS,BS,,other.hardwood
+Pine,TeNE.early.north,TeNE,BINE,TeNE,NE,,pine
+Poplar/tulip poplar,TeBS.early,TeBS,TeIBS,TeBS,BS,,poplar
+Spruce,TeNE.late,TeNE,BNE,BNE,NE,,spruce
+Tamarack,TeNE.late,TeNE,BINE,BNE,NE,,tamarack
+Walnut,TeBS.early,TeBS,TeIBS,TeBS,BS,,other.hardwood

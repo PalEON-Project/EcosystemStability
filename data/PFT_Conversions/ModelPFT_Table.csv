@@ -1,0 +1,18 @@
+PFT ID,ED2,CLM,LPJ-GUESS,LPJ-WSL,JULES,LINKAGES,LINKAGES-STEPPS,LINKAGES-SETVEG
+1,C4G,bare,BNE,TrBE,BS,beech,beech,beech
+2,TrB.early,TeNE,BINE,TrBR,NE,chestnut,other.hardwood,chestnut
+3,TrB.mid,BNE,BNS,TeNE,C3G,elm,elm,elm
+4,TrB.late,BNS,BIBS,TeBE,C4G,fir,other.conifer,fir
+5,C3G,TrBE,TeBS,TeBS,shrub,hemlock,hemlock,hemlock
+6,TeNE.early.north,TeBE,TeIBS,BNE,urban,pignut hickory,other.hardwood,hickory
+7,TeNE.early.south,TrBS,TeBE,BBS,water,red maple,maple,maple
+8,TeNE.late,TeBS,TrBE,C3G,bare,sugar maple,maple,maple
+9,TeBS.early,BBS,TrIBE,C4G,ice,red spruce,spruce,spruce
+10,TeBS.mid,BE.shrub,TrBR,,,poplar,other.hardwood,poplar
+11,TeBS.late,TeBS.shrub,C3G,,,tamarack,tamarack,tamarack
+12,ag1,BBS.shrub,C4G,,,white ash,ash,ash
+13,ag2,C3G_arctic,Total,,,white oak,oak,oak
+14,ag3,C3G,,,,white pine,pine,pine
+15,ag4,C4G,,,,yellow birch,birch,birch
+16,C3G.subtropic,corn,,,,,,
+17,Araucaria,wheat,,,,,,
