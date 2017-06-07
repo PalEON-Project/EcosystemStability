@@ -110,5 +110,48 @@ paleon$stab.precip.jja.cent <- apply(precip.jja2, 2, calc.second.deriv)
 # --------------------------------------------
 # 3. Save output, generate & save a couple figures
 # --------------------------------------------
+# Save the file
 write.csv(paleon, file.path(path.repo, "data/PalEON_ClimateStability.csv"), row.names=F, eol="\r\n")
+
+
+# Do some graphing
+library(ggplot2)
+
+summary(paleon)
+# Stacking things together
+paleon2 <- stack(paleon[,4:ncol(paleon)])
+paleon2[,c("lon", "lat", "latlon")] <- paleon[,c("lon", "lat", "latlon")]
+
+for(i in 1:nrow(paleon2)){
+  paleon2[i, "var"       ] <- strsplit(paste(paleon2$ind[i]), "[.]")[[1]][2] 
+  paleon2[i, "season"    ] <- strsplit(paste(paleon2$ind[i]), "[.]")[[1]][3] 
+  paleon2[i, "resolution"] <- ifelse(is.na(strsplit(paste(paleon2$ind[i]), "[.]")[[1]][4]), "annual", "century")
+}
+paleon2$var        <- as.factor(paleon2$var)
+paleon2$season     <- as.factor(paleon2$season)
+paleon2$resolution <- as.factor(paleon2$resolution)
+summary(paleon2)
+
+
+for(v in unique(paleon2$var)){
+  for(res in unique(paleon2$resolution)){
+    pdf(file.path(path.repo, "figures", paste0("Stability_Met_", v, "_", res, ".pdf")))
+    print(
+      ggplot(data=paleon2[paleon2$var==v & paleon2$resolution==res,]) +
+        facet_grid(season~.) +
+        geom_histogram(aes(values)) + 
+        theme_bw()
+    )
+    print(
+      ggplot(data=paleon2[paleon2$var==v & paleon2$resolution==res,]) +
+        facet_grid(season~.) +
+        geom_point(aes(x=lon, y=lat, color=values)) + 
+        coord_equal() +
+        theme_bw()
+    )
+    dev.off()
+  }
+}
+
+
 # --------------------------------------------
