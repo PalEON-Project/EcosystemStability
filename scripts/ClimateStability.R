@@ -95,14 +95,14 @@ summary(tair.ann2[,1:10])
 source(file.path(path.repo, "scripts/calc_second_deriv.R"))
 
 # Doing the actual calculation on each cell
-paleon$stab.tair.ann      <- apply(tair.ann , 2, calc.second.deriv)
+paleon$stab.tair.ann      <- apply(tair.ann[which(yrs<=1850),] , 2, calc.second.deriv)
 paleon$stab.tair.ann.cent <- apply(tair.ann2, 2, calc.second.deriv)
-paleon$stab.tair.jja      <- apply(tair.jja , 2, calc.second.deriv)
+paleon$stab.tair.jja      <- apply(tair.jja[which(yrs<=1850),] , 2, calc.second.deriv)
 paleon$stab.tair.jja.cent <- apply(tair.jja2, 2, calc.second.deriv)
 
-paleon$stab.precip.ann      <- apply(precip.ann , 2, calc.second.deriv)
+paleon$stab.precip.ann      <- apply(precip.ann[which(yrs<=1850),] , 2, calc.second.deriv)
 paleon$stab.precip.ann.cent <- apply(precip.ann2, 2, calc.second.deriv)
-paleon$stab.precip.jja      <- apply(precip.jja , 2, calc.second.deriv)
+paleon$stab.precip.jja      <- apply(precip.jja[which(yrs<=1850),] , 2, calc.second.deriv)
 paleon$stab.precip.jja.cent <- apply(precip.jja2, 2, calc.second.deriv)
 # --------------------------------------------
 
