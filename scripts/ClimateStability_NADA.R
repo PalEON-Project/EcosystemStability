@@ -105,14 +105,40 @@ for(i in 1:length(nada.lon.ind)){
 }
 
 nada.stability <- nada.stability[complete.cases(nada.stability),]
+nada.stability$n.yrs <- nada.stability$yr.end - nada.stability$yr.start +1
+summary(nada.stability)
 write.csv(nada.stability, file.path(path.repo, "data/NADA_Stability.csv"), row.names=F, eol="\r\n")
 
 library(ggplot2)
+
+us <- map_data("state")
+
+pdf(file.path(path.repo, "figures/NADA_Stability.pdf"))
+print(
 ggplot(data=nada.stability) +
   geom_tile(aes(x=lon, y=lat, fill=stability)) +
-  coord_equal()
-
+  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
+  coord_equal(xlim=range(nada.stability$lon), ylim=range(nada.stability$lat)) +
+  theme_bw()
+)
+# print(
+# ggplot(data=nada.stability) +
+#   geom_tile(aes(x=lon, y=lat, fill=n.yrs)) +
+#   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray30") + 
+#   coord_equal(xlim=range(nada.stability$lon), ylim=range(nada.stability$lat)) +
+#   coord_equal()
+# )
+print(
 ggplot(data=nada.stability) +
-  geom_histogram(aes(stability))
+  geom_tile(aes(x=lon, y=lat, fill=stability/n.yrs)) +
+  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
+  coord_equal(xlim=range(nada.stability$lon), ylim=range(nada.stability$lat)) +
+  theme_bw()
+)
+print(
+ggplot(data=nada.stability) +
+  geom_histogram(aes(stability/n.yrs))
+)
+dev.off()
 
 # --------------------------------------------

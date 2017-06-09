@@ -45,17 +45,18 @@ head(time.mos)
 # --------------------------------------------
 # loading the key to dimensions in the .RDS files; this is Christy's sheet generated
 # this loads an object called "paleon"
-load(file.path(path.data, "PalEON_siteInfo_all.RData")) 
+paleon <- read.csv(file.path(path.repo, "data/paleon_site_info.csv")) 
 paleon$latlon <- as.factor(paleon$latlon)
-paleon <- paleon[,c("lon", "lat", "latlon")]
+paleon <- paleon[,c("lon", "lat", "latlon", "umw", "x", "y")]
 summary(paleon)
 
 # Load the temp & precip data
-tair    <- readRDS(file.path(path.data, "ED2/ED2.tair.rds"))
-precipf <- readRDS(file.path(path.data, "ED2/ED2.precipf.rds"))
+tair    <- readRDS(file.path(path.data, "Met/tair.rds"))
+precipf <- readRDS(file.path(path.data, "Met/precipf.rds"))
+pdsi <- readRDS(file.path(path.data, "Met/pdsi.rds"))
 
 # aggregate to annual resolution
-tair.ann <- tair.jja <- precip.ann <- precip.jja <- matrix(ncol=ncol(tair), nrow=length(yrs))
+pdsi.ann <- tair.ann <- tair.jja <- precip.ann <- precip.jja <- matrix(ncol=ncol(tair), nrow=length(yrs))
 
 for(i in 1:length(yrs)){
   # Generating indices for the cells we want to aggregate across
@@ -63,6 +64,7 @@ for(i in 1:length(yrs)){
   rows.jja <- which(time.mos$year==yrs[i] & time.mos$month %in% c(6:8))
   
   # doing the aggregation
+  pdsi.ann  [i,] <- colMeans(pdsi   [rows.yrs,])
   tair.ann  [i,] <- colMeans(tair   [rows.yrs,])
   precip.ann[i,] <- colMeans(precipf[rows.yrs,])
   tair.jja  [i,] <- colMeans(tair   [rows.jja,])
@@ -71,12 +73,13 @@ for(i in 1:length(yrs)){
 
 # Getting the 100-year averages that are comparable to STEPPS & REFAB
 yrs.cent <- seq(900, 1800, by=100)
-tair.ann2 <- tair.jja2 <- precip.ann2 <- precip.jja2 <- matrix(ncol=ncol(tair), nrow=length(yrs.cent))
+pdsi.ann2 <- tair.ann2 <- tair.jja2 <- precip.ann2 <- precip.jja2 <- matrix(ncol=ncol(tair), nrow=length(yrs.cent))
 for(i in 1:length(yrs.cent)){
   # Generating indices for the cells we want to aggregate across
   rows.yrs <- which(yrs>=yrs.cent[i]-50 & yrs<=yrs.cent[i]+50)
 
   # doing the aggregation
+  pdsi.ann2  [i,] <- colMeans(pdsi.ann  [rows.yrs,])
   tair.ann2  [i,] <- colMeans(tair.ann  [rows.yrs,])
   precip.ann2[i,] <- colMeans(precip.ann[rows.yrs,])
   tair.jja2  [i,] <- colMeans(tair.jja  [rows.yrs,])
@@ -95,21 +98,26 @@ summary(tair.ann2[,1:10])
 source(file.path(path.repo, "scripts/calc_second_deriv.R"))
 
 # Doing the actual calculation on each cell
-paleon$stab.tair.ann      <- apply(tair.ann[which(yrs<=1850),] , 2, calc.second.deriv)
-paleon$stab.tair.ann.cent <- apply(tair.ann2, 2, calc.second.deriv)
-paleon$stab.tair.jja      <- apply(tair.jja[which(yrs<=1850),] , 2, calc.second.deriv)
-paleon$stab.tair.jja.cent <- apply(tair.jja2, 2, calc.second.deriv)
+paleon$stab.pdsi.ann      <- apply(pdsi.ann[which(yrs<=1850),] , 2, calc.second.deriv, h=1, H=1)
+paleon$stab.pdsi.ann.cent <- apply(pdsi.ann2, 2, calc.second.deriv, h=1, H=100)
 
-paleon$stab.precip.ann      <- apply(precip.ann[which(yrs<=1850),] , 2, calc.second.deriv)
-paleon$stab.precip.ann.cent <- apply(precip.ann2, 2, calc.second.deriv)
-paleon$stab.precip.jja      <- apply(precip.jja[which(yrs<=1850),] , 2, calc.second.deriv)
-paleon$stab.precip.jja.cent <- apply(precip.jja2, 2, calc.second.deriv)
+paleon$stab.tair.ann      <- apply(tair.ann[which(yrs<=1850),] , 2, calc.second.deriv, h=1, H=1)
+paleon$stab.tair.ann.cent <- apply(tair.ann2, 2, calc.second.deriv, h=1, H=100)
+paleon$stab.tair.jja      <- apply(tair.jja[which(yrs<=1850),] , 2, calc.second.deriv, h=1, H=1)
+paleon$stab.tair.jja.cent <- apply(tair.jja2, 2, calc.second.deriv, h=1, H=100)
+
+paleon$stab.precip.ann      <- apply(precip.ann[which(yrs<=1850),] , 2, calc.second.deriv, h=1, H=1)
+paleon$stab.precip.ann.cent <- apply(precip.ann2, 2, calc.second.deriv, h=1, H=100)
+paleon$stab.precip.jja      <- apply(precip.jja[which(yrs<=1850),] , 2, calc.second.deriv, h=1, H=1)
+paleon$stab.precip.jja.cent <- apply(precip.jja2, 2, calc.second.deriv, h=1, H=100)
 # --------------------------------------------
 
 
 # --------------------------------------------
 # 3. Save output, generate & save a couple figures
 # --------------------------------------------
+summary(paleon)
+
 # Save the file
 write.csv(paleon, file.path(path.repo, "data/PalEON_ClimateStability.csv"), row.names=F, eol="\r\n")
 
@@ -119,8 +127,8 @@ library(ggplot2)
 
 summary(paleon)
 # Stacking things together
-paleon2 <- stack(paleon[,4:ncol(paleon)])
-paleon2[,c("lon", "lat", "latlon")] <- paleon[,c("lon", "lat", "latlon")]
+paleon2 <- stack(paleon[,7:ncol(paleon)])
+paleon2[,c("lon", "lat", "latlon", "umw", "x", "y")] <- paleon[,c("lon", "lat", "latlon", "umw", "x", "y")]
 
 for(i in 1:nrow(paleon2)){
   paleon2[i, "var"       ] <- strsplit(paste(paleon2$ind[i]), "[.]")[[1]][2] 
@@ -132,26 +140,63 @@ paleon2$season     <- as.factor(paleon2$season)
 paleon2$resolution <- as.factor(paleon2$resolution)
 summary(paleon2)
 
-
+us <- map_data("state")
 for(v in unique(paleon2$var)){
-  for(res in unique(paleon2$resolution)){
-    pdf(file.path(path.repo, "figures", paste0("Stability_Met_", v, "_", res, ".pdf")))
-    print(
-      ggplot(data=paleon2[paleon2$var==v & paleon2$resolution==res,]) +
-        facet_grid(season~.) +
-        geom_histogram(aes(values)) + 
-        theme_bw()
-    )
-    print(
-      ggplot(data=paleon2[paleon2$var==v & paleon2$resolution==res,]) +
-        facet_grid(season~.) +
-        geom_point(aes(x=lon, y=lat, color=values)) + 
-        coord_equal() +
-        theme_bw()
-    )
-    dev.off()
-  }
+  pdf(file.path(path.repo, "figures", paste0("Stability_Met_", v, "_", res, ".pdf")))
+  print(
+    ggplot(data=paleon2[paleon2$var==v,]) +
+      facet_grid(season~resolution, scales="free_x") +
+      geom_histogram(aes(values)) + 
+      theme_bw()
+  )
+  print(
+    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="annual",]) +
+      ggtitle("Annual Resolution") +
+      facet_grid(season~.) +
+      geom_path(data=us,aes(x=long, y=lat, group=group)) + 
+      geom_point(aes(x=lon, y=lat, color=values)) + 
+      coord_equal(xlim=range(paleon2$lon), ylim=range(paleon2$lat)) +
+      theme_bw()
+  )
+  print(
+    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="century",]) +
+      facet_grid(season~.) +
+      geom_path(data=us,aes(x=long, y=lat, group=group)) + 
+      geom_point(aes(x=lon, y=lat, color=values)) + 
+      coord_equal(xlim=range(paleon2$lon), ylim=range(paleon2$lat)) +
+      ggtitle("Centennial Resolution") +
+      theme_bw()
+  )
+  dev.off()
 }
 
+for(v in unique(paleon2$var)){
+  pdf(file.path(path.repo, "figures", paste0("Stability_Met_", v, "_", res, "_UMW.pdf")))
+  print(
+    ggplot(data=paleon2[paleon2$var==v & paleon2$umw=="y",]) +
+      facet_grid(season~resolution, scales="free_x") +
+      geom_histogram(aes(values)) + 
+      theme_bw()
+  )
+  print(
+    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="annual" & paleon2$umw=="y",]) +
+      facet_grid(season~.) +
+      geom_path(data=us,aes(x=long, y=lat, group=group)) + 
+      geom_point(aes(x=lon, y=lat, color=values), size=2) + 
+      coord_equal(xlim=range(paleon2[paleon2$umw=="y", "lon"]), ylim=range(paleon2[paleon2$umw=="y", "lat"])) +
+      ggtitle("Annual Resolution") +
+      theme_bw()
+  )
+  print(
+    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="century" & paleon2$umw=="y",]) +
+      facet_grid(season~.) +
+      geom_path(data=us,aes(x=long, y=lat, group=group)) + 
+      geom_point(aes(x=lon, y=lat, color=values), size=2) + 
+      coord_equal(xlim=range(paleon2[paleon2$umw=="y", "lon"]), ylim=range(paleon2[paleon2$umw=="y", "lat"])) +
+      ggtitle("Centennial Resolution") +
+      theme_bw()
+  )
+  dev.off()
+}
 
 # --------------------------------------------
