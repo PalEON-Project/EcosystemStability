@@ -310,7 +310,7 @@ paleon.all[!is.na(paleon.all$umw),"cru2.pc3"] <- pc.mod.cru1$scores[,3]
 # 3. Save output, 
 #    - generate & save a couple figures
 # --------------------------------------------
-write.csv(paleon.all, "data/PCA_Scores_Climate_AllRegion.csv", row.names=F, eol="\r\n")
+write.csv(paleon.all, "data/PCA_Scores_Environment_AllRegion.csv", row.names=F, eol="\r\n")
 
 # Manually calculating the percentage of variance
 set1.POV <- pc.all.set1$sdev^2/sum(pc.all.set1$sdev^2)
