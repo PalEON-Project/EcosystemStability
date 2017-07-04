@@ -36,6 +36,15 @@ plot(paleon.all$lon[which(paleon.all$umwR)], paleon.all$lat[which(paleon.all$umw
 
 # read in Fcomp for models and STEPPS
 fcomp  = readRDS('data/fcomp-all.RDS')
+load('data/input.rdata')
+
+centers_veg_alb = centers_veg*1e6
+coordinates(centers_veg_alb) <- ~ x + y
+proj4string(centers_veg_alb) <- CRS('+init=epsg:3175')#CRS('+proj=longlat +ellps=WGS84')
+
+centers_veg_ll <- spTransform(centers_veg_alb, CRS('+proj=longlat +ellps=WGS84'))
+centers_veg_ll <- data.frame(centers_veg_ll)
+colnames(centers_veg_ll) = c('lon', 'lat')
 
 #######################################################################################################################
 ## PCA for models for full domain
@@ -63,6 +72,8 @@ for (i in 1:length(models)){
   
   pc <- princomp(fcomp_cast[,pfts], cor=T, scores=T)
   pc[['cell_id']] = fcomp_cast$cell_id
+  
+  pc[['coords']] = data.frame(lat = paleon$lat[pc$cell_id], lon=paleon$lon[pc$cell_id])
  
   pc_out[[i]] = pc
 }
@@ -80,7 +91,7 @@ plot_scores <- function(pc, paleon, paleon.all, umw){
   # store first three principal components
   scores_plot = vector("list", length=3)
   for (i in 1:nscores) {
-    pca_scores = data.frame(lat=paleon$lat[pc$cell_id], lon=paleon$lon[pc$cell_id], pc = pc$scores[,i])  
+    pca_scores = data.frame(lat=pc$coords$lat, lon=pc$coords$lon, pc = pc$scores[,i])  
     p   <- ggplot(data=pca_scores) + theme_bw() + coord_equal(expand=0) + 
       geom_raster(data=paleon.all, aes(x=lon, y=lat), fill="gray50") +
       geom_point(aes(x=lon, y=lat, color=pc), size=2, alpha=0.8)  + 
@@ -97,6 +108,7 @@ plot_scores <- function(pc, paleon, paleon.all, umw){
 scores_plot = vector("list", length=length(models))
 for (i in 1:length(models)){
   model = as.vector(models[i])
+
   scores_plot[[i]] = plot_scores(pc_out[[model]], paleon, paleon.all, umw=FALSE)
 }
 
@@ -120,7 +132,7 @@ dev.off()
 #######################################################################################################################
 
 models = unique(fcomp$model)
-models = models[which(models != 'STEPPS')]
+# models = models[which(models != 'STEPPS')]
 pc_out = vector("list", length=length(models))
 names(pc_out) = models
 
@@ -128,7 +140,9 @@ for (i in 1:length(models)){
   model=models[i]
   fcomp_mod = fcomp[which((fcomp$model == model) & (fcomp$year == 1750)),]
   
-  fcomp_mod = fcomp_mod[which(paleon$umw[fcomp_mod$cell_id] == "y"),]
+  if (model != 'STEPPS'){
+    fcomp_mod = fcomp_mod[which(paleon$umw[fcomp_mod$cell_id] == "y"),]
+  }
   
   pfts = unique(fcomp_mod$pft)
   
@@ -141,11 +155,17 @@ for (i in 1:length(models)){
   pfts = pfts[!(pfts %in% pfts_drop)]
   
   pc <- princomp(fcomp_cast[,pfts], cor=T, scores=T)
+  
   pc[['cell_id']] = fcomp_cast$cell_id
+  
+  if (model == 'STEPPS'){
+    pc[['coords']] = data.frame(lat = centers_veg_ll$lat[pc$cell_id], lon=centers_veg_ll$lon[pc$cell_id])
+  } else {
+    pc[['coords']] = data.frame(lat = paleon$lat[pc$cell_id], lon=paleon$lon[pc$cell_id])
+  }
   
   pc_out[[i]] = pc
 }
-
 
 # --------------------------------------------
 # Plot the scores
@@ -164,6 +184,7 @@ for (page in 1:ceiling(length(models)/2)){
   pushViewport(viewport(layout = grid.layout(2, 3)))
   idx_model = page*2 - 1
   for (i in idx_model:(idx_model+1)){
+    if (i > length(models)) {break}
     if (i %% 2 == 0){layout = 2} else {layout = 1}
     for (j in 1:3){
       print(scores_plot[[i]][[j]], vp = viewport(layout.pos.row = layout, layout.pos.col = j))
