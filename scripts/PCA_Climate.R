@@ -82,7 +82,7 @@ cor.melt$Class.Var2 <- factor(cor.melt$Class.Var2, levels=c("precipitation", "te
 summary(cor.melt)
 
 
-library(ggplot2)
+library(ggplot2); library(grid)
 png("figures/environment_correlation_matrix.png", height=8, width=10, units="in", res=320)
 ggplot(data=cor.melt) +
   facet_grid(Class.Var2 ~ Class.Var1, scales="free") +
@@ -362,8 +362,9 @@ pc.umw.mod.loadings$var <- c("Water Cap", "AWC (top)", "Tair (yr)", "Tair (JJA)"
 # Manually creating a biplots
 # Weights cutoff = 75th percentile for PC1 & 2 (top 25% of weights)
 # --------------
-pc.all.cutoff <- quantile(c(abs(pc.all.loadings$Comp.1), abs(pc.all.loadings$Comp.2)), 0.75, na.rm=T)
-biplot.pc.setveg <- ggplot() +
+# pc.all.cutoff <- quantile(c(abs(pc.all.loadings$Comp.1), abs(pc.all.loadings$Comp.2)), 0.75, na.rm=T)
+pc.all.cutoff <- 0
+biplot.pc.all <- ggplot() +
   theme_bw() +# coord_equal() +
   geom_hline(yintercept=0, size=0.3, color="gray50") + geom_vline(xintercept = 0, size=0.3, color="gray50") +
   geom_point(data=paleon, aes(x=pc.all1, y=pc.all2), size=0.2, color="black") +
@@ -376,7 +377,8 @@ biplot.pc.setveg <- ggplot() +
   ggtitle("Region, All") +
   theme(plot.title=element_text(hjust=0.5, face="bold", size=rel(1.25)))
 
-pc.setveg.cutoff <- quantile(c(abs(pc.setveg.loadings$Comp.1), abs(pc.setveg.loadings$Comp.2)), 0.75, na.rm=T)
+# pc.setveg.cutoff <- quantile(c(abs(pc.setveg.loadings$Comp.1), abs(pc.setveg.loadings$Comp.2)), 0.75, na.rm=T)
+pc.setveg.cutoff <- 0
 biplot.pc.setveg <- ggplot() +
   theme_bw() +# coord_equal() +
   geom_hline(yintercept=0, size=0.3, color="gray50") + geom_vline(xintercept = 0, size=0.3, color="gray50") +
@@ -390,7 +392,8 @@ biplot.pc.setveg <- ggplot() +
   ggtitle("Settlement Vegetation, All") +
   theme(plot.title=element_text(hjust=0.5, face="bold", size=rel(1.25)))
 
-pc.setveg.mod.cutoff <- quantile(c(abs(pc.setveg.mod.loadings$Comp.1), abs(pc.setveg.mod.loadings$Comp.2)), 0.75, na.rm=T)
+# pc.setveg.mod.cutoff <- quantile(c(abs(pc.setveg.mod.loadings$Comp.1), abs(pc.setveg.mod.loadings$Comp.2)), 0.75, na.rm=T)
+pc.setveg.mod.cutoff <- 0
 biplot.pc.setveg.mod <- ggplot() +
   theme_bw() +# coord_equal() +
   geom_hline(yintercept=0, size=0.3, color="gray50") + geom_vline(xintercept = 0, size=0.3, color="gray50") +
@@ -405,7 +408,8 @@ biplot.pc.setveg.mod <- ggplot() +
   theme(plot.title=element_text(hjust=0.5, face="bold", size=rel(1.25)))
 
 
-pc.umw.cutoff <- quantile(c(abs(pc.umw.loadings$Comp.1), abs(pc.umw.loadings$Comp.2)), 0.75, na.rm=T)
+# pc.umw.cutoff <- quantile(c(abs(pc.umw.loadings$Comp.1), abs(pc.umw.loadings$Comp.2)), 0.75, na.rm=T)
+pc.umw.cutoff <- 0
 biplot.pc.umw <- ggplot() +
   theme_bw() +# coord_equal() +
   geom_hline(yintercept=0, size=0.3, color="gray50") + geom_vline(xintercept = 0, size=0.3, color="gray50") +
@@ -419,7 +423,8 @@ biplot.pc.umw <- ggplot() +
   ggtitle("Upper Midwest, All") +
   theme(plot.title=element_text(hjust=0.5, face="bold", size=rel(1.25)))
 
-pc.umw.mod.cutoff <- quantile(c(abs(pc.umw.mod.loadings$Comp.1), abs(pc.umw.mod.loadings$Comp.2)), 0.75, na.rm=T)
+# pc.umw.mod.cutoff <- quantile(c(abs(pc.umw.mod.loadings$Comp.1), abs(pc.umw.mod.loadings$Comp.2)), 0.75, na.rm=T)
+pc.umw.mod.cutoff <- 0
 biplot.pc.umw.mod <- ggplot() +
   theme_bw() +# coord_equal() +
   geom_hline(yintercept=0, size=0.3, color="gray50") + geom_vline(xintercept = 0, size=0.3, color="gray50") +
