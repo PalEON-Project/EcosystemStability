@@ -22,9 +22,13 @@ setwd(path.repo)
 # Path to where the raw output is
 path.data <- "~/Desktop/Research/PalEON_MIP_Region/NADA/"
 
+# Lets just save processed to the Google Drive folder
+path.out <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/Current Data/Stability_Index/"
+path.fig <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/Current Figures/Stability_Index/"
+
 # Set up some time variables just to help with indexing
 yrs <- 850:2010
-# mos <- 1:12
+mos <- 1:12
 time.mos <- data.frame(year=rep(yrs, each=length(mos)), month=mos)
 head(time.mos)
 # --------------------------------------------
@@ -56,16 +60,21 @@ nada.nc$dim$time$units # Time goes present to past; starting in 2007
 
 lbda.lat <- ncvar_get(lbda.nc, "lat")
 lbda.lon <- ncvar_get(lbda.nc, "lon")
-lbda.time <- ncvar_get(nada.nc, "time")
+lbda.time <- ncvar_get(lbda.nc, "time")
 lbda.nc$dim$time$units # Time goes present to past; starting in 2007
 
-nada.lon.ind <- which(nada.lon>=min(paleon$lon) & nada.lon<=max(paleon$lon))
-nada.lat.ind <- which(nada.lat>=min(paleon$lat) & nada.lat<=max(paleon$lat))
+nada.res <- mean(diff(nada.lon))
+nada.lon.ind <- which(nada.lon+nada.res/2>=min(paleon$lon) & nada.lon-nada.res/2<=max(paleon$lon))
+nada.lat.ind <- which(nada.lat+nada.res/2>=min(paleon$lat) & nada.lat-nada.res/2<=max(paleon$lat))
 
-lbda.lon.ind <- which(lbda.lon>=min(paleon$lon) & lbda.lon<=max(paleon$lon))
-lbda.lat.ind <- which(lbda.lat>=min(paleon$lat) & lbda.lat<=max(paleon$lat))
+lbda.res <- mean(diff(lbda.lon))
+lbda.lon.ind <- which(lbda.lon+lbda.res/2>=min(paleon$lon) & lbda.lon-lbda.res/2<=max(paleon$lon))
+lbda.lat.ind <- which(lbda.lat+lbda.res/2>=min(paleon$lat) & lbda.lat-lbda.res/2<=max(paleon$lat))
 
 nada.raw <- ncvar_get(nada.nc, "PDSI")[nada.lon.ind,nada.lat.ind,]
+lbda.raw <- ncvar_get(lbda.nc, "pdsi")[,lbda.lat.ind,lbda.lon.ind]
+# lbda.raw <- ncvar_get(lbda.nc, "pdsi")
+dim(lbda.raw)
 
 dim(nada.raw)
 
@@ -107,13 +116,13 @@ for(i in 1:length(nada.lon.ind)){
 nada.stability <- nada.stability[complete.cases(nada.stability),]
 nada.stability$n.yrs <- nada.stability$yr.end - nada.stability$yr.start +1
 summary(nada.stability)
-write.csv(nada.stability, file.path(path.repo, "data/NADA_Stability.csv"), row.names=F, eol="\r\n")
+write.csv(nada.stability, file.path(path.out, "NADA_Stability.csv"), row.names=F, eol="\r\n")
 
 library(ggplot2)
 
 us <- map_data("state")
 
-pdf(file.path(path.repo, "figures/NADA_Stability.pdf"))
+pdf(file.path(path.fig, "NADA_Stability.pdf"))
 print(
 ggplot(data=nada.stability) +
   geom_tile(aes(x=lon, y=lat, fill=stability)) +
@@ -141,4 +150,67 @@ ggplot(data=nada.stability) +
 )
 dev.off()
 
+
+lbda.stability <- data.frame(lat=rep(lbda.lat[lbda.lat.ind], each=length(lbda.lon.ind)),
+                             lon=rep(lbda.lon[lbda.lon.ind], length.out=length(lbda.lon.ind)*length(lbda.lat.ind)))
+
+for(i in 1:length(lbda.lon.ind)){
+  for(j in 1:length(lbda.lat.ind)){
+    # Finding the site index for our data frame
+    site.ind <- which(lbda.stability$lat==lbda.lat[lbda.lat.ind[j]] & lbda.stability$lon==lbda.lon[lbda.lon.ind[i]])
+    
+    # Pulling the raw data
+    ts.raw <- lbda.raw[,j,i]
+    
+    if(length(ts.raw[!is.na(ts.raw)])==0) next
+    
+    # Finding out what years actually have data
+    yr1 <- min(which(!is.na(ts.raw) & ts.raw>-99))
+    yr2 <- max(which(!is.na(ts.raw) & ts.raw>-99))
+    
+    
+    # Saving the time frame in our stability info
+    lbda.stability[site.ind,"yr.end"]   <- lbda.time[yr1] 
+    lbda.stability[site.ind,"yr.start"] <- lbda.time[yr2] 
+    lbda.stability[site.ind,"stability"] <- calc.second.deriv(ts.raw[yr2:yr1], h=1, H=1)
+    
+  }
+}
+
+lbda.stability <- lbda.stability[complete.cases(lbda.stability),]
+lbda.stability$n.yrs <- lbda.stability$yr.end - lbda.stability$yr.start +1
+summary(lbda.stability)
+write.csv(lbda.stability, file.path(path.out, "LBDA_Stability.csv"), row.names=F, eol="\r\n")
+
+library(ggplot2)
+
+us <- map_data("state")
+
+pdf(file.path(path.fig, "LBDA_Stability.pdf"))
+print(
+  ggplot(data=lbda.stability) +
+    geom_tile(aes(x=lon, y=lat, fill=stability)) +
+    geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
+    coord_equal(xlim=range(lbda.stability$lon), ylim=range(lbda.stability$lat)) +
+    theme_bw()
+)
+# print(
+# ggplot(data=lbda.stability) +
+#   geom_tile(aes(x=lon, y=lat, fill=n.yrs)) +
+#   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray30") + 
+#   coord_equal(xlim=range(lbda.stability$lon), ylim=range(lbda.stability$lat)) +
+#   coord_equal()
+# )
+print(
+  ggplot(data=lbda.stability) +
+    geom_tile(aes(x=lon, y=lat, fill=stability/n.yrs)) +
+    geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
+    coord_equal(xlim=range(lbda.stability$lon), ylim=range(lbda.stability$lat)) +
+    theme_bw()
+)
+print(
+  ggplot(data=lbda.stability) +
+    geom_histogram(aes(stability/n.yrs))
+)
+dev.off()
 # --------------------------------------------
