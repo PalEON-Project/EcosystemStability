@@ -43,17 +43,16 @@ head(time.mos)
 #        screw ED up and it's running with the right met... I think this is
 #        a safe assumption)
 # --------------------------------------------
-# loading the key to dimensions in the .RDS files; this is Christy's sheet generated
-# this loads an object called "paleon"
-paleon <- read.csv(file.path(path.repo, "data/paleon_site_info.csv")) 
+# load in the paleon domain info;
+# This got generated using domain_environment_extraction.R
+paleon <- read.csv(file.path(path.repo, "data/paleon_models_environment_master.csv")) 
 paleon$latlon <- as.factor(paleon$latlon)
-paleon <- paleon[,c("lon", "lat", "latlon", "umw", "x", "y")]
 summary(paleon)
 
 # Load the temp & precip data
-tair    <- readRDS(file.path(path.data, "Met/tair.rds"))
-precipf <- readRDS(file.path(path.data, "Met/precipf.rds"))
-pdsi <- readRDS(file.path(path.data, "Met/pdsi.rds"))
+tair    <- readRDS(file.path(path.data, "Met/tair_all.rds"))
+precipf <- readRDS(file.path(path.data, "Met/precipf_all.rds"))
+pdsi <- readRDS(file.path(path.data, "Met/pdsi_calib_1931-1990_all.rds"))
 
 # aggregate to annual resolution
 pdsi.ann <- tair.ann <- tair.jja <- precip.ann <- precip.jja <- matrix(ncol=ncol(tair), nrow=length(yrs))
@@ -127,8 +126,9 @@ library(ggplot2)
 
 summary(paleon)
 # Stacking things together
-paleon2 <- stack(paleon[,7:ncol(paleon)])
-paleon2[,c("lon", "lat", "latlon", "umw", "x", "y")] <- paleon[,c("lon", "lat", "latlon", "umw", "x", "y")]
+paleon2 <- stack(paleon[,26:ncol(paleon)])
+paleon2[,c("lon", "lat", "latlon", "umw", "domain.paleon", "x", "y")] <- paleon[,c("lon", "lat", "latlon", "umw", "domain.paleon", "x", "y")]
+summary(paleon2)
 
 for(i in 1:nrow(paleon2)){
   paleon2[i, "var"       ] <- strsplit(paste(paleon2$ind[i]), "[.]")[[1]][2] 
@@ -142,9 +142,38 @@ summary(paleon2)
 
 us <- map_data("state")
 for(v in unique(paleon2$var)){
-  pdf(file.path(path.repo, "figures", paste0("Stability_Met_", v, "_", res, ".pdf")))
+  pdf(file.path(path.repo, "figures", paste0("Stability_Met_Region_", v, ".pdf")))
   print(
     ggplot(data=paleon2[paleon2$var==v,]) +
+      facet_grid(season~resolution, scales="free_x") +
+      geom_histogram(aes(values)) + 
+      theme_bw()
+  )
+  print(
+    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="annual",]) +
+      ggtitle("Annual Resolution") +
+      facet_grid(season~.) +
+      geom_tile(aes(x=lon, y=lat, fill=values)) + 
+      geom_path(data=us,aes(x=long, y=lat, group=group)) + 
+      coord_equal(xlim=range(paleon2$lon), ylim=range(paleon2$lat)) +
+      theme_bw()
+  )
+  print(
+    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="century",]) +
+      facet_grid(season~.) +
+      geom_tile(aes(x=lon, y=lat, fill=values)) + 
+      geom_path(data=us,aes(x=long, y=lat, group=group)) + 
+      coord_equal(xlim=range(paleon2$lon), ylim=range(paleon2$lat)) +
+      ggtitle("Centennial Resolution") +
+      theme_bw()
+  )
+  dev.off()
+}
+
+for(v in unique(paleon2$var)){
+  pdf(file.path(path.repo, "figures", paste0("Stability_Met_Models_", v, ".pdf")))
+  print(
+    ggplot(data=paleon2[paleon2$var==v & !is.na(paleon2$umw),]) +
       facet_grid(season~resolution, scales="free_x") +
       geom_histogram(aes(values)) + 
       theme_bw()
@@ -171,28 +200,57 @@ for(v in unique(paleon2$var)){
 }
 
 for(v in unique(paleon2$var)){
-  pdf(file.path(path.repo, "figures", paste0("Stability_Met_", v, "_", res, "_UMW.pdf")))
+  pdf(file.path(path.repo, "figures", paste0("Stability_Met_UMW_", v, ".pdf")))
   print(
-    ggplot(data=paleon2[paleon2$var==v & paleon2$umw=="y",]) +
+    ggplot(data=paleon2[paleon2$var==v & paleon2$umw=="y" & !is.na(paleon2$umw),]) +
       facet_grid(season~resolution, scales="free_x") +
       geom_histogram(aes(values)) + 
       theme_bw()
   )
   print(
-    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="annual" & paleon2$umw=="y",]) +
+    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="annual",]) +
       facet_grid(season~.) +
+      geom_tile(aes(x=lon, y=lat, fill=values)) + 
       geom_path(data=us,aes(x=long, y=lat, group=group)) + 
-      geom_point(aes(x=lon, y=lat, color=values), size=2) + 
-      coord_equal(xlim=range(paleon2[paleon2$umw=="y", "lon"]), ylim=range(paleon2[paleon2$umw=="y", "lat"])) +
+      coord_equal(xlim=range(paleon2[paleon2$umw=="y", "lon"], na.rm=T), ylim=range(paleon2[paleon2$umw=="y", "lat"], na.rm=T)) +
       ggtitle("Annual Resolution") +
       theme_bw()
   )
   print(
-    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="century" & paleon2$umw=="y",]) +
+    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="century",]) +
+      facet_grid(season~.) +
+      geom_tile(aes(x=lon, y=lat, fill=values), size=2) + 
+      geom_path(data=us,aes(x=long, y=lat, group=group)) + 
+      coord_equal(xlim=range(paleon2[paleon2$umw=="y", "lon"], na.rm=T), ylim=range(paleon2[paleon2$umw=="y", "lat"], na.rm=T)) +
+      ggtitle("Centennial Resolution") +
+      theme_bw()
+  )
+  dev.off()
+}
+
+for(v in unique(paleon2$var)){
+  pdf(file.path(path.repo, "figures", paste0("Stability_Met_Models_UMW_", v, ".pdf")))
+  print(
+    ggplot(data=paleon2[paleon2$var==v & paleon2$umw=="y" & !is.na(paleon2$umw),]) +
+      facet_grid(season~resolution, scales="free_x") +
+      geom_histogram(aes(values)) + 
+      theme_bw()
+  )
+  print(
+    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="annual" & paleon2$umw=="y" & !is.na(paleon2$umw),]) +
       facet_grid(season~.) +
       geom_path(data=us,aes(x=long, y=lat, group=group)) + 
       geom_point(aes(x=lon, y=lat, color=values), size=2) + 
-      coord_equal(xlim=range(paleon2[paleon2$umw=="y", "lon"]), ylim=range(paleon2[paleon2$umw=="y", "lat"])) +
+      coord_equal(xlim=range(paleon2[paleon2$umw=="y", "lon"], na.rm=T), ylim=range(paleon2[paleon2$umw=="y", "lat"], na.rm=T)) +
+      ggtitle("Annual Resolution") +
+      theme_bw()
+  )
+  print(
+    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="century" & paleon2$umw=="y" & !is.na(paleon2$umw),]) +
+      facet_grid(season~.) +
+      geom_path(data=us,aes(x=long, y=lat, group=group)) + 
+      geom_point(aes(x=lon, y=lat, color=values), size=2) + 
+      coord_equal(xlim=range(paleon2[paleon2$umw=="y", "lon"], na.rm=T), ylim=range(paleon2[paleon2$umw=="y", "lat"], na.rm=T)) +
       ggtitle("Centennial Resolution") +
       theme_bw()
   )
