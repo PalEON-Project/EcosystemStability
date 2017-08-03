@@ -25,6 +25,9 @@ setwd(path.repo)
 # Path to where the raw output is
 path.data <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 
+# Path to where data are; lets just pull straight from the Google Drive folder
+path.google <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/"
+
 # Set up some time variables just to help with indexing
 yrs <- 850:2010
 mos <- 1:12
@@ -118,7 +121,7 @@ paleon$stab.precip.jja.cent <- apply(precip.jja2, 2, calc.second.deriv, h=1, H=1
 summary(paleon)
 
 # Save the file
-write.csv(paleon, file.path(path.repo, "data/PalEON_ClimateStability.csv"), row.names=F, eol="\r\n")
+write.csv(paleon, file.path(path.google, "Current Data/Stability_Index", "PalEON_ClimateStability.csv"), row.names=F, eol="\r\n")
 
 
 # Do some graphing
@@ -142,7 +145,7 @@ summary(paleon2)
 
 us <- map_data("state")
 for(v in unique(paleon2$var)){
-  pdf(file.path(path.repo, "figures", paste0("Stability_Met_Region_", v, ".pdf")))
+  pdf(file.path(path.google, "Current Figures/Stability_Index", paste0("Stability_Met_Region_", v, ".pdf")))
   print(
     ggplot(data=paleon2[paleon2$var==v,]) +
       facet_grid(season~resolution, scales="free_x") +
@@ -171,7 +174,7 @@ for(v in unique(paleon2$var)){
 }
 
 for(v in unique(paleon2$var)){
-  pdf(file.path(path.repo, "figures", paste0("Stability_Met_Models_", v, ".pdf")))
+  pdf(file.path(path.google, "Current Figures/Stability_Index", paste0("Stability_Met_Models_", v, ".pdf")))
   print(
     ggplot(data=paleon2[paleon2$var==v & !is.na(paleon2$umw),]) +
       facet_grid(season~resolution, scales="free_x") +
@@ -200,7 +203,7 @@ for(v in unique(paleon2$var)){
 }
 
 for(v in unique(paleon2$var)){
-  pdf(file.path(path.repo, "figures", paste0("Stability_Met_UMW_", v, ".pdf")))
+  pdf(file.path(path.google, "Current Figures/Stability_Index", paste0("Stability_Met_UMW_", v, ".pdf")))
   print(
     ggplot(data=paleon2[paleon2$var==v & paleon2$umw=="y" & !is.na(paleon2$umw),]) +
       facet_grid(season~resolution, scales="free_x") +
@@ -229,7 +232,7 @@ for(v in unique(paleon2$var)){
 }
 
 for(v in unique(paleon2$var)){
-  pdf(file.path(path.repo, "figures", paste0("Stability_Met_Models_UMW_", v, ".pdf")))
+  pdf(file.path(path.google, "Current Figures/Stability_Index", paste0("Stability_Met_Models_UMW_", v, ".pdf")))
   print(
     ggplot(data=paleon2[paleon2$var==v & paleon2$umw=="y" & !is.na(paleon2$umw),]) +
       facet_grid(season~resolution, scales="free_x") +

@@ -45,6 +45,8 @@ path.soil <- "~/Dropbox/PalEON_CR/env_regional/phase2_env_drivers_v2/soil/"
 # and can be found here: https://github.com/PalEON-Project/modeling_met_ensemble.git
 path.pdsi <- "~/Dropbox/PalEON_CR/met_ensemble/scripts/"
 
+# Lets just save processed to the Google Drive folder
+path.out <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data"
 
 # Set up some time variables just to help with indexing
 yrs <- 850:2010
@@ -187,7 +189,7 @@ summary(paleon.all)
   # Some exploratory graphs to see if we'd expect many differences; 
   # in general, summer shows stronger spatial patterns
   # ---------------
-  pdf("figures/Environmental_Drivers.pdf")
+  pdf(file.path(path.out, "Current Figures/Data_Raw", "Environmental_Drivers.pdf"))
   # The non-climate environment
   grid.newpage()
   pushViewport(viewport(layout = grid.layout(4, 2)))
@@ -255,5 +257,5 @@ library(car)
 paleon.all$domain.paleon <- recode(paleon.all$domain.paleon, "'1'='New England'; '2'='IL'; '3'='IN'; '4'='ME'; '5'='MI - lower'; '6'='MN'; '7'='NJ'; '8'='NY'; '9'='OH'; '10'='PA'; '11'='WI'; '12'='MI - upper'")
 summary(paleon.all)
 
-write.csv(paleon.all, "data/paleon_models_environment_master.csv", row.names=F)
+write.csv(paleon.all, file.path(path.out, "Current Data", "paleon_models_environment_master.csv"), row.names=F)
 # --------------------------------------------
