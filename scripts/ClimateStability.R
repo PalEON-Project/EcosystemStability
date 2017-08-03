@@ -14,7 +14,7 @@
 #    -  Call calc.second.deriv (calc_second_deriv.R)
 # 3. Save output, generate & save a couple figures
 # --------------------------------------------
-
+rm(list=ls())
 # --------------------------------------------
 # 0. Define file paths etc
 # --------------------------------------------
@@ -99,7 +99,7 @@ summary(tair.ann2[,1:10])
 # --------------------------------------------
 source(file.path(path.repo, "scripts/calc_second_deriv.R"))
 
-# Doing the actual calculation on each cell
+# Doing the actual calculation on each cell -- for the time preiods that can be compared to data
 paleon$stab.pdsi.ann      <- apply(pdsi.ann[which(yrs<=1850),] , 2, calc.second.deriv, h=1, H=1)
 paleon$stab.pdsi.ann.cent <- apply(pdsi.ann2, 2, calc.second.deriv, h=1, H=100)
 
@@ -112,6 +112,22 @@ paleon$stab.precip.ann      <- apply(precip.ann[which(yrs<=1850),] , 2, calc.sec
 paleon$stab.precip.ann.cent <- apply(precip.ann2, 2, calc.second.deriv, h=1, H=100)
 paleon$stab.precip.jja      <- apply(precip.jja[which(yrs<=1850),] , 2, calc.second.deriv, h=1, H=1)
 paleon$stab.precip.jja.cent <- apply(precip.jja2, 2, calc.second.deriv, h=1, H=100)
+
+# To do accurate comparisons with the LBDA, we need to match time frames
+# Note: LBDA goes almost to present, but we're focused on comparing with paleo data
+lbda.stability <- read.csv(file.path(path.google, "Current Data/Stability_Index", "LBDA_Stability.csv"))
+summary(lbda.stability)
+
+# Need to loop through the paleon data frame to pull a specific time range for each grid cell
+for(i in 1:nrow(paleon)){
+  yr.max <- lbda.stability[lbda.stability$lat==paleon$lat[i] & lbda.stability$lon==paleon$lon[i],"yr.end"]
+  yr.min <- lbda.stability[lbda.stability$lat==paleon$lat[i] & lbda.stability$lon==paleon$lon[i],"yr.start"]
+  if(length(yr.max)==0) next 
+  
+  paleon[i, "stab.pdsi.lbda"] <- calc.second.deriv(pdsi.ann[which(yrs>=yr.min & yrs<=yr.max),i], h=1, H=1)
+  paleon[i, "stab.pdsi.lbda.nyr"] <- paleon[i, "stab.pdsi.lbda"]/length(yr.min:yr.max)
+}
+summary(paleon)
 # --------------------------------------------
 
 
@@ -129,8 +145,8 @@ library(ggplot2)
 
 summary(paleon)
 # Stacking things together
-paleon2 <- stack(paleon[,26:ncol(paleon)])
-paleon2[,c("lon", "lat", "latlon", "umw", "domain.paleon", "x", "y")] <- paleon[,c("lon", "lat", "latlon", "umw", "domain.paleon", "x", "y")]
+paleon2 <- stack(paleon[paleon$stab.pdsi.ann<quantile(paleon$stab.pdsi.ann,1-3/nrow(paleon)),26:(ncol(paleon)-2)])
+paleon2[,c("lon", "lat", "latlon", "umw", "domain.paleon", "x", "y")] <- paleon[paleon$stab.pdsi.ann<quantile(paleon$stab.pdsi.ann,1-3/nrow(paleon)),c("lon", "lat", "latlon", "umw", "domain.paleon", "x", "y")]
 summary(paleon2)
 
 for(i in 1:nrow(paleon2)){
@@ -170,6 +186,17 @@ for(v in unique(paleon2$var)){
       ggtitle("Centennial Resolution") +
       theme_bw()
   )
+  if(v=="pdsi"){
+    print(
+    ggplot(data=paleon[paleon$stab.pdsi.ann<quantile(paleon$stab.pdsi.ann,1-3/nrow(paleon)),]) +
+      ggtitle("LBDA overlap") +
+      # facet_grid(season~.) +
+      geom_tile(aes(x=lon, y=lat, fill=stab.pdsi.lbda.nyr)) + 
+      geom_path(data=us,aes(x=long, y=lat, group=group)) + 
+      coord_equal(xlim=range(paleon$lon), ylim=range(paleon$lat)) +
+      theme_bw()
+    )
+  }
   dev.off()
 }
 
@@ -182,7 +209,7 @@ for(v in unique(paleon2$var)){
       theme_bw()
   )
   print(
-    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="annual",]) +
+    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="annual"& !is.na(paleon2$umw),]) +
       ggtitle("Annual Resolution") +
       facet_grid(season~.) +
       geom_path(data=us,aes(x=long, y=lat, group=group)) + 
@@ -191,7 +218,7 @@ for(v in unique(paleon2$var)){
       theme_bw()
   )
   print(
-    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="century",]) +
+    ggplot(data=paleon2[paleon2$var==v & paleon2$resolution=="century"& !is.na(paleon2$umw),]) +
       facet_grid(season~.) +
       geom_path(data=us,aes(x=long, y=lat, group=group)) + 
       geom_point(aes(x=lon, y=lat, color=values)) + 
@@ -199,6 +226,18 @@ for(v in unique(paleon2$var)){
       ggtitle("Centennial Resolution") +
       theme_bw()
   )
+  if(v=="pdsi"){
+    print(
+      ggplot(data=paleon[paleon$stab.pdsi.ann<quantile(paleon$stab.pdsi.ann,1-3/nrow(paleon))& !is.na(paleon$umw),]) +
+        ggtitle("LBDA overlap") +
+        # facet_grid(season~.) +
+        geom_tile(aes(x=lon, y=lat, fill=stab.pdsi.lbda.nyr)) + 
+        geom_path(data=us,aes(x=long, y=lat, group=group)) + 
+        coord_equal(xlim=range(paleon$lon), ylim=range(paleon$lat)) +
+        theme_bw()
+    )
+  }
+  
   dev.off()
 }
 
@@ -228,6 +267,18 @@ for(v in unique(paleon2$var)){
       ggtitle("Centennial Resolution") +
       theme_bw()
   )
+  if(v=="pdsi"){
+    print(
+      ggplot(data=paleon[paleon$stab.pdsi.ann<quantile(paleon$stab.pdsi.ann,1-3/nrow(paleon)),]) +
+        ggtitle("LBDA overlap") +
+        # facet_grid(season~.) +
+        geom_tile(aes(x=lon, y=lat, fill=stab.pdsi.lbda.nyr)) + 
+        geom_path(data=us,aes(x=long, y=lat, group=group)) + 
+        coord_equal(xlim=range(paleon2[paleon2$umw=="y", "lon"], na.rm=T), ylim=range(paleon2[paleon2$umw=="y", "lat"], na.rm=T)) +
+        theme_bw()
+    )
+  }
+  
   dev.off()
 }
 
@@ -257,6 +308,18 @@ for(v in unique(paleon2$var)){
       ggtitle("Centennial Resolution") +
       theme_bw()
   )
+  if(v=="pdsi"){
+    print(
+      ggplot(data=paleon[paleon$stab.pdsi.ann<quantile(paleon$stab.pdsi.ann,1-3/nrow(paleon)) & paleon$umw=="y" & !is.na(paleon$umw),]) +
+        ggtitle("LBDA overlap") +
+        # facet_grid(season~.) +
+        geom_tile(aes(x=lon, y=lat, fill=stab.pdsi.lbda.nyr)) + 
+        geom_path(data=us,aes(x=long, y=lat, group=group)) + 
+        coord_equal(xlim=range(paleon2[paleon2$umw=="y", "lon"], na.rm=T), ylim=range(paleon2[paleon2$umw=="y", "lat"], na.rm=T)) +
+        theme_bw()
+    )
+  }
+  
   dev.off()
 }
 

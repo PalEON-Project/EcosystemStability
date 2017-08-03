@@ -35,7 +35,7 @@ head(time.mos)
 
 
 # --------------------------------------------
-# 1. Load & Extract PDSI data from NADA
+# 1. Load & Extract PDSI data from NADA & LBDA
 # 
 # All files downloaded from here on 9 June 2017
 # https://www.ncdc.noaa.gov/data-access/paleoclimatology-data/datasets/tree-ring/north-american-drought-variability
@@ -66,16 +66,17 @@ lbda.nc$dim$time$units # Time goes present to past; starting in 2007
 nada.res <- mean(diff(nada.lon))
 nada.lon.ind <- which(nada.lon+nada.res/2>=min(paleon$lon) & nada.lon-nada.res/2<=max(paleon$lon))
 nada.lat.ind <- which(nada.lat+nada.res/2>=min(paleon$lat) & nada.lat-nada.res/2<=max(paleon$lat))
+nada.time.ind <- which(nada.time>=850 & nada.time<=1850)
 
 lbda.res <- mean(diff(lbda.lon))
 lbda.lon.ind <- which(lbda.lon+lbda.res/2>=min(paleon$lon) & lbda.lon-lbda.res/2<=max(paleon$lon))
 lbda.lat.ind <- which(lbda.lat+lbda.res/2>=min(paleon$lat) & lbda.lat-lbda.res/2<=max(paleon$lat))
+lbda.time.ind <- which(lbda.time>=850 & lbda.time<=1850)
 
-nada.raw <- ncvar_get(nada.nc, "PDSI")[nada.lon.ind,nada.lat.ind,]
-lbda.raw <- ncvar_get(lbda.nc, "pdsi")[,lbda.lat.ind,lbda.lon.ind]
+nada.raw <- ncvar_get(nada.nc, "PDSI")[nada.lon.ind, nada.lat.ind, nada.time.ind]
+lbda.raw <- ncvar_get(lbda.nc, "pdsi")[lbda.time.ind, lbda.lat.ind, lbda.lon.ind]
 # lbda.raw <- ncvar_get(lbda.nc, "pdsi")
 dim(lbda.raw)
-
 dim(nada.raw)
 
 # --------------------------------------------
@@ -106,8 +107,8 @@ for(i in 1:length(nada.lon.ind)){
     
    
     # Saving the time frame in our stability info
-    nada.stability[site.ind,"yr.end"]   <- nada.time[yr1] 
-    nada.stability[site.ind,"yr.start"] <- nada.time[yr2] 
+    nada.stability[site.ind,"yr.end"]   <- nada.time[nada.time.ind][yr1] 
+    nada.stability[site.ind,"yr.start"] <- nada.time[nada.time.ind][yr2] 
     nada.stability[site.ind,"stability"] <- calc.second.deriv(ts.raw[yr2:yr1], h=1, H=1)
     
   }
@@ -170,8 +171,8 @@ for(i in 1:length(lbda.lon.ind)){
     
     
     # Saving the time frame in our stability info
-    lbda.stability[site.ind,"yr.end"]   <- lbda.time[yr1] 
-    lbda.stability[site.ind,"yr.start"] <- lbda.time[yr2] 
+    lbda.stability[site.ind,"yr.start"]   <- lbda.time[lbda.time.ind][yr1] 
+    lbda.stability[site.ind,"yr.end"] <- lbda.time[lbda.time.ind][yr2] 
     lbda.stability[site.ind,"stability"] <- calc.second.deriv(ts.raw[yr2:yr1], h=1, H=1)
     
   }
