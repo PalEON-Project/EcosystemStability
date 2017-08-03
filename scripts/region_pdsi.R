@@ -29,6 +29,10 @@ setwd(path.repo)
 # - this will give you monthly met vars
 path.data <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 
+
+# Path to the google drive; best for pulling data
+path.google <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data"
+
 # Path to where the model environmental drivers are; these can be downloaded
 # from Cyverse
 path.soil <- "~/Dropbox/PalEON_CR/env_regional/phase2_env_drivers_v2/soil/"
@@ -51,7 +55,7 @@ path.out <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/"
 # ---------------------------------------------------------
 # load in the paleon domain info;
 # This got generated using domain_environment_extraction.R
-paleon <- read.csv(file.path(path.repo, "data/paleon_models_environment_master.csv")) 
+paleon <- read.csv(file.path(path.google, "Current Data", "paleon_models_environment_master.csv")) 
 paleon$latlon <- as.factor(paleon$latlon)
 summary(paleon)
 
@@ -66,6 +70,9 @@ lat2 <- ncvar_get(tair.nc, "lat")
 
 tair.raw <- matrix(NA, nrow=length(tair.nc$dim[[3]]$vals), ncol=nrow(paleon)) # A place holder matrix
 precipf.raw <- matrix(NA, nrow=length(tair.nc$dim[[3]]$vals), ncol=nrow(paleon)) # A place holder matrix
+dimnames(tair.raw)[[2]] <- paleon$latlon
+dimnames(precipf.raw)[[2]] <- paleon$latlon
+
 for(i in 1:nrow(paleon)){
   x.ind2 <- which(lon2 == paleon[i,"lon"])
   y.ind2 <- which(lat2 == paleon[i,"lat"])
@@ -83,7 +90,7 @@ for(i in 1:nrow(paleon)){
 
 library(ggplot2)
 us <- map_data("state")
-png("figures/Soil_Water_Capacity.png", height=5, width=10, units="in", res=220)
+png(file.path(path.google, "Current Figures/Data_Raw", "Soil_Water_Capacity.png"), height=5, width=10, units="in", res=220)
 ggplot(data=paleon[paleon$whc.tot<max(paleon$whc.tot),]) +
   geom_raster(aes(x=lon, y=lat, fill=whc.tot), alpha=0.9) +
   geom_path(data=us, aes(x=long, y=lat, group=group), size=0.5, color="gray50") +
@@ -104,6 +111,9 @@ pdsi2.all <- array(dim=c(1161, 12, ncol(tair.raw))) # Save it all so we can make
 pdsi3.all <- array(dim=c(1161, 12, ncol(tair.raw))) # Save it all so we can make some easier graphs
 pdsiM.all <- array(dim=c(1161, 12, ncol(tair.raw))) # Save it all so we can make some easier graphs
 pdsiH.all <- array(dim=c(1161, 12, ncol(tair.raw))) # Save it all so we can make some easier graphs
+
+dimnames(pdsi.final)[[2]] <- dimnames(pdsi2.final)[[2]] <- dimnames(pdsi3.final)[[2]] <- paleon$latlon
+names(pdsi.all) <- names(pdsi2.all) <- names(pdsi3.all) <- names(pdsiM.all) <- names(pdsiH.all) <- paleon$latlon
 
 pb <- txtProgressBar(min = 0, max = ncol(tair.raw), style = 3)
 
@@ -245,13 +255,13 @@ pdsi3 <- rbind(pdsi3, pdsi3_sites)
 # pdsi3$type <- factor(pdsi3$type, levels=c("Model Sites", "Full Region"))
 
 library(ggplot2)
-pdf("figures/PDSI_Region.pdf")
+pdf(file.path(path.google, "Current Figures/Data_Raw", "PDSI_Region.pdf"))
 print(
 ggplot(data=pdsi) +
   geom_ribbon(aes(x=year, ymin=lwr, ymax=upr, fill=type), alpha=0.5) +
   geom_line(aes(x=year, y=mean, color=type, size=type)) +
-  scale_fill_manual(values=c("red2", "black")) +
-  scale_color_manual(values=c("red2", "black")) +
+  scale_fill_manual(values=c("black", "red2")) +
+  scale_color_manual(values=c("black", "red2")) +
   scale_size_manual(values=c(1, 0.6)) +
   ggtitle("NADA Calibration (1931-1990)")
 )
@@ -259,8 +269,8 @@ print(
 ggplot(data=pdsi2) +
   geom_ribbon(aes(x=year, ymin=lwr, ymax=upr, fill=type), alpha=0.5) +
   geom_line(aes(x=year, y=mean, color=type, size=type)) +
-  scale_fill_manual(values=c("red2", "black")) +
-  scale_color_manual(values=c("red2", "black")) +
+  scale_fill_manual(values=c("black", "red2")) +
+  scale_color_manual(values=c("black", "red2")) +
   scale_size_manual(values=c(1, 0.6)) +
   ggtitle("Pre-settlement Calibration 1800-1850")
 )
@@ -268,8 +278,8 @@ print(
 ggplot(data=pdsi3) +
   geom_ribbon(aes(x=year, ymin=lwr, ymax=upr, fill=type), alpha=0.5) +
   geom_line(aes(x=year, y=mean, color=type, size=type)) +
-  scale_fill_manual(values=c("red2", "black")) +
-  scale_color_manual(values=c("red2", "black")) +
+  scale_fill_manual(values=c("black", "red2")) +
+  scale_color_manual(values=c("black", "red2")) +
   scale_size_manual(values=c(1, 0.6)) +
   ggtitle("Spinup Calibration (850-869)")
 )

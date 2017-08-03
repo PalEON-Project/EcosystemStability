@@ -32,7 +32,7 @@
 # 0. Define file paths etc
 # --------------------------------------------
 # Path to github repository/working directory
-path.repo <- "~/Desktop/Research/EcosystemStability/"
+path.repo <- "~/Desktop/Research/PalEON_EcosystemStability/"
 setwd(path.repo)
 
 # Path to where data are
