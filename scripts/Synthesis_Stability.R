@@ -26,6 +26,8 @@ path.data <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/Current Data
 # Path to where data are; lets just pull straight from the Google Drive folder
 path.google <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/"
 
+library(ggplot2)
+us <- map_data("state")
 # --------------------------------------------
 
 
@@ -71,8 +73,22 @@ names(stab.lbda)[3:5] <- c("lbda.start", "lbda.end", "lbda")
 summary(stab.nada)
 summary(stab.lbda)
 
-names(stab.refab) <- c("Site", "biomass", "lat", "lon")
+names(stab.refab) <- c("Site", "biomass", "lon", "lat")
 summary(stab.refab)
+
+# Merge models into 1
+stab.bm.ed$Model   <- "ed2"
+stab.bm.link$Model <- "linkages"
+stab.bm.lpjg$Model <- "lpj-guess"
+stab.bm.lpjw$Model <- "lpj-wsl"
+stab.bm.trif$Model <- "triffid"
+
+stab.bm.model <- rbind(stab.bm.ed, stab.bm.link, stab.bm.lpjg, stab.bm.lpjw, stab.bm.trif)
+stab.bm.model$Model <- as.factor(stab.bm.model$Model)
+stab.bm.model$Site  <- as.factor(paste0("lat", stab.bm.model$lat, "lon", stab.bm.model$lon))
+names(stab.bm.model)[1] <- "biomass"
+summary(stab.bm.model)
+
 
 summary(stab.fcomp)
 
@@ -83,15 +99,13 @@ summary(stab.fcomp)
 #    C. Biomass
 # --------------------------------------------
 # Checking out spatial alignment of products
-library(ggplot2)
-us <- map_data("state")
 
-ggplot() + 
-  geom_tile(data=stab.lbda, aes(x=lon, y=lat, fill=lbda))+
-  geom_raster(data=stab.clim, aes(x=lon, y=lat, fill=pdsi.ann), fill="red", alpha=0.5) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
-  coord_equal(xlim=range(stab.lbda$lon), ylim=range(stab.lbda$lat))
-
+# ggplot() + 
+#   geom_tile(data=stab.lbda, aes(x=lon, y=lat, fill=lbda))+
+#   geom_raster(data=stab.clim, aes(x=lon, y=lat, fill=pdsi.ann), fill="red", alpha=0.5) +
+#   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
+#   coord_equal(xlim=range(stab.lbda$lon), ylim=range(stab.lbda$lat))
+# 
 
 # The PalEON grid is at the same resolution as the Living, Blended Atlas, so those comparisons are easy
 summary(stab.lbda)
@@ -141,54 +155,139 @@ stab.comparison$ind <- recode(stab.comparison$ind, "'lbda.std'='LBDA'; 'pdsi.lbd
 stab.comparison$ind <- factor(stab.comparison$ind, levels=c("Tair", "Precip", "PDSI (all)", "PDSI (LBDA Overlap)", "LBDA"))
 summary(stab.comparison)
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "MetStability_Relative.png"), height=3, width=6, unit="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "MetStability_Relative.png"), height=4, width=10, unit="in", res=320)
 ggplot(data=stab.comparison[,]) + 
   facet_wrap(~ind, ncol=3) +
   geom_tile(aes(x=lon, y=lat, fill=values))+
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
   scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 1) + 
+  ggtitle("PDSI Stability Index: Reconstruction vs. Drivers") +
   coord_equal(xlim=range(stab.lbda$lon), ylim=range(stab.lbda$lat), expand=0)
 dev.off()
 
+# Doing some exploratory graphing of stability in met variables
+ggplot(data=stab.lbda2, aes(x=lbda, y=pdsi.lbda)) +
+  geom_point() +
+  stat_smooth(method="lm")
+
+ggplot(data=stab.lbda2, aes(x=lbda.std, y=pdsi.lbda.std)) +
+  geom_point() +
+  stat_smooth(method="lm")
+
+ggplot(data=stab.lbda2, aes(x=pdsi.std, y=pdsi.lbda.std)) +
+  geom_point() +
+  stat_smooth(method="lm")
+
+ggplot(data=stab.lbda2, aes(x=precip.std, y=pdsi.std)) +
+  geom_point() +
+  stat_smooth(method="lm")
+
+ggplot(data=stab.lbda2, aes(x=tair.std, y=pdsi.std)) +
+  geom_point() +
+  stat_smooth(method="lm")
 
 
-ggplot(data=stab.lbda2) +
-  geom_point(aes(x=lbda.std, y=pdsi.std)) +
-  stat_smooth(aes(x=lbda.std, y=pdsi.std), method="lm")
+# Looking at the correlations between empirical & model
+lbda.pdsi.lm <- lm(pdsi.lbda.std ~ lbda.std, data=stab.lbda2 )
+summary(lbda.pdsi.lm) # No correlation (at all!) between model & driver instability
 
-ggplot(data=stab.lbda2[stab.lbda2$pdsi.std2<5,]) +
-  geom_point(aes(x=lbda.std2, y=pdsi.std2)) +
-  stat_smooth(aes(x=lbda.std2, y=pdsi.std2), method="lm")
-
-ggplot(data=stab.lbda2) +
-  geom_point(aes(x=lbda.std, y=tair.jja/1161)) +
-  stat_smooth(aes(x=lbda.std, y=tair.jja/1161), method="lm")
-
-ggplot(data=stab.lbda2) +
-  geom_point(aes(x=lbda.std, y=precip.ann/1161)) +
-  stat_smooth(aes(x=lbda.std, y=precip.ann/1161), method="lm")
-
-lbda.pdsi.lm <- lm(pdsi.std ~ lbda.std, data=stab.lbda2 )
-summary(lbda.pdsi.lm)
-
-lbda.tair.lm <- lm(tair.jja/1161 ~ lbda.std, data=stab.lbda2 )
-summary(lbda.tair.lm)
-
-lbda.ppt.lm <- lm(precip.jja/1161 ~ lbda.std, data=stab.lbda2 )
-summary(lbda.ppt.lm)
-
-par(mfrow=c(3,1))
-hist(stab.lbda2$lbda)
-hist(stab.lbda2$lbda.std)
-hist(stab.lbda2$pdsi.ann/1161)
+# Making sure that the poor coorealtion with osberved is likely to hold true for logner time periods as well
+pdsi.lm <- lm(pdsi.lbda.std ~ pdsi.std, data=stab.lbda2 )
+summary(pdsi.lm) # Not perfect, but tight correlation between the LBDA overlap stability & with the full time
+# --------------------------------------------
 
 
-# Finding out how to re-center points to line up with NADA
-ggplot() + 
-  geom_tile(data=stab.nada, aes(x=lon, y=lat, fill=nada))+
-  geom_raster(data=stab.clim, aes(x=lon, y=lat, fill=pdsi.ann)) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
-  coord_equal(xlim=range(stab.nada$lon), ylim=range(stab.nada$lat))
+# --------------------------------------------
+# Now to compare ecosystem stability with models & data against each other & with met 
+# --------------------------------------------
+# Lets start with biomass since that's only 1-dimension
+# biomass models all saved by species
+summary(stab.bm.model)
+summary(stab.refab)
 
+# Standardizing the biomass stability to itself
+stab.refab$bm.std <- stab.refab$biomass/mean(stab.refab$biomass)
+
+for(mod in unique(stab.bm.model$Model)){
+  stab.bm.model[stab.bm.model$Model==mod, "bm.std"] <- stab.bm.model[stab.bm.model$Model==mod, "biomass"]/mean(stab.bm.model[stab.bm.model$Model==mod, "biomass"], na.rm=T)
+}
+summary(stab.bm.model)
+
+summary(stab.lbda2)
+
+# Making a pdsi data frame that will correspond to the biomass stability one
+pdsi.stab <- data.frame(stab.lbda2[,c("Site", "lon", "lat", "umw")], 
+                        Model=rep(unique(stab.bm.model$Model), each=nrow(stab.lbda2)),
+                        pdsi.stab=stab.lbda2$pdsi.lbda.std)
+pdsi.stab <- rbind(pdsi.stab, data.frame(stab.lbda2[,c("Site", "lon", "lat", "umw")], 
+                                         Model=rep("refab", each=nrow(stab.lbda2)),
+                                         pdsi.stab=stab.lbda2$lbda.std))
+
+pdsi.stab <- pdsi.stab[pdsi.stab$lon>=min(stab.lbda2[stab.lbda2$umw=="y", "lon"], na.rm=T)-1 & 
+                         pdsi.stab$lon<=max(stab.lbda2[stab.lbda2$umw=="y", "lon"], na.rm=T)+1 & 
+                         pdsi.stab$lat>=min(stab.lbda2[stab.lbda2$umw=="y", "lat"], na.rm=T)-1 & 
+                         pdsi.stab$lat<=max(stab.lbda2[stab.lbda2$umw=="y", "lat"], na.rm=T)+1   , ]
+
+summary(pdsi.stab)
+
+
+# Merging empirical and model biomass stability
+stab.refab$Model <- as.factor("refab")
+stab.refab$umw <- as.factor("y")
+
+stab.bm.model <- merge(stab.bm.model, paleon[,c("Site", "lon", "lat", "umw")])
+
+stab.bm <- merge(stab.bm.model, stab.refab, all=T)
+stab.bm <- stab.bm[stab.bm$umw=="y",]
+
+# Since we're log-transforming thing, make 0 something really tiny
+stab.bm[stab.bm$bm.std==0 & !is.na(stab.bm$bm.std), "bm.std"] <- 1e-4 
+
+# put refab first so it's always our reference 
+stab.bm$Model <- factor(stab.bm$Model, levels=c("refab", "ed2", "linkages", "lpj-guess", "lpj-wsl", "triffid"))
+summary(stab.bm)
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "BiomassStability_Maps.png"), height=6, width=8, units = "in", res=320)
+ggplot(data=stab.bm) +
+  facet_wrap(~Model, ncol=2) +
+  geom_tile(data=pdsi.stab, aes(x=lon, y=lat, fill=pdsi.stab)) +
+  geom_point(data=stab.bm, aes(x=lon, y=lat, color=log(bm.std)), size=2) +
+  geom_path(data=us, aes(x=long, y=lat, group=group), color="black") + 
+  scale_fill_gradient2(low = "blue2", high = "red2", mid = "gray80", midpoint = 1) + 
+  scale_color_gradient(low = "darkgreen", high="lightgreen") + 
+  coord_equal(xlim=range(pdsi.stab$lon), 
+              ylim=c(min(pdsi.stab$lat), max(pdsi.stab$lat)+0.25),
+              expand=0) +
+  ggtitle("Stability Index: PDSI vs. Biomass") +
+  # guides(fill=guide_legend(aes.overide=list(alpha=0.5))) +
+  theme(panel.background=element_blank())
+dev.off()
+
+
+# Extracting point information for each grid cell
+for(i in 1:nrow(stab.bm)){
+  pdsi.ind <- which(pdsi.stab$Model==stab.bm$Model[i] & 
+                      pdsi.stab$lat-0.25<stab.bm$lat[i] & pdsi.stab$lat+0.25>=stab.bm$lat[i] &
+                      pdsi.stab$lon-0.25<stab.bm$lon[i] & pdsi.stab$lon+0.25>=stab.bm$lon[i])
+  
+  if(length(pdsi.ind)==0) next
+  
+  stab.bm[i,"pdsi.stab"] <- pdsi.stab[pdsi.ind, "pdsi.stab"]
+}
+summary(stab.bm)
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "BiomassStability_Maps.png"), height=6, width=8, units = "in", res=320)
+ggplot(data=stab.bm) + 
+  geom_point(aes(x=pdsi.stab, y=log(bm.std), color=Model)) +
+  stat_smooth(aes(x=pdsi.stab, y=log(bm.std), color=Model, fill=Model), method="lm")
+dev.off()
+
+
+summary(stab.bm)
+
+# Testing things with a linear model
+bm.stab.lm <- lm(log(bm.std) ~ pdsi.stab*Model, data=stab.bm[complete.cases(stab.bm),])
+summary(bm.stab.lm) # No relationships between environmental stability & biomass; this 
+anova(bm.stab.lm)
 
 # --------------------------------------------
