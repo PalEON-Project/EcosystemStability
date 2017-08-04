@@ -263,6 +263,7 @@ ggplot(data=stab.bm) +
   theme(panel.background=element_blank())
 dev.off()
 
+stab.lbda2$pdsi.std.cent <- stab.lbda2$pdsi.ann.cent/mean(stab.lbda2$pdsi.ann.cent, na.rm=T)
 
 # Extracting point information for each grid cell
 for(i in 1:nrow(stab.bm)){
@@ -270,17 +271,26 @@ for(i in 1:nrow(stab.bm)){
                       pdsi.stab$lat-0.25<stab.bm$lat[i] & pdsi.stab$lat+0.25>=stab.bm$lat[i] &
                       pdsi.stab$lon-0.25<stab.bm$lon[i] & pdsi.stab$lon+0.25>=stab.bm$lon[i])
   
+  pdsi.ind2 <- which(stab.lbda2$lat-0.25<stab.bm$lat[i] & stab.lbda2$lat+0.25>=stab.bm$lat[i] &
+                       stab.lbda2$lon-0.25<stab.bm$lon[i] & stab.lbda2$lon+0.25>=stab.bm$lon[i])
+
   if(length(pdsi.ind)==0) next
   
   stab.bm[i,"pdsi.stab"] <- pdsi.stab[pdsi.ind, "pdsi.stab"]
+  stab.bm[i,"pdsi.stab.cent"] <- stab.lbda2[pdsi.ind2, "pdsi.std.cent"]
+  
 }
 summary(stab.bm)
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "BiomassStability_Maps.png"), height=6, width=8, units = "in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "BiomassStability_vs_PDSI_Stability.png"), height=6, width=8, units = "in", res=320)
 ggplot(data=stab.bm) + 
   geom_point(aes(x=pdsi.stab, y=log(bm.std), color=Model)) +
   stat_smooth(aes(x=pdsi.stab, y=log(bm.std), color=Model, fill=Model), method="lm")
 dev.off()
+
+ggplot(data=stab.bm[stab.bm$Model!="refab",]) + 
+  geom_point(aes(x=log(pdsi.stab.cent), y=log(bm.std), color=Model)) +
+  stat_smooth(aes(x=log(pdsi.stab.cent), y=log(bm.std), color=Model, fill=Model), method="lm")
 
 
 summary(stab.bm)
@@ -290,4 +300,7 @@ bm.stab.lm <- lm(log(bm.std) ~ pdsi.stab*Model, data=stab.bm[complete.cases(stab
 summary(bm.stab.lm) # No relationships between environmental stability & biomass; this 
 anova(bm.stab.lm)
 
+bm.stab.cent.lm <- lm(log(bm.std) ~ log(pdsi.stab)*Model, data=stab.bm[complete.cases(stab.bm) & stab.bm$Model!="refab",])
+summary(bm.stab.cent.lm) # No relationships between environmental stability & biomass; this 
+anova(bm.stab.cent.lm)
 # --------------------------------------------
