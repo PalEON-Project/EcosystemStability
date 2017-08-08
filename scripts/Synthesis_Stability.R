@@ -133,6 +133,10 @@ stab.lbda2$tair.std <- (stab.lbda2$tair.ann/mean(stab.lbda2$tair.ann, na.rm=T))
 stab.lbda2$precip.std <- (stab.lbda2$precip.ann/mean(stab.lbda2$precip.ann, na.rm=T))
 stab.lbda2$pdsi.std <- (stab.lbda2$pdsi.ann/mean(stab.lbda2$pdsi.ann, na.rm=T))
 
+stab.lbda2$tair.cent.std <- (stab.lbda2$tair.ann.cent/mean(stab.lbda2$tair.ann.cent, na.rm=T))
+stab.lbda2$precip.cent.std <- (stab.lbda2$precip.ann.cent/mean(stab.lbda2$precip.ann.cent, na.rm=T))
+stab.lbda2$pdsi.cent.std <- (stab.lbda2$pdsi.ann.cent/mean(stab.lbda2$pdsi.ann.cent, na.rm=T))
+
 # paleon$tair.std <- (paleon$tair.yr.set/mean(paleon$tair.yr.set, na.rm=T))
 # paleon$precip.std <- (paleon$precip.yr.set/mean(paleon$precip.yr.set, na.rm=T))
 # 
@@ -216,19 +220,30 @@ summary(stab.bm.model)
 summary(stab.lbda2)
 
 # Making a pdsi data frame that will correspond to the biomass stability one
-pdsi.stab <- data.frame(stab.lbda2[,c("Site", "lon", "lat", "umw")], 
-                        Model=rep(unique(stab.bm.model$Model), each=nrow(stab.lbda2)),
-                        pdsi.stab=stab.lbda2$pdsi.lbda.std)
-pdsi.stab <- rbind(pdsi.stab, data.frame(stab.lbda2[,c("Site", "lon", "lat", "umw")], 
+clim.stab <- data.frame(stab.lbda2[,c("Site", "lon", "lat", "umw")], 
+                        Model           = rep(unique(stab.bm.model$Model), each=nrow(stab.lbda2)),
+                        pdsi.ann.stab   = stab.lbda2$pdsi.lbda.std,
+                        pdsi.cent.stab  = stab.lbda2$pdsi.cent.std,
+                        tair.ann.std    = stab.lbda2$tair.std,
+                        tair.cent.std   = stab.lbda2$tair.cent.std,
+                        precip.ann.std  = stab.lbda2$precip.std,
+                        precip.cent.std = stab.lbda2$precip.cent.std)
+clim.stab <- rbind(clim.stab, data.frame(stab.lbda2[,c("Site", "lon", "lat", "umw")], 
                                          Model=rep("refab", each=nrow(stab.lbda2)),
-                                         pdsi.stab=stab.lbda2$lbda.std))
+                                         pdsi.ann.stab=stab.lbda2$lbda.std,
+                                         pdsi.cent.stab  = NA,
+                                         tair.ann.std    = NA,
+                                         tair.cent.std   = NA,
+                                         precip.ann.std  = NA,
+                                         precip.cent.std = NA)
+                                         )
 
-pdsi.stab <- pdsi.stab[pdsi.stab$lon>=min(stab.lbda2[stab.lbda2$umw=="y", "lon"], na.rm=T)-1 & 
-                         pdsi.stab$lon<=max(stab.lbda2[stab.lbda2$umw=="y", "lon"], na.rm=T)+1 & 
-                         pdsi.stab$lat>=min(stab.lbda2[stab.lbda2$umw=="y", "lat"], na.rm=T)-1 & 
-                         pdsi.stab$lat<=max(stab.lbda2[stab.lbda2$umw=="y", "lat"], na.rm=T)+1   , ]
+clim.stab <- clim.stab[clim.stab$lon>=min(stab.lbda2[stab.lbda2$umw=="y", "lon"], na.rm=T)-1 & 
+                         clim.stab$lon<=max(stab.lbda2[stab.lbda2$umw=="y", "lon"], na.rm=T)+1 & 
+                         clim.stab$lat>=min(stab.lbda2[stab.lbda2$umw=="y", "lat"], na.rm=T)-1 & 
+                         clim.stab$lat<=max(stab.lbda2[stab.lbda2$umw=="y", "lat"], na.rm=T)+1   , ]
 
-summary(pdsi.stab)
+summary(clim.stab)
 
 
 # Merging empirical and model biomass stability
@@ -247,60 +262,109 @@ stab.bm[stab.bm$bm.std==0 & !is.na(stab.bm$bm.std), "bm.std"] <- 1e-4
 stab.bm$Model <- factor(stab.bm$Model, levels=c("refab", "ed2", "linkages", "lpj-guess", "lpj-wsl", "triffid"))
 summary(stab.bm)
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "BiomassStability_Maps.png"), height=6, width=8, units = "in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "BiomassStability_Maps_PDSI.png"), height=6, width=8, units = "in", res=320)
 ggplot(data=stab.bm) +
   facet_wrap(~Model, ncol=2) +
-  geom_tile(data=pdsi.stab, aes(x=lon, y=lat, fill=pdsi.stab)) +
+  geom_tile(data=clim.stab, aes(x=lon, y=lat, fill=pdsi.ann.stab)) +
   geom_point(data=stab.bm, aes(x=lon, y=lat, color=log(bm.std)), size=2) +
   geom_path(data=us, aes(x=long, y=lat, group=group), color="black") + 
   scale_fill_gradient2(low = "blue2", high = "red2", mid = "gray80", midpoint = 1) + 
   scale_color_gradient(low = "darkgreen", high="lightgreen") + 
-  coord_equal(xlim=range(pdsi.stab$lon), 
-              ylim=c(min(pdsi.stab$lat), max(pdsi.stab$lat)+0.25),
+  coord_equal(xlim=range(clim.stab$lon), 
+              ylim=c(min(clim.stab$lat), max(clim.stab$lat)+0.25),
               expand=0) +
   ggtitle("Stability Index: PDSI vs. Biomass") +
   # guides(fill=guide_legend(aes.overide=list(alpha=0.5))) +
   theme(panel.background=element_blank())
 dev.off()
 
-stab.lbda2$pdsi.std.cent <- stab.lbda2$pdsi.ann.cent/mean(stab.lbda2$pdsi.ann.cent, na.rm=T)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "BiomassStability_Maps_Tair.png"), height=6, width=8, units = "in", res=320)
+ggplot(data=stab.bm) +
+  facet_wrap(~Model, ncol=2) +
+  geom_tile(data=clim.stab, aes(x=lon, y=lat, fill=tair.cent.std)) +
+  geom_point(data=stab.bm, aes(x=lon, y=lat, color=log(bm.std)), size=2) +
+  geom_path(data=us, aes(x=long, y=lat, group=group), color="black") + 
+  scale_fill_gradient2(low = "blue2", high = "red2", mid = "gray80", midpoint = 1) + 
+  scale_color_gradient(low = "darkgreen", high="lightgreen") + 
+  coord_equal(xlim=range(clim.stab$lon), 
+              ylim=c(min(clim.stab$lat), max(clim.stab$lat)+0.25),
+              expand=0) +
+  ggtitle("Stability Index: Tair vs. Biomass") +
+  # guides(fill=guide_legend(aes.overide=list(alpha=0.5))) +
+  theme(panel.background=element_blank())
+dev.off()
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "BiomassStability_Maps_Precip.png"), height=6, width=8, units = "in", res=320)
+ggplot(data=stab.bm) +
+  facet_wrap(~Model, ncol=2) +
+  geom_tile(data=clim.stab, aes(x=lon, y=lat, fill=precip.cent.std)) +
+  geom_point(data=stab.bm, aes(x=lon, y=lat, color=log(bm.std)), size=2) +
+  geom_path(data=us, aes(x=long, y=lat, group=group), color="black") + 
+  scale_fill_gradient2(low = "blue2", high = "red2", mid = "gray80", midpoint = 1) + 
+  scale_color_gradient(low = "darkgreen", high="lightgreen") + 
+  coord_equal(xlim=range(clim.stab$lon), 
+              ylim=c(min(clim.stab$lat), max(clim.stab$lat)+0.25),
+              expand=0) +
+  ggtitle("Stability Index: Precip vs. Biomass") +
+  # guides(fill=guide_legend(aes.overide=list(alpha=0.5))) +
+  theme(panel.background=element_blank())
+dev.off()
+
 
 # Extracting point information for each grid cell
 for(i in 1:nrow(stab.bm)){
-  pdsi.ind <- which(pdsi.stab$Model==stab.bm$Model[i] & 
-                      pdsi.stab$lat-0.25<stab.bm$lat[i] & pdsi.stab$lat+0.25>=stab.bm$lat[i] &
-                      pdsi.stab$lon-0.25<stab.bm$lon[i] & pdsi.stab$lon+0.25>=stab.bm$lon[i])
+  pdsi.ind <- which(clim.stab$Model==stab.bm$Model[i] & 
+                      clim.stab$lat-0.25<stab.bm$lat[i] & clim.stab$lat+0.25>=stab.bm$lat[i] &
+                      clim.stab$lon-0.25<stab.bm$lon[i] & clim.stab$lon+0.25>=stab.bm$lon[i])
   
-  pdsi.ind2 <- which(stab.lbda2$lat-0.25<stab.bm$lat[i] & stab.lbda2$lat+0.25>=stab.bm$lat[i] &
-                       stab.lbda2$lon-0.25<stab.bm$lon[i] & stab.lbda2$lon+0.25>=stab.bm$lon[i])
-
   if(length(pdsi.ind)==0) next
   
-  stab.bm[i,"pdsi.stab"] <- pdsi.stab[pdsi.ind, "pdsi.stab"]
-  stab.bm[i,"pdsi.stab.cent"] <- stab.lbda2[pdsi.ind2, "pdsi.std.cent"]
-  
+  stab.bm[i,"pdsi.ann.stab"   ] <- clim.stab[pdsi.ind, "pdsi.ann.stab"   ]
+  stab.bm[i,"pdsi.cent.stab"  ] <- clim.stab[pdsi.ind, "pdsi.cent.stab"  ]
+  stab.bm[i,"tair.ann.stab"   ] <- clim.stab[pdsi.ind, "tair.ann.std"   ]
+  stab.bm[i,"tair.cent.stab"  ] <- clim.stab[pdsi.ind, "tair.cent.std"  ]
+  stab.bm[i,"precip.ann.stab" ] <- clim.stab[pdsi.ind, "precip.ann.std" ]
+  stab.bm[i,"precip.cent.stab"] <- clim.stab[pdsi.ind, "precip.cent.std"]
 }
 summary(stab.bm)
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "BiomassStability_vs_PDSI_Stability.png"), height=6, width=8, units = "in", res=320)
+# png(file.path(path.google, "Current Figures/Stability_Synthesis", "BiomassStability_vs_PDSI_Stability.png"), height=6, width=8, units = "in", res=320)
 ggplot(data=stab.bm) + 
-  geom_point(aes(x=pdsi.stab, y=log(bm.std), color=Model)) +
-  stat_smooth(aes(x=pdsi.stab, y=log(bm.std), color=Model, fill=Model), method="lm")
-dev.off()
+  geom_point(aes(x=pdsi.ann.stab, y=log(bm.std), color=Model)) +
+  stat_smooth(aes(x=pdsi.ann.stab, y=log(bm.std), color=Model, fill=Model), method="lm")
+# dev.off()
+
 
 ggplot(data=stab.bm[stab.bm$Model!="refab",]) + 
-  geom_point(aes(x=log(pdsi.stab.cent), y=log(bm.std), color=Model)) +
-  stat_smooth(aes(x=log(pdsi.stab.cent), y=log(bm.std), color=Model, fill=Model), method="lm")
+  geom_point(aes(x=log(pdsi.cent.stab), y=log(bm.std), color=Model)) +
+  stat_smooth(aes(x=log(pdsi.cent.stab), y=log(bm.std), color=Model, fill=Model), method="lm")
+
+ggplot(data=stab.bm[stab.bm$Model!="refab",]) + 
+  geom_point(aes(x=log(tair.cent.stab), y=log(bm.std), color=Model)) +
+  stat_smooth(aes(x=log(tair.cent.stab), y=log(bm.std), color=Model, fill=Model), method="lm")
+
+ggplot(data=stab.bm[stab.bm$Model!="refab",]) + 
+  geom_point(aes(x=log(precip.cent.stab), y=log(bm.std), color=Model)) +
+  stat_smooth(aes(x=log(precip.cent.stab), y=log(bm.std), color=Model, fill=Model), method="lm")
 
 
 summary(stab.bm)
 
 # Testing things with a linear model
-bm.stab.lm <- lm(log(bm.std) ~ pdsi.stab*Model, data=stab.bm[complete.cases(stab.bm),])
-summary(bm.stab.lm) # No relationships between environmental stability & biomass; this 
-anova(bm.stab.lm)
+bm.pdsi.lm <- lm(log(bm.std) ~ log(pdsi.ann.stab)*Model-Model - log(pdsi.ann.stab), data=stab.bm[!is.na(stab.bm$pdsi.ann.stab),])
+summary(bm.pdsi.lm) # No relationships between environmental stability & biomass; this 
+anova(bm.pdsi.lm)
 
-bm.stab.cent.lm <- lm(log(bm.std) ~ log(pdsi.stab)*Model, data=stab.bm[complete.cases(stab.bm) & stab.bm$Model!="refab",])
-summary(bm.stab.cent.lm) # No relationships between environmental stability & biomass; this 
-anova(bm.stab.cent.lm)
+bm.pdsi.cent.lm <- lm(log(bm.std) ~ log(pdsi.cent.stab)*Model-Model- log(pdsi.cent.stab), data=stab.bm[!is.na(stab.bm$pdsi.cent.stab) & stab.bm$Model!="refab",])
+summary(bm.pdsi.cent.lm) # No relationships between environmental stability & biomass; this 
+anova(bm.pdsi.cent.lm)
+
+bm.tair.cent.lm <- lm(log(bm.std) ~ log(tair.cent.stab)*Model-Model- log(tair.cent.stab), data=stab.bm[!is.na(stab.bm$tair.cent.stab) & stab.bm$Model!="refab",])
+summary(bm.tair.cent.lm) # No relationships between environmental stability & biomass; this 
+anova(bm.tair.cent.lm)
+
+bm.precip.cent.lm <- lm(log(bm.std) ~ log(precip.cent.stab)*Model-Model- log(precip.cent.stab), data=stab.bm[!is.na(stab.bm$precip.cent.stab) & stab.bm$Model!="refab",])
+summary(bm.precip.cent.lm) # No relationships between environmental stability & biomass; this 
+anova(bm.precip.cent.lm)
+
 # --------------------------------------------
