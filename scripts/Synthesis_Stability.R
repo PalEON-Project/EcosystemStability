@@ -91,6 +91,7 @@ summary(stab.bm.model)
 
 
 summary(stab.fcomp)
+# --------------------------------------------
 
 # --------------------------------------------
 # 2. Exploratory Comparisions
@@ -154,7 +155,7 @@ stab.lbda2$pdsi.cent.std <- (stab.lbda2$pdsi.ann.cent/mean(stab.lbda2$pdsi.ann.c
 # Stacking stuff to make a handy figure
 library(car)
 stab.comparison <- stack(stab.lbda2[,c("lbda.std", "pdsi.lbda.std", "tair.std", "precip.std", "pdsi.std")])
-stab.comparison[,c("Site", "lon", "lat", "umw")] <- stab.lbda2[,c("Site", "lon", "lat", "umw")]
+stab.comparison[,c("Site", "lon", "lat", "umw", "lbda.start", "n.yrs")] <- stab.lbda2[,c("Site", "lon", "lat", "umw", "lbda.start", "n.yrs")]
 stab.comparison$ind <- recode(stab.comparison$ind, "'lbda.std'='LBDA'; 'pdsi.lbda.std'='PDSI (LBDA Overlap)'; 'tair.std'='Tair'; 'precip.std'='Precip'; 'pdsi.std'='PDSI (all)'")
 stab.comparison$ind <- factor(stab.comparison$ind, levels=c("Tair", "Precip", "PDSI (all)", "PDSI (LBDA Overlap)", "LBDA"))
 summary(stab.comparison)
@@ -220,7 +221,7 @@ summary(stab.bm.model)
 summary(stab.lbda2)
 
 # Making a pdsi data frame that will correspond to the biomass stability one
-clim.stab <- data.frame(stab.lbda2[,c("Site", "lon", "lat", "umw")], 
+clim.stab <- data.frame(stab.lbda2[,c("Site", "lon", "lat", "umw", "lbda.start", "n.yrs")], 
                         Model           = rep(unique(stab.bm.model$Model), each=nrow(stab.lbda2)),
                         pdsi.ann.stab   = stab.lbda2$pdsi.lbda.std,
                         pdsi.cent.stab  = stab.lbda2$pdsi.cent.std,
@@ -228,7 +229,7 @@ clim.stab <- data.frame(stab.lbda2[,c("Site", "lon", "lat", "umw")],
                         tair.cent.std   = stab.lbda2$tair.cent.std,
                         precip.ann.std  = stab.lbda2$precip.std,
                         precip.cent.std = stab.lbda2$precip.cent.std)
-clim.stab <- rbind(clim.stab, data.frame(stab.lbda2[,c("Site", "lon", "lat", "umw")], 
+clim.stab <- rbind(clim.stab, data.frame(stab.lbda2[,c("Site", "lon", "lat", "umw", "lbda.start", "n.yrs")], 
                                          Model=rep("refab", each=nrow(stab.lbda2)),
                                          pdsi.ann.stab=stab.lbda2$lbda.std,
                                          pdsi.cent.stab  = NA,
@@ -318,7 +319,8 @@ for(i in 1:nrow(stab.bm)){
                       clim.stab$lon-0.25<stab.bm$lon[i] & clim.stab$lon+0.25>=stab.bm$lon[i])
   
   if(length(pdsi.ind)==0) next
-  
+  stab.bm[i,"lbda.start"      ] <- clim.stab[pdsi.ind, "lbda.start"   ]
+  stab.bm[i,"n.yrs.lbda"      ] <- clim.stab[pdsi.ind, "n.yrs"   ]
   stab.bm[i,"pdsi.ann.stab"   ] <- clim.stab[pdsi.ind, "pdsi.ann.stab"   ]
   stab.bm[i,"pdsi.cent.stab"  ] <- clim.stab[pdsi.ind, "pdsi.cent.stab"  ]
   stab.bm[i,"tair.ann.stab"   ] <- clim.stab[pdsi.ind, "tair.ann.std"   ]
@@ -327,6 +329,14 @@ for(i in 1:nrow(stab.bm)){
   stab.bm[i,"precip.cent.stab"] <- clim.stab[pdsi.ind, "precip.cent.std"]
 }
 summary(stab.bm)
+
+ggplot(data=stab.bm[stab.bm$Model=="refab",]) +
+  geom_histogram(aes(x=n.yrs.lbda))
+
+ggplot(data=stab.bm[stab.bm$Model=="refab",]) + 
+  geom_tile(aes(x=lon, y=lat, fill=n.yrs.lbda)) +
+  geom_point(aes(x=lon, y=lat)) 
+
 
 # png(file.path(path.google, "Current Figures/Stability_Synthesis", "BiomassStability_vs_PDSI_Stability.png"), height=6, width=8, units = "in", res=320)
 ggplot(data=stab.bm) + 

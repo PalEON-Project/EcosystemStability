@@ -79,6 +79,8 @@ lbda.raw <- ncvar_get(lbda.nc, "pdsi")[lbda.time.ind, lbda.lat.ind, lbda.lon.ind
 dim(lbda.raw)
 dim(nada.raw)
 
+# Getting the 100-year averages that are comparable to STEPPS & REFAB
+yrs.cent <- seq(900, 1800, by=100)
 # --------------------------------------------
 
 
@@ -111,10 +113,25 @@ for(i in 1:length(nada.lon.ind)){
     nada.stability[site.ind,"yr.start"] <- nada.time[nada.time.ind][yr2] 
     nada.stability[site.ind,"stability"] <- calc.second.deriv(ts.raw[yr2:yr1], h=1, H=1)
     
+    # Calculate the centennial PDSI average just where we have the full 
+    # time span for our pollen data
+    if(nada.stability[site.ind,"yr.start"]==850){
+      pdsi.cent <- vector(length=length(yrs.cent))
+      
+      for(z in 1:length(yrs.cent)){
+        # Generating indices for the cells we want to aggregate across
+        rows.yrs <- which(!is.na(ts.raw) & nada.time[nada.time.ind]>=yrs.cent[z]-50 & nada.time[nada.time.ind]<=yrs.cent[z]+50)
+        
+        # doing the aggregation
+        pdsi.cent  [z] <- mean(ts.raw[rows.yrs])
+      } # End centennial aggregation
+      nada.stability[site.ind,"stability.century"] <- calc.second.deriv(pdsi.cent, h=1, H=100)
+    } # End centennial case
+    
   }
 }
 
-nada.stability <- nada.stability[complete.cases(nada.stability),]
+nada.stability <- nada.stability[!is.na(nada.stability$yr.end),]
 nada.stability$n.yrs <- nada.stability$yr.end - nada.stability$yr.start +1
 summary(nada.stability)
 write.csv(nada.stability, file.path(path.out, "NADA_Stability.csv"), row.names=F, eol="\r\n")
@@ -145,12 +162,24 @@ ggplot(data=nada.stability) +
   coord_equal(xlim=range(nada.stability$lon), ylim=range(nada.stability$lat)) +
   theme_bw()
 )
+
+print(
+  ggplot(data=nada.stability) +
+    geom_tile(aes(x=lon, y=lat, fill=stability.century)) +
+    geom_path(data=us,aes(x=long, y=lat, group=group), color="black") + 
+    coord_equal(xlim=range(nada.stability$lon), ylim=range(nada.stability$lat)) +
+    theme_bw()
+)
+
 print(
 ggplot(data=nada.stability) +
   geom_histogram(aes(stability/n.yrs))
 )
 dev.off()
 
+
+
+# Adding in leaving, breathing drought atlas
 
 lbda.stability <- data.frame(lat=rep(lbda.lat[lbda.lat.ind], each=length(lbda.lon.ind)),
                              lon=rep(lbda.lon[lbda.lon.ind], length.out=length(lbda.lon.ind)*length(lbda.lat.ind)))
@@ -175,15 +204,37 @@ for(i in 1:length(lbda.lon.ind)){
     lbda.stability[site.ind,"yr.end"] <- lbda.time[lbda.time.ind][yr2] 
     lbda.stability[site.ind,"stability"] <- calc.second.deriv(ts.raw[yr2:yr1], h=1, H=1)
     
+    # Calculate the centennial PDSI average just where we have the full 
+    # time span for our pollen data
+    if(lbda.stability[site.ind,"yr.start"]==850){
+      pdsi.cent <- vector(length=length(yrs.cent))
+      
+      for(z in 1:length(yrs.cent)){
+        # Generating indices for the cells we want to aggregate across
+        rows.yrs <- which(!is.na(ts.raw) & lbda.time[lbda.time.ind]>=yrs.cent[z]-50 & lbda.time[lbda.time.ind]<=yrs.cent[z]+50)
+        
+        # doing the aggregation
+        pdsi.cent  [z] <- mean(ts.raw[rows.yrs])
+      } # End centennial aggregation
+      lbda.stability[site.ind,"stability.century"] <- calc.second.deriv(pdsi.cent, h=1, H=100)
+    } # End centennial case
+    
   }
 }
 
-lbda.stability <- lbda.stability[complete.cases(lbda.stability),]
+lbda.stability <- lbda.stability[!is.na(lbda.stability$yr.end),]
 lbda.stability$n.yrs <- lbda.stability$yr.end - lbda.stability$yr.start +1
 summary(lbda.stability)
 write.csv(lbda.stability, file.path(path.out, "LBDA_Stability.csv"), row.names=F, eol="\r\n")
 
 library(ggplot2)
+
+ggplot(data=lbda.stability) +
+  geom_tile(aes(x=lon, y=lat, fill=n.yrs)) +
+  geom_path(data=us,aes(x=long, y=lat, group=group), color="black") + 
+  coord_equal(xlim=range(lbda.stability$lon), ylim=range(lbda.stability$lat)) +
+  theme_bw()
+
 
 us <- map_data("state")
 
@@ -209,6 +260,14 @@ print(
     coord_equal(xlim=range(lbda.stability$lon), ylim=range(lbda.stability$lat)) +
     theme_bw()
 )
+print(
+  ggplot(data=lbda.stability) +
+    geom_tile(aes(x=lon, y=lat, fill=stability.century)) +
+    geom_path(data=us,aes(x=long, y=lat, group=group), color="black") + 
+    coord_equal(xlim=range(lbda.stability$lon), ylim=range(lbda.stability$lat)) +
+    theme_bw()
+)
+
 print(
   ggplot(data=lbda.stability) +
     geom_histogram(aes(stability/n.yrs))
