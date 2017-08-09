@@ -26,7 +26,7 @@ path.data <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/Current Data
 # Path to where data are; lets just pull straight from the Google Drive folder
 path.google <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/"
 
-library(ggplot2)
+library(ggplot2); library(grid)
 us <- map_data("state")
 # --------------------------------------------
 
