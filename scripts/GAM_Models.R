@@ -112,15 +112,15 @@ for(i in 1:length(yrs)){
 # source("R/0_TimeAnalysis.R")
 source(file.path(path.gamm.func, "Calculate_GAMM_Derivs.R"))
 
-calc.stability <- function(x, window){
+calc.stability <- function(x, width){
   dat.tmp <- data.frame(Y=x, Year=1:length(x))
-  k.use=round(length(x)/window, 0)
+  k.use=round(length(x)/width, 0)
   mod.gam <- gam(Y ~ s(Year, k=k.use), data=dat.tmp)
   mod.deriv <- calc.derivs(mod.gam, newdata=dat.tmp, vars="Year")
   return(mod.deriv)
 }
 
-
+ 
 # -------------------
 # 1A. Met 
 # -------------------
@@ -133,9 +133,9 @@ for(i in 1:ncol(pdsi.ann)){
   precip.list1[[i]] <- precip.ann[which(yrs<1850), i]
 }
 
-pdsi.out1   <- mclapply(pdsi.list1  , calc.stability, mc.cores=8, window=100)
-tair.out1   <- mclapply(tair.list1  , calc.stability, mc.cores=8, window=100)
-precip.out1 <- mclapply(precip.list1, calc.stability, mc.cores=8, window=100)
+pdsi.out1   <- mclapply(pdsi.list1  , calc.stability, mc.cores=8, width=100)
+tair.out1   <- mclapply(tair.list1  , calc.stability, mc.cores=8, width=100)
+precip.out1 <- mclapply(precip.list1, calc.stability, mc.cores=8, width=100)
 
 # Plugging in the mean absolute value of the derivative
 for(i in 1:length(pdsi.out1)){
@@ -210,14 +210,14 @@ for(i in 1:ncol(ed.npp)){
   link.bm.list [[i]] <- link.bm [which(yrs<1850), i]
 }
 
-ed.npp.out   <- mclapply(ed.npp.list, calc.stability, mc.cores=8, window=100)
-ed.bm.out    <- mclapply(ed.bm.list , calc.stability, mc.cores=8, window=100)
-lpjg.npp.out <- mclapply(lpjg.npp.list, calc.stability, mc.cores=8, window=100)
-lpjg.bm.out  <- mclapply(lpjg.bm.list , calc.stability, mc.cores=8, window=100)
-lpjw.npp.out <- mclapply(lpjw.npp.list, calc.stability, mc.cores=8, window=100)
-lpjw.bm.out  <- mclapply(lpjw.bm.list , calc.stability, mc.cores=8, window=100)
-link.npp.out <- mclapply(link.npp.list, calc.stability, mc.cores=8, window=100)
-link.bm.out  <- mclapply(link.bm.list , calc.stability, mc.cores=8, window=100)
+ed.npp.out   <- mclapply(ed.npp.list, calc.stability, mc.cores=8, width=100)
+ed.bm.out    <- mclapply(ed.bm.list , calc.stability, mc.cores=8, width=100)
+lpjg.npp.out <- mclapply(lpjg.npp.list, calc.stability, mc.cores=8, width=100)
+lpjg.bm.out  <- mclapply(lpjg.bm.list , calc.stability, mc.cores=8, width=100)
+lpjw.npp.out <- mclapply(lpjw.npp.list, calc.stability, mc.cores=8, width=100)
+lpjw.bm.out  <- mclapply(lpjw.bm.list , calc.stability, mc.cores=8, width=100)
+link.npp.out <- mclapply(link.npp.list, calc.stability, mc.cores=8, width=100)
+link.bm.out  <- mclapply(link.bm.list , calc.stability, mc.cores=8, width=100)
 
 # Plugging in the mean absolute value of the derivative
 for(i in 1:length(ed.npp.out)){
