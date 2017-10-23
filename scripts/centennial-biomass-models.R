@@ -145,11 +145,11 @@ linkages.s <- ed.s <- lpj.s <- lpj.wsl.s <- triffid.s <- list()
 
 ### Takes awhile to run
 for(i in 1:ncol(linkages.agb)){
-    linkages.s[[i]] <- calc.stability(linkages.agb[,i])
-    ed.s[[i]] <- calc.stability(ed.agb[,i])
-    lpj.s[[i]] <- calc.stability(lpj.agb[,i,13])
-    lpj.wsl.s[[i]] <- calc.stability(lpj.wsl.agb[,i])
-    triffid.s[[i]] <- calc.stability(trif[,i])
+    linkages.s[[i]] <- calc.stability(linkages.agb[,i], width=100)
+    ed.s[[i]] <- calc.stability(ed.agb[,i], width=100)
+    lpj.s[[i]] <- calc.stability(lpj.agb[,i,13], width=100)
+    lpj.wsl.s[[i]] <- calc.stability(lpj.wsl.agb[,i], width=100)
+    triffid.s[[i]] <- calc.stability(trif[,i], width=100)
   print(i)
 }
 
