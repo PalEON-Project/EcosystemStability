@@ -138,7 +138,7 @@ yrs.cent <- seq(900, 1800, by=100)
 # ------------------
 source(file.path(path.gamm.func, "Calculate_GAMM_Derivs.R"))
 
-calc.stability <- function(x, width=25){
+calc.stability <- function(x, width=100){
   dat.tmp <- data.frame(Y=x, Year=1:length(x))
   k.use=round(length(x[!is.na(x)])/width, 0)
   mod.gam <- gam(Y ~ s(Year, k=k.use), data=dat.tmp)
@@ -165,7 +165,7 @@ for(i in 1:dim(nada.raw)[1]){
 
     if(all(is.na(nada.raw[i,j,]))) next
     
-    stab.tmp <- calc.stability(nada.raw[i,j,], width=25)
+    stab.tmp <- calc.stability(nada.raw[i,j,], width=100)
     stab.tmp[is.na(stab.tmp$Y), c("mean", "lwr", "upr", "sig")] <- NA
 
     nada.deriv[i,j,] <- stab.tmp$mean
@@ -180,7 +180,7 @@ for(i in 1:dim(nada.raw)[1]){
   }
 }
 nada.df$fract.sig <- nada.df$n.yrs.sig/nada.df$n.yrs 
-write.csv(nada.df, file.path(path.google, "Current Data/Stability_GAMs", "Stability_NADA.csv"), row.names=F)
+write.csv(nada.df, file.path(path.google, "Current Data/Stability_GAMs", "Stability_NADA_100.csv"), row.names=F)
 summary(nada.df)
 
 nada.deriv <- ggplot(data=nada.df) +
@@ -199,7 +199,7 @@ nada.sig <- ggplot(data=nada.df) +
   theme_bw() +
   ggtitle("Number of Years Showing Change")
 
-png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_NADA.png"), height=4, width=6, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_NADA_100.png"), height=4, width=6, units="in", res=320)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(2, 1)))
 print(nada.deriv, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
@@ -226,7 +226,7 @@ for(i in 1:dim(lbda.raw)[1]){
     
     if(all(is.na(lbda.raw[i,j,]))) next
     
-    stab.tmp <- calc.stability(lbda.raw[i,j,], width=25)
+    stab.tmp <- calc.stability(lbda.raw[i,j,], width=100)
     stab.tmp[is.na(stab.tmp$Y), c("mean", "lwr", "upr", "sig")] <- NA
     
     lbda.deriv[i,j,] <- stab.tmp$mean
@@ -242,7 +242,9 @@ for(i in 1:dim(lbda.raw)[1]){
 }
 lbda.df$fract.sig <- lbda.df$n.yrs.sig/lbda.df$n.yrs 
 summary(lbda.df)
-write.csv(lbda.df, file.path(path.google, "Current Data/Stability_GAMs", "Stability_LBDA.csv"), row.names=F)
+write.csv(lbda.df, file.path(path.google, "Current Data/Stability_GAMs", "Stability_LBDA_100.csv"), row.names=F)
+
+lbda.df <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_LBDA_100.csv"))
 
 lbda.deriv <- ggplot(data=lbda.df) +
   geom_tile(aes(x=lon, y=lat, fill=deriv.abs)) +
@@ -253,12 +255,12 @@ lbda.deriv <- ggplot(data=lbda.df) +
   ggtitle("Mean Absolute Rate of Change")
 
 lbda.sig <- ggplot(data=lbda.df) +
-  geom_tile(aes(x=lon, y=lat, fill=n.yrs.sig)) +
+  geom_tile(aes(x=lon, y=lat, fill=n.yrs.sig/n.yrs)) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
   coord_equal(xlim=range(lbda.df$lon), ylim=range(lbda.df$lat), expand=0) +
-  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(lbda.df$n.yrs.sig, na.rm=T)) +
+  scale_fill_gradient2(name="yrs.sig/\n nyrs", low = "blue", high = "red", mid = "white", midpoint = mean(lbda.df$n.yrs.sig/lbda.df$n.yrs, na.rm=T)) +
   theme_bw() +
-  ggtitle("Number of Years Showing Change")
+  ggtitle("Fraction of Years Showing Change")
 
 
 # lbda.frac <- ggplot(data=lbda.df) +
@@ -270,7 +272,7 @@ lbda.sig <- ggplot(data=lbda.df) +
 #   ggtitle("Fraction of Years Showing Change")
 
 
-png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_LBDA.png"), height=4, width=6, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_LBDA_100.png"), height=4, width=6, units="in", res=320)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(2, 1)))
 print(lbda.deriv, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))

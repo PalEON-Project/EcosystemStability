@@ -50,8 +50,8 @@ us <- map_data("state")
 # -------------------------------------------
 # Comparing met & Ecosystem stability
 # -------------------------------------------
-stab.met   <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Drivers.csv"))
-stab.models <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Models.csv"))
+stab.met   <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Drivers_100.csv"))
+stab.models <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Models_100.csv"))
 
 # Standardizing the derivatives relative to the mean
 stab.met$tair.deriv.std <- stab.met$tair.deriv/mean(stab.met$tair.deriv)
@@ -138,7 +138,7 @@ plot.link.bm <- ggplot(data=stab.models[stab.models$Model=="LINKAGES",]) +
 
 
 
-png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_Biomass_Region.png"), height=6, width=8, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_Biomass_Region_100.png"), height=6, width=8, units="in", res=320)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(3, 2)))
 print(plot.temp   , vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
@@ -220,7 +220,7 @@ plot.link.bm.nyr <- ggplot(data=stab.models[stab.models$Model=="LINKAGES",]) +
 
 
 
-png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_Biomass_Region_Nyrs.png"), height=6, width=8, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_Biomass_Region_Nyrs_100.png"), height=6, width=8, units="in", res=320)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(3, 2)))
 print(plot.temp.nyr   , vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
@@ -273,7 +273,7 @@ plot.link.npp.nyr <- ggplot(data=stab.models[stab.models$Model=="LINKAGES",]) +
   theme_bw() + theme(plot.title=element_text(hjust=0.5))
 
 
-png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_NPP_Region_Nyrs.png"), height=6, width=8, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_NPP_Region_Nyrs_100.png"), height=6, width=8, units="in", res=320)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(3, 2)))
 print(plot.temp.nyr   , vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
