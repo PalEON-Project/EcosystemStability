@@ -102,12 +102,12 @@ calc.derivs <- function(model.gam, newdata, vars, n=100, eps=1e-7, alpha=0.05, l
   
   return(out)
 }
-calc.stability <- function(x){
+calc.stability <- function(x, width){
   if(length(which(is.na(x)))==length(x)){
     return(NA)
   }else{
     dat.tmp <- data.frame(Y=x, Year=1:length(x))
-    k.use = 100 #round(length(x)/25, 0)
+    k.use = round(length(x)/width, 0)
     mod.gam <- gam(Y ~ s(Year, k=k.use), data=dat.tmp)
     mod.deriv <- calc.derivs(mod.gam, newdata=dat.tmp, vars="Year")
     return(mod.deriv)
