@@ -1,9 +1,8 @@
 # -------------------------------------------
-# Model-Data comparisons: 1. Comparisons of Model & Data Stability in Climate & Environmental Space
+# Model-Data comparisons: 1. Comparisons of Model & Data Stability in Geographic Space
 
 # Here we will:
 # 1. Look at patterns of stability in composition, biomass & climate in geographic space
-# 2. Look at patterns of stability in environmental space
 # -------------------------------------------
 rm(list=ls())
 
@@ -58,7 +57,7 @@ summary(drivers)
 # -----------
 # STEPPS (empirical composition, centennially-resolved)
 # -----------
-stepps <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_STEPPS.csv"))
+stepps <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_STEPPS2.csv"))
 
 # Need to convert this to latlon
 albers <- sp::CRS("+proj=aea +lat_1=42.122774 +lat_2=49.01518 +lat_0=45.568977 +lon_0=-83.248627 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +datum=NAD83 +units=m +no_defs") # Define the spatial projection
@@ -95,7 +94,7 @@ summary(refab)
 # -----------
 
 # -----------
-# Model Output (annually-resovled)
+# Model Output - Biomass (annually-resovled)
 # -----------
 models1 <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Models_100.csv"))
 models1 <- models1[,c("lon", "lat", "Model", "deriv.bm", "bm.nyr")] # Add in composition once you do it
@@ -111,29 +110,42 @@ summary(models1)
 # -----------
 
 # -----------
+# Model Ouput - Fcomp (annually-resolved)
+# -----------
+fcomp <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_FCOMP_annual.csv"))
+names(fcomp)[which(names(fcomp)=="n.yrs.sig")] <- "n.sig"
+fcomp$var <- fcomp$pft
+fcomp$class <- as.factor("composition")
+fcomp$type <- as.factor("model")
+fcomp$resolution <- as.factor("annual")
+summary(fcomp)
+# -----------
+
+# -----------
 # Model Output (centennially-resolved)
 # # NOTE: Derivative needs to be the mean ABSOLUTE VALUE!  NEEDS TO BE RE-RUN!!
+# # NOTE: This isn't accurate and I think we'll just roll with what I'd already done for biomass
 # -----------
-models <- c("ed", "lpj", "lpj.wsl", "triffid", "linkages")
-models.bm.100 <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Models_Biomass_Centennial.csv"))
-
-models.bm <- stack(models.bm.100[,c(paste0(models, ".mean.deriv"))])
-names(models.bm) <- c("deriv.abs", "model")
-models.bm$deriv.abs <- abs(models.bm$deriv.abs) # NOTE: SHOULDN"T HAVE TO DO THIS! FIX IN FUTURE VERSIONS
-models.bm$model <- as.factor(unlist(lapply(stringr::str_split(models.bm$model, "[.]"), function(x) {paste(x[1:(length(x)-2)], collapse=".")})))
-models.bm$n.sig <- stack(models.bm.100[,c(paste0(models, ".nsig"))])[,1]
-models.bm$fract.sig <- models.bm$n.sig/10
-
-models.bm[,c("lat", "lon")] <- models.bm.100[,c("X.1", "X.2")]
-
-models.bm$model <- car::recode(models.bm$model, "'ed'='ED2'; 'lpj'='LPJ-GUESS'; 'lpj.wsl'='LPJ-WSL'; 'linkages'='LINKAGES'; 'triffid'='TRIFFID'")
-
-models.bm$class <- as.factor("biomass")
-models.bm$var <- as.factor("biomass")
-models.bm$type <- as.factor("model")
-models.bm$resolution <- as.factor("centennial")
-
-summary(models.bm)
+# models <- c("ed", "lpj", "lpj.wsl", "triffid", "linkages")
+# models.bm.100 <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Models_Biomass_Centennial.csv"))
+# 
+# models.bm <- stack(models.bm.100[,c(paste0(models, ".mean.deriv"))])
+# names(models.bm) <- c("deriv.abs", "model")
+# models.bm$deriv.abs <- abs(models.bm$deriv.abs) # NOTE: SHOULDN"T HAVE TO DO THIS! FIX IN FUTURE VERSIONS
+# models.bm$model <- as.factor(unlist(lapply(stringr::str_split(models.bm$model, "[.]"), function(x) {paste(x[1:(length(x)-2)], collapse=".")})))
+# models.bm$n.sig <- stack(models.bm.100[,c(paste0(models, ".nsig"))])[,1]
+# models.bm$fract.sig <- models.bm$n.sig/10
+# 
+# models.bm[,c("lat", "lon")] <- models.bm.100[,c("X.1", "X.2")]
+# 
+# models.bm$model <- car::recode(models.bm$model, "'ed'='ED2'; 'lpj'='LPJ-GUESS'; 'lpj.wsl'='LPJ-WSL'; 'linkages'='LINKAGES'; 'triffid'='TRIFFID'")
+# 
+# models.bm$class <- as.factor("biomass")
+# models.bm$var <- as.factor("biomass")
+# models.bm$type <- as.factor("model")
+# models.bm$resolution <- as.factor("centennial")
+# 
+# summary(models.bm)
 # -----------
 
 
@@ -146,7 +158,8 @@ dat.all <- rbind(lbda     [,cols.bind],
                  stepps   [,cols.bind], 
                  refab    [,cols.bind], 
                  models1  [,cols.bind], 
-                 models.bm[,cols.bind])
+                 # models.bm[,cols.bind],
+                 fcomp    [,cols.bind])
 summary(dat.all)
 
 # Getting a relative stability so that we can ignore actual value and just look at spatial patterning
@@ -229,14 +242,14 @@ lat.lon.ind <- dat.all$lat>=lat.range[1] & dat.all$lat<=lat.range[2] & dat.all$l
 
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_deriv_abs_century.png"), height=5, width=10, units="in", res=320)
-ggplot(data=dat.all[dat.all$var=="biomass" & dat.all$resolution=="centennial" & lat.lon.ind,]) +
-  facet_wrap(resolution~model) +
-  geom_point(aes(x=lon, y=lat, color=deriv.abs)) +
+ggplot(data=dat.all[dat.all$var=="biomass" & lat.lon.ind,]) +
+  facet_wrap(~model) +
+  geom_point(aes(x=lon, y=lat, color=log(deriv.abs))) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray25") +
   coord_equal(xlim=lon.range, 
               ylim=lat.range, 
               expand=0) +
-  scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(dat.all[dat.all$class=="biomass" & dat.all$resolution=="centennial" & lat.lon.ind, "deriv.abs"], na.rm=T)) +
+  scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(dat.all[dat.all$class=="biomass" & dat.all$resolution=="centennial" & lat.lon.ind, "deriv.abs"]), na.rm=T)) +
   theme_bw() +
   theme(legend.position="right",
         panel.background = element_rect(fill="gray80"),
@@ -245,26 +258,9 @@ ggplot(data=dat.all[dat.all$var=="biomass" & dat.all$resolution=="centennial" & 
   ggtitle("Centennial-Scale Climate Stability: empirical v. model")
 dev.off()
 
-ggplot(data=dat.all[dat.all$var=="biomass" & dat.all$resolution=="centennial" & lat.lon.ind,]) +
-  facet_wrap(~model) +
-  geom_point(aes(x=lon, y=lat, color=deriv.rel)) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray25") +
-  coord_equal(xlim=lon.range, 
-              ylim=lat.range, 
-              expand=0) +
-  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(dat.all[dat.all$class=="biomass" & dat.all$resolution=="centennial" & lat.lon.ind, "deriv.rel"], na.rm=T)) +
-  scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(dat.all[dat.all$class=="biomass" & dat.all$resolution=="centennial" & lat.lon.ind, "deriv.rel"], na.rm=T)) +
-  theme_bw() +
-  theme(legend.position="right",
-        panel.background = element_rect(fill="gray80"),
-        panel.grid.major=element_blank(),
-        panel.grid.minor=element_blank()) +
-  ggtitle("Centennial-Scale Climate Stability: empirical v. model")
-
-
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_deriv_rel.png"), height=10, width=6, units="in", res=320)
 ggplot(data=dat.all[dat.all$var=="biomass" & lat.lon.ind,]) +
-  facet_grid(model~resolution) +
+  facet_wrap(~model) +
   geom_point(aes(x=lon, y=lat, color=deriv.rel)) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray25") +
   coord_equal(xlim=lon.range, 
@@ -276,9 +272,64 @@ ggplot(data=dat.all[dat.all$var=="biomass" & lat.lon.ind,]) +
         panel.background = element_rect(fill="gray80"),
         panel.grid.major=element_blank(),
         panel.grid.minor=element_blank()) +
-  ggtitle("Centennial-Scale Climate Stability: empirical v. model")
+  ggtitle("Relative Centennial-Scale Climate Stability: empirical v. model")
+dev.off()
+# -----------
+
+
+# -----------
+# Mapping Composition
+# -----------
+summary(dat.all[dat.all$class=="composition",])
+
+pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Composition_deriv_abs_extent_full.pdf"))
+for(mod in unique(dat.all[dat.all$class=="composition","model"])){
+  cols <- ifelse(mod=="STEPPS", 3, 2)
+  print(
+    ggplot(data=dat.all[dat.all$class=="composition" & dat.all$model==mod,]) +
+      facet_wrap(~var, ncol=cols) +
+      geom_point(aes(x=lon, y=lat, color=deriv.abs)) +
+      geom_path(data=us,aes(x=long, y=lat, group=group), color="gray25") +
+      coord_equal(xlim=range(dat.all$lon), 
+                  ylim=range(dat.all$lat), 
+                  expand=0) +
+      scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(dat.all[dat.all$class=="composition", "deriv.abs"], na.rm=T)) +
+      theme_bw() +
+      theme(legend.position="right",
+            panel.background = element_rect(fill="gray80"),
+            panel.grid.major=element_blank(),
+            panel.grid.minor=element_blank()) +
+      ggtitle(paste0("Centennial-Scale Climate Stability: ", mod))
+  )
+}
 dev.off()
 
+
+lon.range <- c(min(dat.all[dat.all$model=="STEPPS","lon"])-1, max(dat.all[dat.all$model=="STEPPS","lon"])+1)
+lat.range <- c(min(dat.all[dat.all$model=="STEPPS","lat"])-1, max(dat.all[dat.all$model=="STEPPS","lat"])+1.5)
+lat.lon.ind <- dat.all$lat>=lat.range[1] & dat.all$lat<=lat.range[2] & dat.all$lon>=lon.range[1] & dat.all$lon<=lon.range[2]
+
+pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Composition_deriv_abs_extent_stepps.pdf"))
+for(mod in unique(dat.all[dat.all$class=="composition","model"])){
+  cols <- ifelse(mod=="STEPPS", 3, 2)
+  print(
+    ggplot(data=dat.all[dat.all$class=="composition" & dat.all$model==mod  & lat.lon.ind,]) +
+      facet_wrap(~var, ncol=cols) +
+      geom_point(aes(x=lon, y=lat, color=deriv.abs)) +
+      geom_path(data=us,aes(x=long, y=lat, group=group), color="gray25") +
+      coord_equal(xlim=lon.range, 
+                  ylim=lat.range, 
+                  expand=0) +
+      scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(dat.all[dat.all$class=="composition" & lat.lon.ind, "deriv.abs"], na.rm=T)) +
+      theme_bw() +
+      theme(legend.position="right",
+            panel.background = element_rect(fill="gray80"),
+            panel.grid.major=element_blank(),
+            panel.grid.minor=element_blank()) +
+      ggtitle(paste0("Centennial-Scale Climate Stability: ", mod))
+  )
+}
+dev.off()
 # -----------
 
 # -------------------------------------------
