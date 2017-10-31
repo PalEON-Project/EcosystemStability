@@ -1,27 +1,54 @@
 
-load('data/refab.biomass.CI13.Rdata')
-load('data/refab.biomass.x.meta.w.settle.Rdata')
-names(biomassCI) <- unique(x.meta$site.id)[1:182]
+load('~/ReFAB/Refab.all.samps.list.Rdata')
+load('~/ReFAB/refab.sites.lat.lon.Rdata')
 
-refab.diff <- lapply(biomassCI,function(x) diff(rev(x[2,1:11])/100))
-
-refab.signif <- lapply(refab.diff,function(x) length(which(x > .01)))
-refab.signif1 <- lapply(refab.diff,function(x) length(which(x <  -.01)))
-
-n.signif = as.vector(unlist(refab.signif) + unlist(refab.signif1))
-
-
-refab.diff.mean <- lapply(biomassCI,function(x) mean(diff(rev(x[2,1:11])/100)))
-x <- unlist(refab.diff.mean)
-
-lat <- long <- list()
-for(i in 1:182){
-  lat[[i]] <- x.meta[x.meta$site.id==names(biomassCI)[i],'lat'][1]
-  long[[i]] <- x.meta[x.meta$site.id==names(biomassCI)[i],'long'][1]
+### Andria's function for calculating significance
+prob_sig <- function(x, prob){
+  n_side = max(sum(x>0), sum(x<0))
+  
+  if (n_side/length(x) > prob){
+    return(mean(x))
+  } else {
+    return(NA)
+  }
 }
 
-refab.mean.slope=data.frame(lat = unlist(lat,use.names = F), long = unlist(long,use.names = F),
-                            refab.mean.slope = unlist(refab.diff.mean,use.names=F),
+### loop for getting mean differences and significance for all refab sites
+diff.mat.list <- list()
+refab.diff.mean <- sig_vals <- matrix(NA, 62, 99)
+for(i in 1:62){
+  if(i == 2){
+    diff.mat.list[[i]] <- NULL #My dataset is currently missing billy's lake which is in position 2. I can remove this when Billy's Lake is added.
+  } else {
+    diff.mat.list[[i]] <- apply(all.samps.list[[i]], 1, function(x) diff(rev(x)/100, na.rm=TRUE)) 
+    # dividing by 100 because estimates are cenntennial. 
+    # rev() because they are not sequential in time b[1] is present b[100] is 10,000 years BP
+    
+    refab.diff.mean[i,] <- rowMeans(diff.mat.list[[i]])
+    
+    sig_vals[i,] <- apply(t(diff.mat.list[[i]]), c(2), prob_sig, prob=.85)
+    
+  }
+}
+
+### checking calculations blue and red should match
+boxplot(t(diff.mat.list[[1]]))
+points(diff(rev(colMeans(all.samps.list[[1]]))/100), col='blue', pch=19)
+points(refab.diff.mean[1,] ,col='red')
+
+### summing accross time for significance
+time.bin <- 90:99 ## 850 - 1850 AD : 1000 - 100 years before present
+diff.mean = rowMeans(refab.diff.mean[,time.bin],na.rm = TRUE)
+diff.mean.abs = rowMeans(abs(refab.diff.mean[,time.bin]),na.rm = TRUE)
+n.signif = apply(sig_vals[,time.bin], 1, function(x) sum(!is.na(x)))
+
+lat.lon.df.missing <- matrix(NA,62,2)
+lat.lon.df.missing[1,] <- as.numeric(lat.lon.df[1,])
+lat.lon.df.missing[3:62,] <- as.matrix(lat.lon.df[2:61,])
+
+refab.mean.slope = data.frame(lat = lat.lon.df.missing[,1], lon = lat.lon.df.missing[,2],
+                            refab.mean.slope =diff.mean,
+                            refab.mean.slope.abs = diff.mean.abs,
                             n.signif = n.signif)
 
-write.csv(refab.mean.slope,file = 'refab.mean.slope.csv')
+write.csv(refab.mean.slope, file = 'refab.mean.slope.csv')
