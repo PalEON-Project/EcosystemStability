@@ -51,4 +51,4 @@ refab.mean.slope = data.frame(lat = lat.lon.df.missing[,1], lon = lat.lon.df.mis
                             refab.mean.slope.abs = diff.mean.abs,
                             n.signif = n.signif)
 
-write.csv(refab.mean.slope, file = 'refab.mean.slope.csv')
+write.csv(refab.mean.slope, file = '~/Google Drive/PalEON_ecosystem-change_models-vs-data/refab.mean.slope.csv')
