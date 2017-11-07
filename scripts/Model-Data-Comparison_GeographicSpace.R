@@ -471,7 +471,7 @@ for(i in 1:nrow(coords.stepps)){
   # stepps.ind <- which(stepps.now$value==max(stepps.now$value, na.rm=T))[1]
   
   fcomp.stab[fcomp.stab$lon==lon.models & fcomp.stab$lat==lat.models, "pft.stepps"] <- stepps.now$pft[stepps.ind]
-  fcomp.stab[fcomp.stab$lon==lon.models & fcomp.stab$lat==lat.models, "stepps"] <- ifelse(is.na(stepps.now$deriv.abs[stepps.ind]), 0, stepps.now$deriv.abs[stepps.ind])
+  fcomp.stab[fcomp.stab$lon==lon.models & fcomp.stab$lat==lat.models, "stepps"] <- stepps.now$deriv.abs[stepps.ind]
 }
 summary(fcomp.stab)
 
