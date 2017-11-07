@@ -166,6 +166,206 @@ summary(fcomp)
 # -----------
 # -------------------------------------------
 
+# -------------------------------------------
+# Model-Data Comparisons: Composition
+# -------------------------------------------
+# -----------
+# Data fromatting: Condense down to 1 value per grid cell
+# -----------
+coords.models <- data.frame(drivers.all[!is.na(drivers.all$umw), c("lon", "lat")])[,1:2]
+summary(coords.models)
+
+fcomp.stab <- coords.models
+fcomp.stab$model <- paste(unique(fcomp$model)[1])
+fcomp.stab$type <- "model"
+for(mod in unique(fcomp$model)){
+  # If we need to add the model, do so first
+  if(length(which(fcomp.stab$model==mod))==0) fcomp.stab <- rbind(fcomp.stab, 
+                                                                  data.frame(coords.models, model=mod, type="model", pft.abs=NA, deriv.abs=NA,
+                                                                             whc=NA, tair.sett=NA, precip.sett=NA, 
+                                                                             deriv.pdsi=NA, deriv.tair=NA, deriv.precip=NA))
+  
+  for(lon in unique(coords.models$lon)){
+    for(lat in unique(coords.models[coords.models$lon==lon, "lat"])){
+      df.fcomp <- fcomp[fcomp$model==mod & fcomp$lon==lon & fcomp$lat==lat,]
+      if(nrow(df.fcomp)==0) next
+      
+      # Make sure to get rid of the "total" column
+      df.fcomp <- df.fcomp[df.fcomp$pft!="Total",]
+      
+      ind.fcomp <- which(df.fcomp$value==max(df.fcomp$value))[1]
+      ind.stab <- which(fcomp.stab$model==mod & fcomp.stab$lon==lon & fcomp.stab$lat==lat)
+      
+      fcomp.stab[ind.stab, "pft.abs"     ] <- paste(df.fcomp$pft[ind.fcomp])
+      fcomp.stab[ind.stab, "deriv.abs"   ] <- df.fcomp$deriv.abs[ind.fcomp]
+      fcomp.stab[ind.stab, "deriv.abs"   ] <- df.fcomp$deriv.abs[ind.fcomp]
+      fcomp.stab[ind.stab, "whc"         ] <- df.fcomp$whc[ind.fcomp]
+      fcomp.stab[ind.stab, "tair.sett"   ] <- df.fcomp$tair.sett[ind.fcomp]
+      fcomp.stab[ind.stab, "precip.sett" ] <- df.fcomp$precip.sett[ind.fcomp]
+      fcomp.stab[ind.stab, "deriv.pdsi"  ] <- df.fcomp$deriv.pdsi[ind.fcomp]
+      fcomp.stab[ind.stab, "deriv.tair"  ] <- df.fcomp$deriv.tair[ind.fcomp]
+      fcomp.stab[ind.stab, "deriv.precip"] <- df.fcomp$deriv.precip[ind.fcomp]
+      
+      # Adding the dominant PFT into the model output
+      models1[models1$model==mod & models1$lon==lon & models1$lat==lat,"pft.abs"] <- paste(df.fcomp$pft[ind.fcomp])
+    }
+  }
+}
+
+coords.stepps <- stepps[stepps$pft=="OTHER.HARDWOOD", c("lon", "lat")]
+fcomp.stab <- rbind(fcomp.stab, 
+                    data.frame(coords.stepps, model="STEPPS", type="empirical", pft.abs=NA, deriv.abs=NA,
+                               whc=NA, tair.sett=NA, precip.sett=NA, 
+                               deriv.pdsi=NA, deriv.tair=NA, deriv.precip=NA))
+for(lon in unique(coords.stepps$lon)){
+  for(lat in unique(coords.stepps[coords.stepps$lon==lon, "lat"])){
+    ind.stab <- which(fcomp.stab$model=="STEPPS" & fcomp.stab$lon==lon & fcomp.stab$lat==lat)
+    
+    df.fcomp <- stepps[stepps$lon==lon & stepps$lat==lat,]
+    # if(nrow(df.fcomp)==0) next
+    
+    # Make sure to get rid of the total Decid/Evergreen column
+    df.fcomp <- df.fcomp[!df.fcomp$pft %in% c("Deciduous", "Evergreen"),]
+    
+    ind.fcomp <- which(df.fcomp$value==max(df.fcomp$value))[1]
+
+    fcomp.stab[ind.stab, "pft.abs"     ] <- paste(df.fcomp$pft[ind.fcomp])
+    fcomp.stab[ind.stab, "deriv.abs"   ] <- df.fcomp$deriv.abs[ind.fcomp]
+    fcomp.stab[ind.stab, "deriv.abs"   ] <- df.fcomp$deriv.abs[ind.fcomp]
+    fcomp.stab[ind.stab, "whc"         ] <- df.fcomp$whc[ind.fcomp]
+    fcomp.stab[ind.stab, "tair.sett"   ] <- df.fcomp$tair.sett[ind.fcomp]
+    fcomp.stab[ind.stab, "precip.sett" ] <- df.fcomp$precip.sett[ind.fcomp]
+    fcomp.stab[ind.stab, "deriv.pdsi"  ] <- df.fcomp$deriv.pdsi[ind.fcomp]
+    fcomp.stab[ind.stab, "deriv.tair"  ] <- df.fcomp$deriv.tair[ind.fcomp]
+    fcomp.stab[ind.stab, "deriv.precip"] <- df.fcomp$deriv.precip[ind.fcomp]
+  }
+}
+
+fcomp.stab$model <- as.factor(fcomp.stab$model)
+fcomp.stab$type <- as.factor(fcomp.stab$type)
+fcomp.stab$pft.abs <- as.factor(fcomp.stab$pft.abs)
+summary(fcomp.stab)
+
+fcomp.stab$model <- factor(fcomp.stab$model, levels=c("STEPPS", "ED2", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Composition_PDSI.png"), height=6, width=6, units="in", res=320)
+ggplot(data=fcomp.stab) +
+  # facet_wrap(~model, scales="free") +
+  geom_point(aes(x=log(deriv.pdsi), y=log(deriv.abs), color=model), size=2) +
+  stat_smooth(aes(x=log(deriv.pdsi), y=log(deriv.abs), color=model, fill=model), method="lm") +
+  # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+  # coord_cartesian(ylim=c(0,0.2)) +
+  theme_bw()
+dev.off()
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_Composition_Temp.png"), height=6, width=6, units="in", res=320)
+ggplot(data=fcomp.stab[fcomp.stab$type=="model",]) +
+  # facet_wrap(~model, scales="free") +
+  geom_point(aes(x=log(deriv.tair), y=log(deriv.abs), color=model), size=2) +
+  stat_smooth(aes(x=log(deriv.tair), y=log(deriv.abs), color=model, fill=model), method="lm") +
+  # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+  # coord_cartesian(ylim=c(0,0.2)) +
+  theme_bw()
+dev.off()
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_Composition_Precip.png"), height=6, width=6, units="in", res=320)
+ggplot(data=fcomp.stab[fcomp.stab$type=="model",]) +
+  # facet_wrap(~model, scales="free") +
+  geom_point(aes(x=log(deriv.precip), y=log(deriv.abs), color=model), size=2) +
+  stat_smooth(aes(x=log(deriv.precip), y=log(deriv.abs), color=model, fill=model), method="lm") +
+  # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+  # coord_cartesian(ylim=c(0,0.2)) +
+  theme_bw()
+dev.off()
+# -----------
+
+# -----------
+# Linear models
+# -----------
+# Simple comparison with climate
+fcomp.pdsi <- lm(log(deriv.abs) ~ model*log(deriv.pdsi), data=fcomp.stab)
+summary(fcomp.pdsi)
+anova(fcomp.pdsi)
+
+
+pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Composition_v_PDSI.pdf"))
+for(mod in unique(fcomp.stab$model)){
+  # Only show pfts with >1 data point
+  pfts.use <- summary(fcomp.stab[fcomp.stab$model==mod & !is.na(fcomp.stab$pft.abs), "pft.abs"])
+  pfts.use <- names(pfts.use)[which(pfts.use>1)]
+  print(
+    ggplot(data=fcomp.stab[fcomp.stab$model==mod & fcomp.stab$pft.abs %in% pfts.use,]) +
+      # facet_wrap(~model, scales="free") +
+      geom_point(aes(x=log(deriv.pdsi), y=log(deriv.abs), color=pft.abs), size=2) +
+      stat_smooth(aes(x=log(deriv.pdsi), y=log(deriv.abs), color=pft.abs, fill=pft.abs), method="lm") +
+      # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+      # coord_cartesian(ylim=c(0,0.2)) +
+      ggtitle(mod) +
+      theme_bw()
+    
+  )
+}
+dev.off()
+
+fcomp.pdsi.stepps <- lm(log(deriv.abs) ~ log(deriv.pdsi), data=fcomp.stab[fcomp.stab$model=="STEPPS",])
+summary(fcomp.pdsi.stepps)
+
+fcomp.pdsi.stepps2 <- lm(log(deriv.abs) ~ log(deriv.pdsi)*pft.abs - log(deriv.pdsi), data=fcomp.stab[fcomp.stab$model=="STEPPS",])
+summary(fcomp.pdsi.stepps2)
+
+fcomp.pdsi.ed2 <- lm(log(deriv.abs) ~ log(deriv.pdsi)*pft.abs-log(deriv.pdsi), data=fcomp.stab[fcomp.stab$model=="ED2",])
+summary(fcomp.pdsi.ed2)
+
+fcomp.pdsi.lpjw <- lm(log(deriv.abs) ~ log(deriv.pdsi)*pft.abs - log(deriv.pdsi), data=fcomp.stab[fcomp.stab$model=="LPJ-WSL",])
+summary(fcomp.pdsi.lpjw)
+
+fcomp.pdsi.lpjg <- lm(log(deriv.abs) ~ log(deriv.pdsi)*pft.abs - log(deriv.pdsi), data=fcomp.stab[fcomp.stab$model=="LPJ-GUESS",])
+summary(fcomp.pdsi.lpjg)
+
+fcomp.pdsi.trif <- lm(log(deriv.abs) ~ log(deriv.pdsi)*pft.abs - log(deriv.pdsi), data=fcomp.stab[fcomp.stab$model=="TRIFFID",])
+summary(fcomp.pdsi.trif)
+# B = Broadleaf
+# N = Needleleaf
+# S = shrub
+
+# Checking our residuals
+hist(residuals(fcomp.pdsi))
+plot(residuals(fcomp.pdsi) ~ predict(fcomp.pdsi)); abline(h=0, col="red")
+
+# Multi-variate analysis
+fcomp.env <- lm(log(deriv.abs) ~ model*log(deriv.pdsi)*tair.sett*precip.sett*whc, data=fcomp.stab)
+# summary(fcomp.env)
+anova(fcomp.env)
+
+hist(residuals(fcomp.env))
+plot(residuals(fcomp.env) ~ predict(fcomp.env)); abline(h=0, col="red")
+
+
+# Looking at complicated sets of predictors (don't try explaining results by PFT)
+fcomp.env.stepps <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=fcomp.stab[fcomp.stab$model=="STEPPS",])
+# summary(fcomp.env.stepps)
+anova(fcomp.env.stepps)
+# hist(residuals(fcomp.env.stepps))
+
+# Main effect for full interaction = 1.155e3
+
+fcomp.env.ed2 <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=fcomp.stab[fcomp.stab$model=="ED2",])
+anova(fcomp.env.ed2)
+
+fcomp.env.lpjg <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-GUESS",])
+anova(fcomp.env.lpjg)
+
+fcomp.env.lpjw <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-WSL",])
+anova(fcomp.env.lpjw)
+
+# fcomp.env.link <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=fcomp.stab[fcomp.stab$model=="LINKAGES",])
+# anova(fcomp.env.link)
+
+fcomp.env.triff <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=fcomp.stab[fcomp.stab$model=="TRIFFID",])
+anova(fcomp.env.triff)
+
+# -----------
+# -------------------------------------------
 
 # -------------------------------------------
 # Model-Data Comparisons: Biomass
@@ -173,6 +373,26 @@ summary(fcomp)
 # -----------
 # Data fromatting and exploration
 # -----------
+# Add the dominant PFT from the STEPPS model to the output
+for(i in 1:nrow(refab)){
+  # Find out which model grid point is closest to the STEPPS site
+  lon.refab <- refab$lon[i]
+  lat.refab <- refab$lat[i]
+  
+  lon.dist <- lon.refab - stepps$lon
+  lat.dist <- lat.refab - stepps$lat
+  ind.stepps <- which(sqrt(lon.dist^2 + lat.dist^2)==min(sqrt(lon.dist^2 + lat.dist^2)))
+  
+  # Figure out which STEPPS PFT to pull
+  stepps.now <- stepps[ind.stepps,]
+  stepps.now <- stepps.now[!stepps.now$pft %in% c("Deciduous", "Evergreen"),]
+  stepps.ind <- which(stepps.now$value==max(stepps.now$value, na.rm=T))[1]
+  # stepps.ind <- which(stepps.now$value==max(stepps.now$value, na.rm=T))[1]
+  
+  refab[refab$lon==lon.refab & refab$lat==lat.refab, "pft.abs"] <- stepps.now$pft[stepps.ind]
+}
+summary(refab)
+
 refab$model <- as.factor("ReFAB")
 refab$class <- as.factor("biomass")
 refab$var <- as.factor("biomass")
@@ -186,7 +406,7 @@ models1$type <- as.factor("model")
 models1$resolution <- as.factor("annual")
 summary(models1)
 
-cols.bind <- c("lon", "lat", "type", "model", "deriv.abs", names(drivers))
+cols.bind <- c("lon", "lat", "type", "model", "deriv.abs", "pft.abs", names(drivers))
 stab.bm <- rbind(refab[,cols.bind], models1[,cols.bind])
 summary(stab.bm)
 
@@ -229,12 +449,48 @@ bm.pdsi <- lm(log(deriv.abs) ~ model*log(deriv.pdsi), data=stab.bm)
 summary(bm.pdsi)
 anova(bm.pdsi)
 
-bm.pdsi.link <- lm(log(deriv.abs) ~ log(deriv.pdsi), data=stab.bm[stab.bm$model=="LINKAGES",])
-summary(bm.pdsi.link)
-
 # Checking our residuals
 hist(residuals(bm.pdsi))
 plot(residuals(bm.pdsi) ~ predict(bm.pdsi)); abline(h=0, col="red")
+
+bm.pdsi.link1 <- lm(log(deriv.abs) ~ log(deriv.pdsi), data=stab.bm[stab.bm$model=="LINKAGES",])
+summary(bm.pdsi.link1)
+
+# Breaking PDSI-Biomass down by PFT within a model
+pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Biomass_v_PDSI_PFTs.pdf"))
+for(mod in unique(stab.bm$model)){
+  # Only show pfts with >1 data point
+  pfts.use <- summary(stab.bm[stab.bm$model==mod & !is.na(stab.bm$pft.abs), "pft.abs"])
+  pfts.use <- names(pfts.use)[which(pfts.use>1)]
+  print(
+    ggplot(data=stab.bm[stab.bm$model==mod & stab.bm$pft.abs %in% pfts.use,]) +
+      # facet_wrap(~model, scales="free") +
+      geom_point(aes(x=log(deriv.pdsi), y=log(deriv.abs), color=pft.abs), size=2) +
+      stat_smooth(aes(x=log(deriv.pdsi), y=log(deriv.abs), color=pft.abs, fill=pft.abs), method="lm") +
+      # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+      # coord_cartesian(ylim=c(0,0.2)) +
+      ggtitle(mod) +
+      theme_bw()
+    
+  )
+}
+dev.off()
+
+bm.pdsi.refab <- lm(log(deriv.abs) ~ log(deriv.pdsi)*pft.abs - log(deriv.pdsi), data=stab.bm[stab.bm$model=="ReFAB",])
+summary(bm.pdsi.refab)
+
+bm.pdsi.ed2 <- lm(log(deriv.abs) ~ log(deriv.pdsi)*pft.abs - log(deriv.pdsi), data=stab.bm[stab.bm$model=="ED2",])
+summary(bm.pdsi.ed2)
+
+bm.pdsi.lpjg <- lm(log(deriv.abs) ~ log(deriv.pdsi)*pft.abs - log(deriv.pdsi), data=stab.bm[stab.bm$model=="LPJ-GUESS",])
+summary(bm.pdsi.lpjg)
+
+bm.pdsi.lpjw <- lm(log(deriv.abs) ~ log(deriv.pdsi)*pft.abs - log(deriv.pdsi), data=stab.bm[stab.bm$model=="LPJ-WSL",])
+summary(bm.pdsi.lpjw)
+
+bm.pdsi.link <- lm(log(deriv.abs) ~ log(deriv.pdsi)*pft.abs - log(deriv.pdsi), data=stab.bm[stab.bm$model=="LINKAGES",])
+summary(bm.pdsi.link)
+
 
 # Multi-variate analysis
 bm.env <- lm(log(deriv.abs) ~ model*log(deriv.pdsi)*tair.sett*precip.sett*whc, data=stab.bm)
@@ -244,21 +500,19 @@ anova(bm.env)
 hist(residuals(bm.env))
 plot(residuals(bm.env) ~ predict(bm.env)); abline(h=0, col="red")
 
-bm.env.refab <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc, data=stab.bm[stab.bm$model=="ReFAB",])
+bm.env.refab <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=stab.bm[stab.bm$model=="ReFAB",])
 anova(bm.env.refab)
 
-bm.env.ed2 <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc, data=stab.bm[stab.bm$model=="ED2",])
+bm.env.ed2 <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=stab.bm[stab.bm$model=="ED2",])
 anova(bm.env.ed2)
 
-bm.env.refab <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc, data=stab.bm[stab.bm$model=="ReFAB",])
-anova(bm.env.refab)
-
-bm.env.lpjg <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc, data=stab.bm[stab.bm$model=="LPJ-GUESS",])
+bm.env.lpjg <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=stab.bm[stab.bm$model=="LPJ-GUESS",])
 anova(bm.env.lpjg)
 
-bm.env.lpjw <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc, data=stab.bm[stab.bm$model=="LPJ-WSL",])
+bm.env.lpjw <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=stab.bm[stab.bm$model=="LPJ-WSL",])
 anova(bm.env.lpjw)
 
+# bm.env.link <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=stab.bm[stab.bm$model=="LINKAGES",])
 bm.env.link <- lm(log(deriv.abs) ~ log(deriv.pdsi)*tair.sett*precip.sett*whc, data=stab.bm[stab.bm$model=="LINKAGES",])
 anova(bm.env.link)
 
