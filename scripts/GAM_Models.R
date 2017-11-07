@@ -22,7 +22,8 @@ path.repo <- "~/Desktop/Research/PalEON_EcosystemStability/"
 setwd(path.repo)
 
 # Path to where the raw output is
-path.data <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
+path.data <- "~/Dropbox/PalEON_Regional_Extract/"
+path.data2 <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 
 # Path to where data are; lets just pull straight from the Google Drive folder
 path.google <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/"
@@ -77,9 +78,9 @@ paleon$latlon <- as.factor(paleon$latlon)
 summary(paleon)
 
 # Load the driver info
-tair    <- readRDS(file.path(path.data, "Met/tair_all.rds"))
-precipf <- readRDS(file.path(path.data, "Met/precipf_all.rds"))
-pdsi    <- readRDS(file.path(path.data, "Met/pdsi_calib_1931-1990_all.rds"))
+tair    <- readRDS(file.path(path.data2, "Met/tair_all.rds"))
+precipf <- readRDS(file.path(path.data2, "Met/precipf_all.rds"))
+pdsi    <- readRDS(file.path(path.data2, "Met/pdsi_calib_1931-1990_all.rds"))
 
 
 
@@ -111,13 +112,22 @@ for(i in 1:length(yrs)){
 # -------------------------------------------
 # source("R/0_TimeAnalysis.R")
 source(file.path(path.gamm.func, "Calculate_GAMM_Derivs.R"))
+source(file.path(path.gamm.func, "Calculate_GAMM_Posteriors.R"))
 
 calc.stability <- function(x, width){
   dat.tmp <- data.frame(Y=x, Year=1:length(x))
   k.use=round(length(x)/width, 0)
   mod.gam <- gam(Y ~ s(Year, k=k.use), data=dat.tmp)
-  mod.deriv <- calc.derivs(mod.gam, newdata=dat.tmp, vars="Year")
-  return(mod.deriv)
+  
+  yrs.cent <- rev(seq(length(x), 1, by=-100)) # Go backwards so everythign lines up in 1850
+  
+  mod.out <- list()
+  
+  mod.out$gam.post <- post.distns(mod.gam, newdata=dat.tmp[yrs.cent, ], vars="Year", return.sims=T)$sims # Note col1=X (index); col2=year
+  
+  mod.out$mod.deriv <- calc.derivs(mod.gam, newdata=dat.tmp, vars="Year")
+  
+  return(mod.out)
 }
 
  
@@ -128,6 +138,7 @@ pdsi.list1 <- list()
 tair.list1 <- list()
 precip.list1 <- list()
 for(i in 1:ncol(pdsi.ann)){
+# for(i in 1:10){
   pdsi.list1  [[i]] <- pdsi.ann  [which(yrs<1850), i]
   tair.list1  [[i]] <- tair.ann  [which(yrs<1850), i]
   precip.list1[[i]] <- precip.ann[which(yrs<1850), i]
@@ -139,13 +150,32 @@ precip.out1 <- mclapply(precip.list1, calc.stability, mc.cores=8, width=100)
 
 # Plugging in the mean absolute value of the derivative
 for(i in 1:length(pdsi.out1)){
-  paleon[i,"pdsi.deriv"  ] <- mean(abs(pdsi.out1  [[i]]$mean))
-  paleon[i,"tair.deriv"  ] <- mean(abs(tair.out1  [[i]]$mean))
-  paleon[i,"precip.deriv"] <- mean(abs(precip.out1[[i]]$mean))
-  paleon[i,"pdsi.nyr"    ] <- length(pdsi.out1[[i]][!is.na(pdsi.out1[[i]]$sig),"sig"])
-  paleon[i,"tair.nyr"    ] <- length(tair.out1[[i]][!is.na(tair.out1[[i]]$sig),"sig"])
-  paleon[i,"precip.nyr"  ] <- length(precip.out1[[i]][!is.na(precip.out1[[i]]$sig),"sig"])
+  pdsi.diff   <- apply(pdsi.out1  [[i]]$gam.post[,3:ncol(pdsi.out1  [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+  tair.diff   <- apply(tair.out1  [[i]]$gam.post[,3:ncol(tair.out1  [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+  precip.diff <- apply(precip.out1[[i]]$gam.post[,3:ncol(precip.out1[[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+
+  paleon[i,"pdsi.diff"  ] <- mean(abs(pdsi.diff))
+  paleon[i,"tair.diff"  ] <- mean(abs(tair.diff))
+  paleon[i,"precip.diff"] <- mean(abs(precip.diff))
+  
+  paleon[i,"pdsi.deriv"  ] <- mean(abs(pdsi.out1  [[i]]$mod.deriv$mean))
+  paleon[i,"tair.deriv"  ] <- mean(abs(tair.out1  [[i]]$mod.deriv$mean))
+  paleon[i,"precip.deriv"] <- mean(abs(precip.out1[[i]]$mod.deriv$mean))
+  paleon[i,"pdsi.nyr"    ] <- length(pdsi.out1[[i]]$mod.deriv[!is.na(pdsi.out1[[i]]$mod.deriv$sig),"sig"])
+  paleon[i,"tair.nyr"    ] <- length(tair.out1[[i]]$mod.deriv[!is.na(tair.out1[[i]]$mod.deriv$sig),"sig"])
+  paleon[i,"precip.nyr"  ] <- length(precip.out1[[i]]$mod.deriv[!is.na(precip.out1[[i]]$mod.deriv$sig),"sig"])
 }
+
+method.comp <- stack(paleon[,c("pdsi.diff", "tair.diff", "precip.diff")])
+names(method.comp) <- c("diff", "var")
+method.comp$var <- as.factor(unlist(lapply(stringr::str_split(method.comp$var, "[.]"), function(x) {x[1]})))
+method.comp$deriv <- stack(paleon[,c("pdsi.deriv", "tair.deriv", "precip.deriv")])[,1]
+summary(method.comp)
+
+ggplot(data=method.comp) +
+  facet_wrap(~var, scales="free", ncol=2) +
+  geom_point(aes(x=diff, y=deriv, color=var)) +
+  geom_abline(intercept=0, slope=1, linetype="dashed", col="black") + theme_bw()
 
 ggplot(data=paleon) +
   geom_tile(aes(x=lon, y=lat, fill=log(pdsi.deriv))) +
@@ -223,26 +253,26 @@ link.bm.out  <- mclapply(link.bm.list , calc.stability, mc.cores=8, width=100)
 for(i in 1:length(ed.npp.out)){
   
   if(min(ed.npp[,i])>-9999){
-    paleon.models[i,"ed.npp.deriv"  ] <- mean(abs(ed.npp.out  [[i]]$mean))
-    paleon.models[i,"ed.bm.deriv"   ] <- mean(abs(ed.bm.out   [[i]]$mean))
-    paleon.models[i,"ed.bm.nyr"     ] <- length(ed.bm.out [[i]][!is.na(ed.bm.out [[i]]$sig),"sig"])
-    paleon.models[i,"ed.npp.nyr"    ] <- length(ed.npp.out[[i]][!is.na(ed.npp.out[[i]]$sig),"sig"])
+    paleon.models[i,"ed.npp.deriv"  ] <- mean(abs(ed.npp.out  [[i]]$mod.deriv$mean))
+    paleon.models[i,"ed.bm.deriv"   ] <- mean(abs(ed.bm.out   [[i]]$mod.deriv$mean))
+    paleon.models[i,"ed.bm.nyr"     ] <- length(ed.bm.out [[i]]$mod.deriv[!is.na(ed.bm.out [[i]]$mod.deriv$sig),"sig"])
+    paleon.models[i,"ed.npp.nyr"    ] <- length(ed.npp.out[[i]]$mod.deriv[!is.na(ed.npp.out[[i]]$mod.deriv$sig),"sig"])
   }
-  paleon.models[i,"lpjg.npp.deriv"] <- mean(abs(lpjg.npp.out[[i]]$mean))
-  paleon.models[i,"lpjg.bm.deriv" ] <- mean(abs(lpjg.bm.out [[i]]$mean))
-  paleon.models[i,"lpjg.bm.nyr"     ] <- length(lpjg.bm.out [[i]][!is.na(lpjg.bm.out [[i]]$sig),"sig"])
-  paleon.models[i,"lpjg.npp.nyr"    ] <- length(lpjg.npp.out[[i]][!is.na(lpjg.npp.out[[i]]$sig),"sig"])
+  paleon.models[i,"lpjg.npp.deriv"] <- mean(abs(lpjg.npp.out[[i]]$mod.deriv$mean))
+  paleon.models[i,"lpjg.bm.deriv" ] <- mean(abs(lpjg.bm.out [[i]]$mod.deriv$mean))
+  paleon.models[i,"lpjg.bm.nyr"     ] <- length(lpjg.bm.out [[i]]$mod.deriv[!is.na(lpjg.bm.out [[i]]$mod.deriv$sig),"sig"])
+  paleon.models[i,"lpjg.npp.nyr"    ] <- length(lpjg.npp.out[[i]]$mod.deriv[!is.na(lpjg.npp.out[[i]]$mod.deriv$sig),"sig"])
   
-  paleon.models[i,"lpjw.npp.deriv"] <- mean(abs(lpjw.npp.out[[i]]$mean))
-  paleon.models[i,"lpjw.bm.deriv" ] <- mean(abs(lpjw.bm.out [[i]]$mean))
-  paleon.models[i,"lpjw.bm.nyr"     ] <- length(lpjw.bm.out [[i]][!is.na(lpjw.bm.out [[i]]$sig),"sig"])
-  paleon.models[i,"lpjw.npp.nyr"    ] <- length(lpjw.npp.out[[i]][!is.na(lpjw.npp.out[[i]]$sig),"sig"])
+  paleon.models[i,"lpjw.npp.deriv"] <- mean(abs(lpjw.npp.out[[i]]$mod.deriv$mean))
+  paleon.models[i,"lpjw.bm.deriv" ] <- mean(abs(lpjw.bm.out [[i]]$mod.deriv$mean))
+  paleon.models[i,"lpjw.bm.nyr"     ] <- length(lpjw.bm.out [[i]]$mod.deriv[!is.na(lpjw.bm.out [[i]]$mod.deriv$sig),"sig"])
+  paleon.models[i,"lpjw.npp.nyr"    ] <- length(lpjw.npp.out[[i]]$mod.deriv[!is.na(lpjw.npp.out[[i]]$mod.deriv$sig),"sig"])
   
   if(min(link.npp[,i])>-9999){
-    paleon.models[i,"link.npp.deriv"] <- mean(abs(link.npp.out[[i]]$mean))
-    paleon.models[i,"link.bm.deriv" ] <- mean(abs(link.bm.out [[i]]$mean))
-    paleon.models[i,"link.bm.nyr"     ] <- length(link.bm.out [[i]][!is.na(link.bm.out [[i]]$sig),"sig"])
-    paleon.models[i,"link.npp.nyr"    ] <- length(link.npp.out[[i]][!is.na(link.npp.out[[i]]$sig),"sig"])
+    paleon.models[i,"link.npp.deriv"] <- mean(abs(link.npp.out[[i]]$mod.deriv$mean))
+    paleon.models[i,"link.bm.deriv" ] <- mean(abs(link.bm.out [[i]]$mod.deriv$mean))
+    paleon.models[i,"link.bm.nyr"     ] <- length(link.bm.out [[i]]$mod.deriv[!is.na(link.bm.out [[i]]$mod.deriv$sig),"sig"])
+    paleon.models[i,"link.npp.nyr"    ] <- length(link.npp.out[[i]]$mod.deriv[!is.na(link.npp.out[[i]]$mod.deriv$sig),"sig"])
     
   }
 }
