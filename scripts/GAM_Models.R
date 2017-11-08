@@ -60,8 +60,8 @@ summary(paleon.models)
 
 # Loading in the model output
 # Vars: GPP, Biomass
-lpjw.npp1  <- readRDS(file.path(path.data, "ED2/ED2.NPP.rds"))
-lpjw.bm1 <- readRDS(file.path(path.data, "ED2/ED2.AGB.rds"))
+ed.npp1  <- readRDS(file.path(path.data, "ED2/ED2.NPP.rds"))
+ed.bm1 <- readRDS(file.path(path.data, "ED2/ED2.AGB.rds"))
 lpjg.npp1 <- readRDS(file.path(path.data, "LPJ-GUESS/LPJ-GUESS.NPP.rds"))
 lpjg.bm <- readRDS(file.path(path.data, "LPJ-GUESS/LPJ-GUESS.AGB.rds"))
 lpjw.npp1 <- readRDS(file.path(path.data, "LPJ-WSL/LPJ-WSL.v1.NPP.rds"))
@@ -79,7 +79,6 @@ lpjg.bm <- lpjg.bm[,,dim(lpjg.bm)[3]] # Pull total Biomass
 triff.npp1 <- triff.npp1[1:nrow(lpjw.npp1),]
 triff.bm1 <- apply(triff.bm1[1:nrow(lpjw.npp1),,], c(1,2), sum, na.rm=T)
 
-
 # load in the paleon domain info;
 # This got generatlpjw using domain_environment_extraction.R
 paleon <- read.csv(file.path(path.repo, "data/paleon_models_environment_master.csv")) 
@@ -95,7 +94,7 @@ pdsi    <- readRDS(file.path(path.data2, "Met/pdsi_calib_1931-1990_all.rds"))
 
 # aggregate to annual resolution
 pdsi.ann <- tair.ann <- tair.jja <- precip.ann <- precip.jja <- matrix(ncol=ncol(tair), nrow=length(yrs))
-lpjw.npp <- lpjw.bm <- lpjg.npp <- lpjw.npp <- triff.npp <- triff.bm <- matrix(ncol=ncol(lpjw.npp1), nrow=length(yrs))
+ed.npp <- ed.bm <- lpjg.npp <- lpjw.npp <- triff.npp <- triff.bm <- matrix(ncol=ncol(lpjw.npp1), nrow=length(yrs))
 
 dimnames(tair.ann)[[1]] <- yrs
 for(i in 1:length(yrs)){
@@ -108,8 +107,8 @@ for(i in 1:length(yrs)){
   tair.ann  [i,] <- colMeans(tair   [rows.yrs,])
   precip.ann[i,] <- colMeans(precipf[rows.yrs,])
   
-  lpjw.npp  [i,] <- colMeans(lpjw.npp1  [rows.yrs,])
-  lpjw.bm   [i,] <- colMeans(lpjw.bm1   [rows.yrs,])
+  ed.npp   [i,] <- colMeans(ed.npp1   [rows.yrs,])
+  ed.bm    [i,] <- colMeans(ed.bm1    [rows.yrs,])
   lpjg.npp[i,] <- colMeans(lpjg.npp1[rows.yrs,])
   lpjw.npp[i,] <- colMeans(lpjw.npp1[rows.yrs,])
   triff.npp  [i,] <- colMeans(triff.npp1  [rows.yrs,])
@@ -141,7 +140,7 @@ calc.stability <- function(x, width){
   return(mod.out)
 }
 
- 
+
 # -------------------
 # 1A. Met 
 # -------------------
@@ -149,10 +148,10 @@ pdsi.list1 <- list()
 tair.list1 <- list()
 precip.list1 <- list()
 for(i in 1:ncol(pdsi.ann)){
-# for(i in 1:10){
-  pdsi.list1  [[i]] <- pdsi.ann  [which(yrs<1850), i]
-  tair.list1  [[i]] <- tair.ann  [which(yrs<1850), i]
-  precip.list1[[i]] <- precip.ann[which(yrs<1850), i]
+  # for(i in 1:10){
+  pdsi.list1  [[i]] <- pdsi.ann  [which(yrs<=1850), i]
+  tair.list1  [[i]] <- tair.ann  [which(yrs<=1850), i]
+  precip.list1[[i]] <- precip.ann[which(yrs<=1850), i]
 }
 
 pdsi.out1   <- mclapply(pdsi.list1  , calc.stability, mc.cores=8, width=100)
@@ -164,7 +163,7 @@ for(i in 1:length(pdsi.out1)){
   pdsi.diff   <- apply(pdsi.out1  [[i]]$gam.post[,3:ncol(pdsi.out1  [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
   tair.diff   <- apply(tair.out1  [[i]]$gam.post[,3:ncol(tair.out1  [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
   precip.diff <- apply(precip.out1[[i]]$gam.post[,3:ncol(precip.out1[[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
-
+  
   paleon[i,"pdsi.diff"  ] <- mean(abs(pdsi.diff))
   paleon[i,"tair.diff"  ] <- mean(abs(tair.diff))
   paleon[i,"precip.diff"] <- mean(abs(precip.diff))
@@ -183,30 +182,32 @@ method.comp$var <- as.factor(unlist(lapply(stringr::str_split(method.comp$var, "
 method.comp$deriv <- stack(paleon[,c("pdsi.deriv", "tair.deriv", "precip.deriv")])[,1]
 summary(method.comp)
 
+png(file.path(path.google, "Current Figures/Stability_GAMs", "Diff_v_Deriv_ClimateDrivers.png"), height=6, width=7, unit="in", res=320)
 ggplot(data=method.comp) +
   facet_wrap(~var, scales="free", ncol=2) +
   geom_point(aes(x=diff, y=deriv, color=var)) +
-  geom_abline(intercept=0, slope=1, linetype="dashlpjw", col="black") + theme_bw()
+  geom_abline(intercept=0, slope=1, linetype="dashed", col="black") + theme_bw()
+dev.off()
 
 ggplot(data=paleon) +
   geom_tile(aes(x=lon, y=lat, fill=log(pdsi.deriv))) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
   coord_equal(xlim=range(paleon$lon), ylim=range(paleon$lat), expand=0) +
-  scale_fill_gradient2(low = "blue", high = "rlpjw", mid = "white", midpoint = mean(log(paleon$pdsi.deriv))) + 
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(paleon$pdsi.deriv))) + 
   theme_bw()
 
 ggplot(data=paleon) +
   geom_tile(aes(x=lon, y=lat, fill=tair.nyr)) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
   coord_equal(xlim=range(paleon$lon), ylim=range(paleon$lat), expand=0) +
-  scale_fill_gradient2(low = "blue", high = "rlpjw", mid = "white", midpoint = mean(log(paleon$pdsi.deriv))) + 
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(paleon$pdsi.deriv))) + 
   theme_bw()
 
 ggplot(data=paleon) +
   geom_tile(aes(x=lon, y=lat, fill=precip.nyr)) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
   coord_equal(xlim=range(paleon$lon), ylim=range(paleon$lat), expand=0) +
-  scale_fill_gradient2(low = "blue", high = "rlpjw", mid = "white", midpoint = mean(log(paleon$pdsi.deriv))) + 
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(paleon$pdsi.deriv))) + 
   theme_bw()
 
 
@@ -214,14 +215,14 @@ ggplot(data=paleon) +
   geom_tile(aes(x=lon, y=lat, fill=log(tair.deriv))) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
   coord_equal(xlim=range(paleon$lon), ylim=range(paleon$lat), expand=0) +
-  scale_fill_gradient2(low = "blue", high = "rlpjw", mid = "white", midpoint = mean(log(paleon$tair.deriv))) + 
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(paleon$tair.deriv))) + 
   theme_bw()
 
 ggplot(data=paleon) +
   geom_tile(aes(x=lon, y=lat, fill=log(precip.deriv))) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
   coord_equal(xlim=range(paleon$lon), ylim=range(paleon$lat), expand=0) +
-  scale_fill_gradient2(low = "blue", high = "rlpjw", mid = "white", midpoint = mean(log(paleon$precip.deriv))) + 
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(paleon$precip.deriv))) + 
   theme_bw()
 # -------------------
 
@@ -229,11 +230,11 @@ ggplot(data=paleon) +
 # 1B. Models
 # -------------------
 # Tricking missing points into having something just to not have things crash
-lpjw.npp[is.na(lpjw.npp)] <- -9999
-lpjw.bm[is.na(lpjw.bm)]  <- -9999
+ed.npp[is.na(ed.npp)] <- -9999
+ed.bm[is.na(ed.bm)]  <- -9999
 
-lpjw.npp.list <- list()
-lpjw.bm.list <- list()
+ed.npp.list <- list()
+ed.bm.list <- list()
 lpjg.npp.list <- list()
 lpjg.bm.list <- list()
 lpjw.npp.list <- list()
@@ -242,9 +243,9 @@ link.npp.list <- list()
 link.bm.list <- list()
 triff.npp.list <- list()
 triff.bm.list <- list()
-for(i in 1:ncol(lpjw.npp)){
-  lpjw.npp.list  [[i]] <- lpjw.npp  [which(yrs<1850), i]
-  lpjw.bm.list   [[i]] <- lpjw.bm   [which(yrs<1850), i]
+for(i in 1:ncol(ed.npp)){
+  ed.npp.list  [[i]] <- ed.npp  [which(yrs<1850), i]
+  ed.bm.list   [[i]] <- ed.bm   [which(yrs<1850), i]
   lpjg.npp.list[[i]] <- lpjg.npp[which(yrs<1850), i]
   lpjg.bm.list [[i]] <- lpjg.bm [which(yrs<1850), i]
   lpjw.npp.list[[i]] <- lpjw.npp[which(yrs<1850), i]
@@ -255,8 +256,8 @@ for(i in 1:ncol(lpjw.npp)){
   triff.bm.list [[i]] <- triff.bm [which(yrs<1850), i]
 }
 
-lpjw.npp.out   <- mclapply(lpjw.npp.list, calc.stability, mc.cores=8, width=100)
-lpjw.bm.out    <- mclapply(lpjw.bm.list , calc.stability, mc.cores=8, width=100)
+ed.npp.out   <- mclapply(lpjw.npp.list, calc.stability, mc.cores=8, width=100)
+ed.bm.out    <- mclapply(lpjw.bm.list , calc.stability, mc.cores=8, width=100)
 lpjg.npp.out <- mclapply(lpjg.npp.list, calc.stability, mc.cores=8, width=100)
 lpjg.bm.out  <- mclapply(lpjg.bm.list , calc.stability, mc.cores=8, width=100)
 lpjw.npp.out <- mclapply(lpjw.npp.list, calc.stability, mc.cores=8, width=100)
@@ -271,15 +272,15 @@ triff.bm.out  <- mclapply(triff.bm.list , calc.stability, mc.cores=8, width=100)
 # triff.npp2[triff.npp2==-9999] <- NA
 for(i in 1:length(lpjw.npp.out)){
   
-  if(min(lpjw.npp[,i])>-9999){
-    lpjw.npp.diff <- apply(lpjw.npp.out[[i]]$gam.post[,3:ncol(lpjw.npp.out[[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
-    lpjw.bm.diff  <- apply(lpjw.bm.out [[i]]$gam.post[,3:ncol(lpjw.bm.out [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
-    paleon.models[i,"lpjw.npp.diff"  ] <- mean(abs(lpjw.npp.diff))
-    paleon.models[i,"lpjw.bm.diff"  ] <- mean(abs(lpjw.bm.diff))
-    paleon.models[i,"lpjw.npp.deriv"  ] <- mean(abs(lpjw.npp.out  [[i]]$mod.deriv$mean))
-    paleon.models[i,"lpjw.bm.deriv"   ] <- mean(abs(lpjw.bm.out   [[i]]$mod.deriv$mean))
-    paleon.models[i,"lpjw.bm.nyr"     ] <- length(lpjw.bm.out [[i]]$mod.deriv[!is.na(lpjw.bm.out [[i]]$mod.deriv$sig),"sig"])
-    paleon.models[i,"lpjw.npp.nyr"    ] <- length(lpjw.npp.out[[i]]$mod.deriv[!is.na(lpjw.npp.out[[i]]$mod.deriv$sig),"sig"])
+  if(min(ed.npp[,i])>-9999){
+    ed.npp.diff <- apply(ed.npp.out[[i]]$gam.post[,3:ncol(ed.npp.out[[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+    ed.bm.diff  <- apply(ed.bm.out [[i]]$gam.post[,3:ncol(ed.bm.out [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+    paleon.models[i,"ed.npp.diff"  ] <- mean(abs(ed.npp.diff))
+    paleon.models[i,"ed.bm.diff"  ] <- mean(abs(ed.bm.diff))
+    paleon.models[i,"ed.npp.deriv"  ] <- mean(abs(ed.npp.out  [[i]]$mod.deriv$mean))
+    paleon.models[i,"ed.bm.deriv"   ] <- mean(abs(ed.bm.out   [[i]]$mod.deriv$mean))
+    paleon.models[i,"ed.bm.nyr"     ] <- length(ed.bm.out [[i]]$mod.deriv[!is.na(ed.bm.out [[i]]$mod.deriv$sig),"sig"])
+    paleon.models[i,"ed.npp.nyr"    ] <- length(ed.npp.out[[i]]$mod.deriv[!is.na(ed.npp.out[[i]]$mod.deriv$sig),"sig"])
   }
   
   lpjg.npp.diff <- apply(lpjg.npp.out[[i]]$gam.post[,3:ncol(lpjg.npp.out[[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
@@ -324,7 +325,7 @@ for(i in 1:length(lpjw.npp.out)){
   
 }
 
-mods <- c("lpjw", "lpjg", "lpjw", "link", "triff")
+mods <- c("ed", "lpjg", "lpjw", "link", "triff")
 model.stability <- data.frame(paleon.models[,c("lon", "lat", "latlon")],
                               Model = rep(c("ED2", "LPJ-GUESS", "LPJ-WSL", "LINKAGES", "TRIFFID"), each=nrow(paleon.models)),
                               diff.bm  = stack(paleon.models[,paste0(mods, ".bm.diff" )])[,1],
@@ -333,7 +334,7 @@ model.stability <- data.frame(paleon.models[,c("lon", "lat", "latlon")],
                               deriv.npp = stack(paleon.models[,paste0(mods, ".npp.deriv")])[,1],
                               bm.nyr    = stack(paleon.models[,paste0(mods, ".bm.nyr" )])[,1],
                               npp.nyr   = stack(paleon.models[,paste0(mods, ".npp.nyr" )])[,1]
-                              )
+)
 summary(model.stability)
 # -------------------
 
