@@ -54,6 +54,7 @@ us <- map_data("state")
 drivers.all <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Drivers_100.csv"))
 drivers <- stack(drivers.all[,c("pdsi.deriv", "tair.deriv", "precip.deriv")])
 names(drivers) <- c("deriv.abs", "var")
+drivers[,"diff.abs"] <- stack(drivers.all[,c("pdsi.diff", "tair.diff", "precip.diff")])[,1]
 drivers$var <- as.factor(unlist(lapply(stringr::str_split(drivers$var, "[.]"), function(x) {x[1]})))
 drivers$n.sig <- stack(drivers.all[,c("pdsi.nyr", "tair.nyr", "precip.nyr")])[,1]
 drivers$fract.sig <- drivers$n.sig/1000
@@ -63,7 +64,7 @@ drivers$resolution <- as.factor("annual")
 drivers$var <- car::recode(drivers$var, "'tair'='temp'") # Since people have a hard time figuring out "Tair"
 drivers$class <- as.factor("climate")
 drivers$model <- as.factor("drivers")
-drivers <- drivers[,c("lon", "lat", "model", "class", "var", "type", "resolution", "deriv.abs", "n.sig", "fract.sig")]
+drivers <- drivers[,c("lon", "lat", "model", "class", "var", "type", "resolution", "diff.abs", "deriv.abs", "n.sig", "fract.sig")]
 summary(drivers)
 # -----------
 
@@ -81,6 +82,8 @@ stepps <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stabil
 
 # Change names to match up with drivers
 names(stepps)[which(names(stepps)=="sig")] <- c("n.sig")
+names(stepps)[which(names(stepps)=="deriv.abs")] <- c("diff.abs")
+stepps$deriv.abs <- NA
 
 stepps$fract.sig <- stepps$n.sig/10
 stepps$model <- as.factor("STEPPS")
@@ -95,7 +98,8 @@ summary(stepps)
 # ReFAB (empirical biomass, centennially-resolved)
 # -----------
 refab <- read.csv(file.path(path.google, "Current Data", "refab.mean.slope.csv"))
-names(refab) <- c("X", "lat", "lon", "deriv.mean", "deriv.abs", "n.sig")
+names(refab) <- c("X", "lat", "lon", "diff.mean", "diff.abs", "n.sig")
+refab$deriv.abs <- NA
 summary(refab)
 
 
@@ -112,8 +116,8 @@ summary(refab)
 # Model Output - Biomass (annually-resovled)
 # -----------
 models1 <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Models_100.csv"))
-models1 <- models1[,c("lon", "lat", "Model", "deriv.bm", "bm.nyr")] # Add in composition once you do it
-names(models1) <- c("lon", "lat", "model", "deriv.abs", "n.sig")
+models1 <- models1[,c("lon", "lat", "Model", "diff.bm", "deriv.bm", "bm.nyr")] # Add in composition once you do it
+names(models1) <- c("lon", "lat", "model", "diff.abs", "deriv.abs", "n.sig")
 models1$fract.sig <- models1$n.sig/1000
 
 models1$class <- as.factor("biomass")
@@ -127,7 +131,14 @@ summary(models1)
 # -----------
 # Model Ouput - Fcomp (annually-resolved)
 # -----------
+load(file.path(path.data, "PalEON_siteInfo_all.RData"))
+paleon$cell <- 1:nrow(paleon)
+summary(paleon)
+
+fcomp1 <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_FCOMP_centennial.csv"))
 fcomp <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_FCOMP_annual.csv"))
+fcomp[,c("lon", "lat")] <- fcomp1[,c("lon", "lat")]
+fcomp$diff.abs <- NA
 names(fcomp)[which(names(fcomp)=="n.yrs.sig")] <- "n.sig"
 fcomp$var <- fcomp$pft
 fcomp$class <- as.factor("composition")
@@ -166,7 +177,7 @@ summary(fcomp)
 
 # Putting everything into 1 data frame to see how this goes
 # This probably makes the most sense for mapping at least
-cols.bind <- c("lon", "lat", "model", "class", "var", "type", "resolution", "deriv.abs", "n.sig", "fract.sig")
+cols.bind <- c("lon", "lat", "model", "class", "var", "type", "resolution", "diff.abs", "deriv.abs", "n.sig", "fract.sig")
 
 dat.all <- rbind(lbda     [,cols.bind], 
                  drivers  [,cols.bind], 
@@ -184,6 +195,10 @@ for(mod in unique(dat.all$model)){
     for(res in unique(dat.all$resolution[dat.all$model==mod & dat.all$var==var])){
       deriv.subset <- dat.all[dat.all$model==mod & dat.all$var==var & dat.all$resolution==res, "deriv.abs"]
       dat.all[dat.all$model==mod & dat.all$var==var & dat.all$resolution==res, "deriv.rel"] <- deriv.subset/mean(deriv.subset, na.rm=T)
+      
+      diff.subset <- dat.all[dat.all$model==mod & dat.all$var==var & dat.all$resolution==res, "diff.abs"]
+      dat.all[dat.all$model==mod & dat.all$var==var & dat.all$resolution==res, "diff.rel"] <- diff.subset/mean(diff.subset, na.rm=T)
+      
     }
   }
 }
@@ -391,29 +406,29 @@ for(i in 1:nrow(refab)){
   lat.dist <- refab$lat[i] - coords.models$lat
   ind.models <- which(sqrt(lon.dist^2 + lat.dist^2)==min(sqrt(lon.dist^2 + lat.dist^2)))
 
-  models1[models1$lon==coords.models$lon[ind.models] & models1$lat==coords.models$lat[ind.models], "refab"] <- refab$deriv.abs[i]
+  models1[models1$lon==coords.models$lon[ind.models] & models1$lat==coords.models$lat[ind.models], "refab"] <- refab$diff.abs[i]
 }
 summary(models1)
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_DerivAbs_Biomass.png"), height=6, width=6, units="in", res=320)
 ggplot(data=models1) +
-  geom_point(aes(x=refab, y=deriv.abs, color=model), size=2) +
-  stat_smooth(aes(x=refab, y=deriv.abs, color=model, fill=model), method="lm") +
+  geom_point(aes(x=refab, y=diff.abs, color=model), size=2) +
+  stat_smooth(aes(x=refab, y=diff.abs, color=model, fill=model), method="lm") +
   geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
 dev.off()
 
-refab.ed <- lm(refab ~ deriv.abs, data=models1[models1$model=="ED2",])
+refab.ed <- lm(refab ~ diff.abs, data=models1[models1$model=="ED2",])
 summary(refab.ed)
 
-refab.lpjg <- lm(refab ~ deriv.abs, data=models1[models1$model=="LPJ-GUESS",])
+refab.lpjg <- lm(refab ~ diff.abs, data=models1[models1$model=="LPJ-GUESS",])
 summary(refab.lpjg)
 
-refab.lpjw <- lm(refab ~ deriv.abs, data=models1[models1$model=="LPJ-WSL",])
+refab.lpjw <- lm(refab ~ diff.abs, data=models1[models1$model=="LPJ-WSL",])
 summary(refab.lpjw)
 
-refab.link <- lm(refab ~ deriv.abs, data=models1[models1$model=="LINKAGES",])
+refab.link <- lm(refab ~ diff.abs, data=models1[models1$model=="LINKAGES",])
 summary(refab.link)
 # -----------
 
