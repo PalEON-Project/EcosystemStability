@@ -348,7 +348,7 @@ for(i in 1:ncol(pdsi.ann)){
   setTxtProgressBar(pb, i)
 }
 
-pdsi.df$fract.sig <- lbda.df$n.yrs.sig/lbda.df$n.yrs 
+pdsi.df$fract.sig <- pdsi.df$n.yrs.sig/pdsi.df$n.yrs 
 summary(pdsi.df)
 write.csv(pdsi.df, file.path(path.google, "Current Data/Stability_GAMs", "Stability_PDSI_Drivers_LBDA_time_100.csv"), row.names=F)
 
