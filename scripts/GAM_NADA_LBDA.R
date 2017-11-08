@@ -137,13 +137,20 @@ yrs.cent <- seq(900, 1800, by=100)
 # 2.0. Set up the GAM & source the helper functions
 # ------------------
 source(file.path(path.gamm.func, "Calculate_GAMM_Derivs.R"))
+source(file.path(path.gamm.func, "Calculate_GAMM_Posteriors.R"))
 
 calc.stability <- function(x, width=100){
   dat.tmp <- data.frame(Y=x, Year=1:length(x))
   k.use=round(length(x[!is.na(x)])/width, 0)
   mod.gam <- gam(Y ~ s(Year, k=k.use), data=dat.tmp)
-  mod.deriv <- calc.derivs(mod.gam, newdata=dat.tmp, vars="Year")
-  return(mod.deriv)
+  
+  yrs.cent <- rev(seq(length(x), 1, by=-100)) # Go backwards so everythign lines up in 1850
+  
+  mod.out <- list()
+  mod.out$gam.post <- post.distns(mod.gam, newdata=dat.tmp[yrs.cent, ], vars="Year", return.sims=T)$sims # Note col1=X (index); col2=year
+  mod.out$mod.deriv <- calc.derivs(mod.gam, newdata=dat.tmp, vars="Year")
+  
+  return(mod.out)
 }
 # ------------------
 
@@ -166,16 +173,19 @@ for(i in 1:dim(nada.raw)[1]){
     if(all(is.na(nada.raw[i,j,]))) next
     
     stab.tmp <- calc.stability(nada.raw[i,j,], width=100)
-    stab.tmp[is.na(stab.tmp$Y), c("mean", "lwr", "upr", "sig")] <- NA
+    stab.tmp$mod.deriv[is.na(stab.tmp$mod.deriv$Y), c("mean", "lwr", "upr", "sig")] <- NA
 
-    nada.deriv[i,j,] <- stab.tmp$mean
-    nada.sig  [i,j,] <- stab.tmp$sig
+    nada.deriv[i,j,] <- stab.tmp$mod.deriv$mean
+    nada.sig  [i,j,] <- stab.tmp$mod.deriv$sig
     
     # Store some summaryinfo
-    nada.df[row.ind, "deriv.mean"] <- mean(stab.tmp$mean, na.rm=T)
-    nada.df[row.ind, "deriv.abs"] <- mean(abs(stab.tmp$mean), na.rm=T)
-    nada.df[row.ind, "n.yrs"] <- length(which(!is.na(stab.tmp$Y)))
-    nada.df[row.ind, "n.yrs.sig"] <- length(which(!is.na(stab.tmp$sig)))
+    tmp.diff <- apply(stab.tmp$gam.post[,3:ncol(stab.tmp$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+    
+    nada.df[row.ind, "diff.abs"  ] <- mean(abs(tmp.diff))
+    nada.df[row.ind, "deriv.mean"] <- mean(stab.tmp$mod.deriv$mean, na.rm=T)
+    nada.df[row.ind, "deriv.abs" ] <- mean(abs(stab.tmp$mod.deriv$mean), na.rm=T)
+    nada.df[row.ind, "n.yrs"     ] <- length(which(!is.na(stab.tmp$mod.deriv$Y)))
+    nada.df[row.ind, "n.yrs.sig" ] <- length(which(!is.na(stab.tmp$mod.deriv$sig)))
     
   }
 }
@@ -227,16 +237,19 @@ for(i in 1:dim(lbda.raw)[1]){
     if(all(is.na(lbda.raw[i,j,]))) next
     
     stab.tmp <- calc.stability(lbda.raw[i,j,], width=100)
-    stab.tmp[is.na(stab.tmp$Y), c("mean", "lwr", "upr", "sig")] <- NA
+    stab.tmp$mod.deriv[is.na(stab.tmp$mod.deriv$Y), c("mean", "lwr", "upr", "sig")] <- NA
     
-    lbda.deriv[i,j,] <- stab.tmp$mean
-    lbda.sig  [i,j,] <- stab.tmp$sig
+    lbda.deriv[i,j,] <- stab.tmp$mod.deriv$mean
+    lbda.sig  [i,j,] <- stab.tmp$mod.deriv$sig
     
     # Store some summaryinfo
-    lbda.df[row.ind, "deriv.mean"] <- mean(stab.tmp$mean, na.rm=T)
-    lbda.df[row.ind, "deriv.abs"] <- mean(abs(stab.tmp$mean), na.rm=T)
-    lbda.df[row.ind, "n.yrs"] <- length(which(!is.na(stab.tmp$Y)))
-    lbda.df[row.ind, "n.yrs.sig"] <- length(which(!is.na(stab.tmp$sig)))
+    tmp.diff <- apply(stab.tmp$gam.post[,3:ncol(stab.tmp$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+    
+    lbda.df[row.ind, "diff.abs"  ] <- mean(abs(tmp.diff))
+    lbda.df[row.ind, "deriv.mean"] <- mean(stab.tmp$mod.deriv$mean, na.rm=T)
+    lbda.df[row.ind, "deriv.abs" ] <- mean(abs(stab.tmp$mod.deriv$mean), na.rm=T)
+    lbda.df[row.ind, "n.yrs"     ] <- length(which(!is.na(stab.tmp$mod.deriv$Y)))
+    lbda.df[row.ind, "n.yrs.sig" ] <- length(which(!is.na(stab.tmp$mod.deriv$sig)))
     
   }
 }
@@ -281,5 +294,62 @@ print(lbda.sig, vp = viewport(layout.pos.row = 2, layout.pos.col = 1))
 dev.off()
 
 # ------------------
+
+# ------------------
+# 2.2. Re-Calculate PalEON PDSI stability with same time frame as LBDA
+# ------------------
+paleon <- read.csv(file.path(path.repo, "data/paleon_models_environment_master.csv")) 
+paleon$latlon <- as.factor(paleon$latlon)
+summary(paleon)
+
+path.data2 <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
+pdsi    <- readRDS(file.path(path.data2, "Met/pdsi_calib_1931-1990_all.rds"))
+
+yrs <- 850:2010
+mos <- 1:12
+time.mos <- data.frame(year=rep(yrs, each=length(mos)), month=mos)
+head(time.mos)
+
+pdsi.ann <- matrix(ncol=ncol(pdsi), nrow=length(yrs))
+
+dimnames(pdsi.ann)[[1]] <- yrs
+dimnames(pdsi.ann)[[2]] <- dimnames(pdsi)[[2]]
+for(i in 1:length(yrs)){
+  # Generating indices for the cells we want to aggregate across
+  rows.yrs <- which(time.mos$year==yrs[i])
+  rows.jja <- which(time.mos$year==yrs[i] & time.mos$month %in% c(6:8))
+  
+  # doing the aggregation
+  pdsi.ann  [i,] <- colMeans(pdsi   [rows.yrs,])
+}
+
+
+# Truncating to the LBDA time frame
+pdsi.df <- paleon[,c("lon", "lat")]
+pb <- txtProgressBar(min=0, max=nrow(pdsi.df), style=3)
+for(i in 1:ncol(pdsi.ann)){
+  # Getting the number of years for the corresponding LBDA
+  n.yrs <- lbda.df[lbda.df$lon==paleon$lon[i] & lbda.df$lat==paleon$lat[i], "n.yrs"]
+  if(is.na(n.yrs)) next
+  pdsi.df[i,"n.yrs"] <- n.yrs
+  dat.tmp <- pdsi.ann[which(yrs<=1850 & yrs>=1850-n.yrs+1), i]
+  
+  stab.tmp <- calc.stability(dat.tmp, width=100)
+  stab.tmp$mod.deriv[is.na(stab.tmp$mod.deriv$Y), c("mean", "lwr", "upr", "sig")] <- NA
+  
+  # Store some summaryinfo
+  tmp.diff <- apply(stab.tmp$gam.post[,3:ncol(stab.tmp$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+  
+  pdsi.df[i, "diff.abs"  ] <- mean(abs(tmp.diff))
+  pdsi.df[i, "deriv.mean"] <- mean(stab.tmp$mod.deriv$mean, na.rm=T)
+  pdsi.df[i, "deriv.abs" ] <- mean(abs(stab.tmp$mod.deriv$mean), na.rm=T)
+  pdsi.df[i, "n.yrs"     ] <- length(which(!is.na(stab.tmp$mod.deriv$Y)))
+  pdsi.df[i, "n.yrs.sig" ] <- length(which(!is.na(stab.tmp$mod.deriv$sig)))
+  setTxtProgressBar(pb, i)
+}
+
+pdsi.df$fract.sig <- lbda.df$n.yrs.sig/lbda.df$n.yrs 
+summary(pdsi.df)
+write.csv(pdsi.df, file.path(path.google, "Current Data/Stability_GAMs", "Stability_PDSI_Drivers_LBDA_time_100.csv"), row.names=F)
 
 # --------------------------------------------
