@@ -60,8 +60,8 @@ summary(paleon.models)
 
 # Loading in the model output
 # Vars: GPP, Biomass
-ed.npp1  <- readRDS(file.path(path.data, "ED2/ED2.NPP.rds"))
-ed.bm1 <- readRDS(file.path(path.data, "ED2/ED2.AGB.rds"))
+ed.npp1  <- readRDS(file.path(path.data, "ED2/ED2.v1.2017-06-23.NPP.rds"))
+ed.bm1 <- readRDS(file.path(path.data, "ED2/ED2.v1.2017-06-23.AGB.rds"))
 lpjg.npp1 <- readRDS(file.path(path.data, "LPJ-GUESS/LPJ-GUESS.NPP.rds"))
 lpjg.bm <- readRDS(file.path(path.data, "LPJ-GUESS/LPJ-GUESS.AGB.rds"))
 lpjw.npp1 <- readRDS(file.path(path.data, "LPJ-WSL/LPJ-WSL.v1.NPP.rds"))
@@ -70,6 +70,23 @@ link.npp <- readRDS(file.path(path.data, "LINKAGES/PalEON_regional_LINKAGES.NPP.
 link.bm <- readRDS(file.path(path.data, "LINKAGES/PalEON_regional_LINKAGES.AGB.rds"))
 triff.npp1 <- readRDS(file.path(path.data, "TRIFFID/TRIFFID.NPP.rds"))
 triff.bm1 <- readRDS(file.path(path.data, "TRIFFID/TRIFFID.TotLivBio_PFT.rds"))
+
+# Unit Check
+mean(ed.bm1[ed.bm1>0], na.rm=T)
+mean(lpjg.bm[lpjg.bm>0], na.rm=T)
+mean(lpjw.bm[lpjw.bm>0], na.rm=T)
+mean(link.bm[link.bm>0], na.rm=T)
+mean(triff.bm1[triff.bm1>0], na.rm=T)
+
+mean(ed.npp1[ed.npp1>0], na.rm=T)
+mean(lpjg.npp1[lpjg.npp1>0], na.rm=T)
+mean(lpjw.npp1[lpjw.npp1>0], na.rm=T)
+mean(link.npp[link.npp>0], na.rm=T)
+mean(triff.npp1[triff.npp1>0], na.rm=T)
+
+# LINKAGES BM & NPP need to be divided by 10
+link.npp <- link.npp*0.1
+link.bm <- link.bm*0.1
 
 # Doing a bit of formatting
 lpjg.bm <- lpjg.bm[,,dim(lpjg.bm)[3]] # Pull total Biomass
@@ -129,7 +146,7 @@ calc.stability <- function(x, width){
   k.use=round(length(x)/width, 0)
   mod.gam <- gam(Y ~ s(Year, k=k.use), data=dat.tmp)
   
-  yrs.cent <- rev(seq(length(x), 1, by=-100)) # Go backwards so everythign lines up in 1850
+  yrs.cent <- rev(seq(length(x), 1, by=-100)) # Go backwards so everything lines up in 1850
   
   mod.out <- list()
   
@@ -256,8 +273,8 @@ for(i in 1:ncol(ed.npp)){
   triff.bm.list [[i]] <- triff.bm [which(yrs<1850), i]
 }
 
-ed.npp.out   <- mclapply(lpjw.npp.list, calc.stability, mc.cores=8, width=100)
-ed.bm.out    <- mclapply(lpjw.bm.list , calc.stability, mc.cores=8, width=100)
+ed.npp.out   <- mclapply(ed.npp.list, calc.stability, mc.cores=8, width=100)
+ed.bm.out    <- mclapply(ed.bm.list , calc.stability, mc.cores=8, width=100)
 lpjg.npp.out <- mclapply(lpjg.npp.list, calc.stability, mc.cores=8, width=100)
 lpjg.bm.out  <- mclapply(lpjg.bm.list , calc.stability, mc.cores=8, width=100)
 lpjw.npp.out <- mclapply(lpjw.npp.list, calc.stability, mc.cores=8, width=100)
@@ -270,13 +287,15 @@ triff.bm.out  <- mclapply(triff.bm.list , calc.stability, mc.cores=8, width=100)
 # Plugging in the mean absolute value of the derivative
 # triff.npp2 <- triff.npp
 # triff.npp2[triff.npp2==-9999] <- NA
-for(i in 1:length(lpjw.npp.out)){
+for(i in 1:length(ed.npp.out)){
   
   if(min(ed.npp[,i])>-9999){
     ed.npp.diff <- apply(ed.npp.out[[i]]$gam.post[,3:ncol(ed.npp.out[[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
     ed.bm.diff  <- apply(ed.bm.out [[i]]$gam.post[,3:ncol(ed.bm.out [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
-    paleon.models[i,"ed.npp.diff"  ] <- mean(abs(ed.npp.diff))
-    paleon.models[i,"ed.bm.diff"  ] <- mean(abs(ed.bm.diff))
+    paleon.models[i,"ed.npp.mean"   ] <- mean(ed.npp.list[[i]])
+    paleon.models[i,"ed.bm.mean"    ] <- mean(ed.bm.list[[i]])
+    paleon.models[i,"ed.npp.diff"   ] <- mean(abs(ed.npp.diff))
+    paleon.models[i,"ed.bm.diff"    ] <- mean(abs(ed.bm.diff))
     paleon.models[i,"ed.npp.deriv"  ] <- mean(abs(ed.npp.out  [[i]]$mod.deriv$mean))
     paleon.models[i,"ed.bm.deriv"   ] <- mean(abs(ed.bm.out   [[i]]$mod.deriv$mean))
     paleon.models[i,"ed.bm.nyr"     ] <- length(ed.bm.out [[i]]$mod.deriv[!is.na(ed.bm.out [[i]]$mod.deriv$sig),"sig"])
@@ -285,6 +304,8 @@ for(i in 1:length(lpjw.npp.out)){
   
   lpjg.npp.diff <- apply(lpjg.npp.out[[i]]$gam.post[,3:ncol(lpjg.npp.out[[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
   lpjg.bm.diff  <- apply(lpjg.bm.out [[i]]$gam.post[,3:ncol(lpjg.bm.out [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+  paleon.models[i,"lpjg.npp.mean"   ] <- mean(lpjg.npp.list[[i]])
+  paleon.models[i,"lpjg.bm.mean"    ] <- mean(lpjg.bm.list[[i]])
   paleon.models[i,"lpjg.npp.diff"  ] <- mean(abs(lpjg.npp.diff))
   paleon.models[i,"lpjg.bm.diff"  ] <- mean(abs(lpjg.bm.diff))
   paleon.models[i,"lpjg.npp.deriv"] <- mean(abs(lpjg.npp.out[[i]]$mod.deriv$mean))
@@ -294,6 +315,8 @@ for(i in 1:length(lpjw.npp.out)){
   
   lpjw.npp.diff <- apply(lpjw.npp.out[[i]]$gam.post[,3:ncol(lpjw.npp.out[[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
   lpjw.bm.diff  <- apply(lpjw.bm.out [[i]]$gam.post[,3:ncol(lpjw.bm.out [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+  paleon.models[i,"lpjw.npp.mean"   ] <- mean(lpjw.npp.list[[i]])
+  paleon.models[i,"lpjw.bm.mean"    ] <- mean(lpjw.bm.list[[i]])
   paleon.models[i,"lpjw.npp.diff"  ] <- mean(abs(lpjw.npp.diff))
   paleon.models[i,"lpjw.bm.diff"  ] <- mean(abs(lpjw.bm.diff))
   paleon.models[i,"lpjw.npp.deriv"] <- mean(abs(lpjw.npp.out[[i]]$mod.deriv$mean))
@@ -304,6 +327,8 @@ for(i in 1:length(lpjw.npp.out)){
   if(min(link.npp[,i])>-9999){
     link.npp.diff <- apply(link.npp.out[[i]]$gam.post[,3:ncol(link.npp.out[[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
     link.bm.diff  <- apply(link.bm.out [[i]]$gam.post[,3:ncol(link.bm.out [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+    paleon.models[i,"link.npp.mean"   ] <- mean(link.npp.list[[i]])
+    paleon.models[i,"link.bm.mean"    ] <- mean(link.bm.list[[i]])
     paleon.models[i,"link.npp.diff"  ] <- mean(abs(link.npp.diff))
     paleon.models[i,"link.bm.diff"  ] <- mean(abs(link.bm.diff))
     paleon.models[i,"link.npp.deriv"] <- mean(abs(link.npp.out[[i]]$mod.deriv$mean))
@@ -315,6 +340,8 @@ for(i in 1:length(lpjw.npp.out)){
   if(max(triff.npp[,i])>-9999){
     triff.npp.diff <- apply(triff.npp.out[[i]]$gam.post[,3:ncol(triff.npp.out[[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
     triff.bm.diff  <- apply(triff.bm.out [[i]]$gam.post[,3:ncol(triff.bm.out [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+    paleon.models[i,"triff.npp.mean"   ] <- mean(triff.npp.list[[i]])
+    paleon.models[i,"triff.bm.mean"    ] <- mean(triff.bm.list[[i]])
     paleon.models[i,"triff.npp.diff"  ] <- mean(abs(triff.npp.diff))
     paleon.models[i,"triff.bm.diff"  ] <- mean(abs(triff.bm.diff))
     paleon.models[i,"triff.npp.deriv"] <- mean(abs(triff.npp.out[[i]]$mod.deriv$mean))
@@ -328,8 +355,10 @@ for(i in 1:length(lpjw.npp.out)){
 mods <- c("ed", "lpjg", "lpjw", "link", "triff")
 model.stability <- data.frame(paleon.models[,c("lon", "lat", "latlon")],
                               Model = rep(c("ED2", "LPJ-GUESS", "LPJ-WSL", "LINKAGES", "TRIFFID"), each=nrow(paleon.models)),
-                              diff.bm  = stack(paleon.models[,paste0(mods, ".bm.diff" )])[,1],
-                              diff.npp = stack(paleon.models[,paste0(mods, ".npp.diff")])[,1],
+                              mean.bm   = stack(paleon.models[,paste0(mods, ".bm.mean" )])[,1],
+                              mean.npp  = stack(paleon.models[,paste0(mods, ".npp.mean" )])[,1],
+                              diff.bm   = stack(paleon.models[,paste0(mods, ".bm.diff" )])[,1],
+                              diff.npp  = stack(paleon.models[,paste0(mods, ".npp.diff")])[,1],
                               deriv.bm  = stack(paleon.models[,paste0(mods, ".bm.deriv" )])[,1],
                               deriv.npp = stack(paleon.models[,paste0(mods, ".npp.deriv")])[,1],
                               bm.nyr    = stack(paleon.models[,paste0(mods, ".bm.nyr" )])[,1],

@@ -97,9 +97,15 @@ summary(stepps)
 # -----------
 # ReFAB (empirical biomass, centennially-resolved)
 # -----------
+refab.means <- read.csv(file.path(path.google, "Current Data", "biomass.means.csv"))
+names(refab.means)[4] <- "value" 
+summary(refab.means)
+
 refab <- read.csv(file.path(path.google, "Current Data", "refab.mean.slope.csv"))
 names(refab) <- c("X", "lat", "lon", "diff.mean", "diff.abs", "n.sig")
 refab$deriv.abs <- NA
+
+refab <- merge(refab, refab.means[,c("lon", "lat", "value")])
 summary(refab)
 
 
@@ -116,8 +122,8 @@ summary(refab)
 # Model Output - Biomass (annually-resovled)
 # -----------
 models1 <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Models_100.csv"))
-models1 <- models1[,c("lon", "lat", "Model", "diff.bm", "deriv.bm", "bm.nyr")] # Add in composition once you do it
-names(models1) <- c("lon", "lat", "model", "diff.abs", "deriv.abs", "n.sig")
+models1 <- models1[,c("lon", "lat", "Model", "mean.bm", "diff.bm", "deriv.bm", "bm.nyr")] # Add in composition once you do it
+names(models1) <- c("lon", "lat", "model", "value", "diff.abs", "deriv.abs", "n.sig")
 models1$fract.sig <- models1$n.sig/1000
 
 models1$class <- as.factor("biomass")
@@ -135,11 +141,25 @@ load(file.path(path.data, "PalEON_siteInfo_all.RData"))
 paleon$cell <- 1:nrow(paleon)
 summary(paleon)
 
-fcomp1 <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_FCOMP_centennial.csv"))
-fcomp <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_FCOMP_annual.csv"))
-fcomp[,c("lon", "lat")] <- fcomp1[,c("lon", "lat")]
-fcomp$diff.abs <- NA
-names(fcomp)[which(names(fcomp)=="n.yrs.sig")] <- "n.sig"
+fcomp.diff  <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_FCOMP_DIFF.csv"))
+fcomp.deriv <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_FCOMP_DERIV.csv"))
+
+# Fixing some column names
+names(fcomp.diff)[which(names(fcomp.diff) %in% c("deriv.abs", "deriv.mean"))] <- c("diff.abs", "diff.mean")
+summary(fcomp.diff)
+
+names(fcomp.deriv)[which(names(fcomp.deriv)=="n.yrs.sig")] <- "n.sig"
+summary(fcomp.deriv)
+
+# Adding lat/lon into the fcomp data frames
+fcomp.diff  <- merge(fcomp.diff , paleon[,c("cell", "lon", "lat")], all.x=T)
+fcomp.deriv <- merge(fcomp.deriv, paleon[,c("cell", "lon", "lat")], all.x=T)
+
+# Merging the two fcomp data frames together
+fcomp <- merge(fcomp.diff [,c("lon", "lat", "pft", "model", "value", "diff.abs" , "diff.mean" )], 
+               fcomp.deriv[,c("lon", "lat", "pft", "model", "value", "deriv.abs", "deriv.mean", "n.sig", "fract.sig")])
+summary(fcomp)
+
 fcomp$var <- fcomp$pft
 fcomp$class <- as.factor("composition")
 fcomp$type <- as.factor("model")
@@ -220,8 +240,9 @@ ggplot() +
   geom_tile(data=drivers.all, aes(x=lon, y=lat, fill=tair.yr.set-273.15)) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
   geom_point(data=stepps[stepps$pft=="OTHER.HARDWOOD",], aes(x=lon, y=lat, color="STEPPS"), shape=19, size=0.75, alpha=0.75) +
+  geom_point(data=models1[models1$model=="ED2",], aes(x=lon, y=lat, color="Models"), shape=19, size=1.25) +
   geom_point(data=refab, aes(x=lon, y=lat, color="ReFAB"), size=1.75) +
-  scale_color_manual(name="Pollen Data", values=c("black", "darkgoldenrod3")) +
+  scale_color_manual(name="Datasets", values=c("gray40", "black", "darkgoldenrod3")) +
   scale_fill_gradient2(name="Mean Temp \n(1800-1850)", low = "blue", high = "red", mid = "white", midpoint = mean(drivers.all$tair.yr.set-273.15, na.rm=T)) +
   labs(x="Longitude", y="Latitude") +
   # guides(color=guide_legend(aes.overide=list(size=10)))+
@@ -229,7 +250,7 @@ ggplot() +
   coord_equal(xlim=range(drivers.all$lon), ylim=range(drivers.all$lat), expand=0) +
   theme(legend.position="top",
         legend.key=element_blank(),
-        panel.background = element_rect(fill="gray50"),
+        panel.background = element_rect(fill="gray80"),
         panel.grid.major=element_blank(),
         panel.grid.minor=element_blank())
 dev.off()
@@ -240,6 +261,21 @@ dev.off()
 # Mapping Met
 # -----------
 # Looking explicitly at model & driver PDSI -- Note the Log scale indiciating the orders of magnitude difference
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_PDSI_diff_abs.png"), height=6, width=8, units="in", res=320)
+ggplot(data=dat.all[dat.all$class=="climate" & dat.all$var=="pdsi",]) +
+  facet_wrap(~model, ncol=1) +
+  geom_tile(aes(x=lon, y=lat, fill=log(diff.abs))) +
+  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
+  coord_equal(xlim=range(dat.all$lon), ylim=range(dat.all$lat), expand=0) +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(dat.all[dat.all$class=="climate" & dat.all$var=="pdsi","diff.abs"]), na.rm=T)) +
+  theme_bw() +
+  theme(legend.position="right",
+        panel.background = element_rect(fill="gray50"),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank()) +
+  ggtitle("PDSI: empirical v. model; NOTE: LOG SCALE!!")
+dev.off()
+
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_PDSI_deriv_abs.png"), height=6, width=8, units="in", res=320)
 ggplot(data=dat.all[dat.all$class=="climate" & dat.all$var=="pdsi",]) +
   facet_wrap(~model, ncol=1) +
@@ -254,6 +290,7 @@ ggplot(data=dat.all[dat.all$class=="climate" & dat.all$var=="pdsi",]) +
         panel.grid.minor=element_blank()) +
   ggtitle("PDSI: empirical v. model; NOTE: LOG SCALE!!")
 dev.off()
+
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_PDSI_sig_fract.png"), height=6, width=8, units="in", res=320)
 ggplot(data=dat.all[dat.all$class=="climate" & dat.all$var=="pdsi",]) +
@@ -270,6 +307,21 @@ ggplot(data=dat.all[dat.all$class=="climate" & dat.all$var=="pdsi",]) +
   ggtitle("PDSI: empirical v. model")
 dev.off()
 
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Climate_diff_rel.png"), height=5, width=10, units="in", res=320)
+ggplot(data=dat.all[dat.all$class=="climate" ,]) +
+  facet_grid(type~var) +
+  geom_tile(aes(x=lon, y=lat, fill=log(diff.rel))) +
+  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
+  coord_equal(xlim=range(dat.all$lon), ylim=range(dat.all$lat), expand=0) +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(dat.all[dat.all$class=="climate","diff.rel"]), na.rm=T)) +
+  theme_bw() +
+  theme(legend.position="bottom",
+        panel.background = element_rect(fill="gray50"),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank()) +
+  ggtitle("Relative Climate Stability: empirical v. model (850 - 1850 A.D.); NOTE: LOG SCALE!!")
+dev.off()
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Climate_deriv_rel.png"), height=5, width=10, units="in", res=320)
 ggplot(data=dat.all[dat.all$class=="climate" ,]) +
@@ -295,16 +347,15 @@ lon.range <- c(min(dat.all[dat.all$model=="ReFAB","lon"])-1, max(dat.all[dat.all
 lat.range <- c(min(dat.all[dat.all$model=="ReFAB","lat"])-1, max(dat.all[dat.all$model=="ReFAB","lat"])+1.5)
 lat.lon.ind <- dat.all$lat>=lat.range[1] & dat.all$lat<=lat.range[2] & dat.all$lon>=lon.range[1] & dat.all$lon<=lon.range[2]
 
-
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_deriv_abs_century.png"), height=5, width=10, units="in", res=320)
-ggplot(data=dat.all[dat.all$var=="biomass" & lat.lon.ind,]) +
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_diff_abs_century_full.png"), height=5, width=10, units="in", res=320)
+ggplot(data=dat.all[dat.all$var=="biomass" & !is.na(dat.all$diff.abs),]) +
   facet_wrap(~model) +
-  geom_point(aes(x=lon, y=lat, color=log(deriv.abs))) +
+  geom_point(aes(x=lon, y=lat, color=log(diff.abs))) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray25") +
-  coord_equal(xlim=lon.range, 
-              ylim=lat.range, 
+  coord_equal(xlim=range(dat.all$lon), 
+              ylim=range(dat.all$lat), 
               expand=0) +
-  scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(dat.all[dat.all$class=="biomass" & dat.all$resolution=="centennial" & lat.lon.ind, "deriv.abs"]), na.rm=T)) +
+  scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(dat.all[dat.all$class=="biomass" & dat.all$resolution=="centennial", "diff.abs"]), na.rm=T)) +
   theme_bw() +
   theme(legend.position="right",
         panel.background = element_rect(fill="gray80"),
@@ -313,15 +364,33 @@ ggplot(data=dat.all[dat.all$var=="biomass" & lat.lon.ind,]) +
   ggtitle("Centennial-Scale Climate Stability: empirical v. model")
 dev.off()
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_deriv_rel.png"), height=5, width=10, units="in", res=320)
-ggplot(data=dat.all[dat.all$var=="biomass" & lat.lon.ind,]) +
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_diff_abs_century.png"), height=5, width=10, units="in", res=320)
+ggplot(data=dat.all[dat.all$var=="biomass" & lat.lon.ind & !is.na(dat.all$diff.abs),]) +
   facet_wrap(~model) +
-  geom_point(aes(x=lon, y=lat, color=deriv.rel)) +
+  geom_point(aes(x=lon, y=lat, color=log(diff.abs))) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray25") +
   coord_equal(xlim=lon.range, 
               ylim=lat.range, 
               expand=0) +
-  scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(dat.all[dat.all$class=="biomass" & lat.lon.ind, "deriv.rel"], na.rm=T)) +
+  scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(dat.all[dat.all$class=="biomass" & dat.all$resolution=="centennial" & lat.lon.ind, "diff.abs"]), na.rm=T)) +
+  theme_bw() +
+  theme(legend.position="right",
+        panel.background = element_rect(fill="gray80"),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank()) +
+  ggtitle("Centennial-Scale Climate Stability: empirical v. model")
+dev.off()
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_diff_rel.png"), height=5, width=10, units="in", res=320)
+ggplot(data=dat.all[dat.all$var=="biomass" & lat.lon.ind & !is.na(dat.all$diff.rel),]) +
+  facet_wrap(~model) +
+  geom_point(aes(x=lon, y=lat, color=log(diff.rel))) +
+  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray25") +
+  coord_equal(xlim=lon.range, 
+              ylim=lat.range, 
+              expand=0) +
+  scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(dat.all[dat.all$class=="biomass" & lat.lon.ind, "diff.rel"]), na.rm=T)) +
   theme_bw() +
   theme(legend.position="right",
         panel.background = element_rect(fill="gray80"),
@@ -337,18 +406,18 @@ dev.off()
 # -----------
 summary(dat.all[dat.all$class=="composition",])
 
-pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Composition_deriv_abs_extent_full.pdf"))
+pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Composition_diff_abs_extent_full.pdf"))
 for(mod in unique(dat.all[dat.all$class=="composition","model"])){
-  cols <- ifelse(mod=="STEPPS", 3, 2)
+  cols <- ifelse(mod %in% c("STEPPS", "LINKAGES"), 3, 2)
   print(
-    ggplot(data=dat.all[dat.all$class=="composition" & dat.all$model==mod,]) +
+    ggplot(data=dat.all[dat.all$class=="composition" & dat.all$model==mod & dat.all$var!="Total",]) +
       facet_wrap(~var, ncol=cols) +
-      geom_point(aes(x=lon, y=lat, color=deriv.abs)) +
+      geom_point(aes(x=lon, y=lat, color=log(diff.abs))) +
       geom_path(data=us,aes(x=long, y=lat, group=group), color="gray25") +
       coord_equal(xlim=range(dat.all$lon), 
                   ylim=range(dat.all$lat), 
                   expand=0) +
-      scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(dat.all[dat.all$class=="composition", "deriv.abs"], na.rm=T)) +
+      scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(dat.all[dat.all$class=="composition", "diff.abs"]), na.rm=T)) +
       theme_bw() +
       theme(legend.position="right",
             panel.background = element_rect(fill="gray80"),
@@ -364,18 +433,18 @@ lon.range <- c(min(dat.all[dat.all$model=="STEPPS","lon"])-1, max(dat.all[dat.al
 lat.range <- c(min(dat.all[dat.all$model=="STEPPS","lat"])-1, max(dat.all[dat.all$model=="STEPPS","lat"])+1.5)
 lat.lon.ind <- dat.all$lat>=lat.range[1] & dat.all$lat<=lat.range[2] & dat.all$lon>=lon.range[1] & dat.all$lon<=lon.range[2]
 
-pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Composition_deriv_abs_extent_stepps.pdf"))
+pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Composition_diff_abs_extent_stepps.pdf"))
 for(mod in unique(dat.all[dat.all$class=="composition","model"])){
-  cols <- ifelse(mod=="STEPPS", 3, 2)
+  cols <- ifelse(mod %in% c("STEPPS", "LINKAGES"), 3, 2)
   print(
-    ggplot(data=dat.all[dat.all$class=="composition" & dat.all$model==mod  & lat.lon.ind,]) +
+    ggplot(data=dat.all[dat.all$class=="composition" & dat.all$model==mod & dat.all$var!="Total" & lat.lon.ind,]) +
       facet_wrap(~var, ncol=cols) +
-      geom_point(aes(x=lon, y=lat, color=deriv.abs)) +
+      geom_point(aes(x=lon, y=lat, color=log(diff.abs))) +
       geom_path(data=us,aes(x=long, y=lat, group=group), color="gray25") +
       coord_equal(xlim=lon.range, 
                   ylim=lat.range, 
                   expand=0) +
-      scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(dat.all[dat.all$class=="composition" & lat.lon.ind, "deriv.abs"], na.rm=T)) +
+      scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(dat.all[dat.all$class=="composition" & lat.lon.ind, "diff.abs"]), na.rm=T)) +
       theme_bw() +
       theme(legend.position="right",
             panel.background = element_rect(fill="gray80"),
@@ -412,6 +481,15 @@ summary(models1)
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_DerivAbs_Biomass.png"), height=6, width=6, units="in", res=320)
 ggplot(data=models1) +
+  geom_point(aes(x=refab, y=deriv.abs, color=model), size=2) +
+  stat_smooth(aes(x=refab, y=deriv.abs, color=model, fill=model), method="lm") +
+  geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+  coord_cartesian(ylim=c(0,0.2)) +
+  theme_bw()
+dev.off()
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_DiffAbs_Biomass.png"), height=6, width=6, units="in", res=320)
+ggplot(data=models1) +
   geom_point(aes(x=refab, y=diff.abs, color=model), size=2) +
   stat_smooth(aes(x=refab, y=diff.abs, color=model, fill=model), method="lm") +
   geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
@@ -445,7 +523,7 @@ fcomp.stab <- coords.models
 fcomp.stab$model <- paste(unique(fcomp$model)[1])
 for(mod in unique(fcomp$model)){
   # If we need to add the model, do so first
-  if(length(which(fcomp.stab$model==mod))==0) fcomp.stab <- rbind(fcomp.stab, data.frame(coords.models, model=mod, pft.abs=NA, deriv.abs=NA))
+  if(length(which(fcomp.stab$model==mod))==0) fcomp.stab <- rbind(fcomp.stab, data.frame(coords.models, model=mod, pft.abs=NA, deriv.abs=NA, diff.abs=NA))
   
   for(lon in unique(coords.models$lon)){
     for(lat in unique(coords.models[coords.models$lon==lon, "lat"])){
@@ -460,6 +538,7 @@ for(mod in unique(fcomp$model)){
       
       fcomp.stab[ind.stab, "pft.abs"] <- df.fcomp$pft[ind.fcomp]
       fcomp.stab[ind.stab, "deriv.abs"] <- df.fcomp$deriv.abs[ind.fcomp]
+      fcomp.stab[ind.stab, "diff.abs"] <- df.fcomp$diff.abs[ind.fcomp]
     }
   }
 }
@@ -486,7 +565,7 @@ for(i in 1:nrow(coords.stepps)){
   # stepps.ind <- which(stepps.now$value==max(stepps.now$value, na.rm=T))[1]
   
   fcomp.stab[fcomp.stab$lon==lon.models & fcomp.stab$lat==lat.models, "pft.stepps"] <- stepps.now$pft[stepps.ind]
-  fcomp.stab[fcomp.stab$lon==lon.models & fcomp.stab$lat==lat.models, "stepps"] <- stepps.now$deriv.abs[stepps.ind]
+  fcomp.stab[fcomp.stab$lon==lon.models & fcomp.stab$lat==lat.models, "stepps"] <- stepps.now$diff.abs[stepps.ind]
 }
 summary(fcomp.stab)
 
@@ -499,16 +578,28 @@ ggplot(data=fcomp.stab) +
   theme_bw()
 dev.off()
 
-stepps.ed <- lm(stepps ~ deriv.abs, data=fcomp.stab[fcomp.stab$model=="ED2",])
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_DiffAbs_Fcomp.png"), height=6, width=6, units="in", res=320)
+ggplot(data=fcomp.stab) +
+  geom_point(aes(x=stepps, y=diff.abs, color=model), size=2) +
+  stat_smooth(aes(x=stepps, y=diff.abs, color=model, fill=model), method="lm") +
+  geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+  # coord_cartesian(ylim=c(0,0.2)) +
+  theme_bw()
+dev.off()
+
+stepps.ed0 <- lm(stepps ~ deriv.abs, data=fcomp.stab[fcomp.stab$model=="ED2",])
+summary(stepps.ed0)
+
+stepps.ed <- lm(stepps ~ diff.abs, data=fcomp.stab[fcomp.stab$model=="ED2",])
 summary(stepps.ed)
 
-stepps.lpjg <- lm(stepps ~ deriv.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-GUESS",])
+stepps.lpjg <- lm(stepps ~ diff.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-GUESS",])
 summary(stepps.lpjg)
 
-stepps.lpjw <- lm(stepps ~ deriv.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-WSL",])
+stepps.lpjw <- lm(stepps ~ diff.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-WSL",])
 summary(stepps.lpjw)
 
-stepps.trif <- lm(stepps ~ deriv.abs, data=fcomp.stab[fcomp.stab$model=="TRIFFID",])
+stepps.trif <- lm(stepps ~ diff.abs, data=fcomp.stab[fcomp.stab$model=="TRIFFID",])
 summary(stepps.trif)
 
 
