@@ -434,26 +434,53 @@ plot(residuals(fcomp.env) ~ predict(fcomp.env)); abline(h=0, col="red")
 
 # Looking at complicated sets of predictors (don't try explaining results by PFT)
 fcomp.env.stepps <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*pft.abs, data=fcomp.stab[fcomp.stab$model=="STEPPS",])
-# summary(fcomp.env.stepps)
-anova(fcomp.env.stepps)
-# hist(residuals(fcomp.env.stepps))
-
-# Main effect for full interaction = 1.155e3
+anova.fcomp.stepps <- data.frame(anova(fcomp.env.stepps))
+names(anova.fcomp.stepps)[ncol(anova.fcomp.stepps)] <- "P.STEPPS"
+anova.fcomp.stepps$factor <- row.names(anova.fcomp.stepps)
 
 fcomp.env.ed2 <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*pft.abs, data=fcomp.stab[fcomp.stab$model=="ED2",])
-anova(fcomp.env.ed2)
+anova.fcomp.ed2 <- data.frame(anova(fcomp.env.ed2))
+names(anova.fcomp.ed2)[ncol(anova.fcomp.ed2)] <- "P.ED2"
+anova.fcomp.ed2$factor <- row.names(anova.fcomp.ed2)
 
 fcomp.env.link <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*pft.abs, data=fcomp.stab[fcomp.stab$model=="LINKAGES",])
+anova.fcomp.link <- data.frame(anova(fcomp.env.link))
+names(anova.fcomp.link)[ncol(anova.fcomp.link)] <- "P.LINKAGES"
+anova.fcomp.link$factor <- row.names(anova.fcomp.link)
 anova(fcomp.env.link)
 
 fcomp.env.lpjg <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*pft.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-GUESS",])
+anova.fcomp.lpjg <- data.frame(anova(fcomp.env.lpjg))
+names(anova.fcomp.lpjg)[ncol(anova.fcomp.lpjg)] <- "P.LPJ.GUESS"
+anova.fcomp.lpjg$factor <- row.names(anova.fcomp.lpjg)
 anova(fcomp.env.lpjg)
 
 fcomp.env.lpjw <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*pft.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-WSL",])
+anova.fcomp.lpjw <- data.frame(anova(fcomp.env.lpjw))
+names(anova.fcomp.lpjw)[ncol(anova.fcomp.lpjw)] <- "P.LPJ.WSL"
+anova.fcomp.lpjw$factor <- row.names(anova.fcomp.lpjw)
 anova(fcomp.env.lpjw)
 
 fcomp.env.triff <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*pft.abs, data=fcomp.stab[fcomp.stab$model=="TRIFFID",])
+anova.fcomp.triff <- data.frame(anova(fcomp.env.triff))
+names(anova.fcomp.triff)[ncol(anova.fcomp.triff)] <- "P.TRIFFID"
+anova.fcomp.triff$factor <- row.names(anova.fcomp.triff)
 anova(fcomp.env.triff)
+
+# Creating an anova table
+anova.fcomp <- merge(anova.fcomp.stepps[,c("factor", "P.STEPPS")], anova.fcomp.ed2[,c("factor", "P.ED2")], all=T)
+anova.fcomp <- merge(anova.fcomp, anova.fcomp.link [,c("factor", "P.LINKAGES") ], all=T)
+anova.fcomp <- merge(anova.fcomp, anova.fcomp.lpjg [,c("factor", "P.LPJ.GUESS")], all=T)
+anova.fcomp <- merge(anova.fcomp, anova.fcomp.lpjw [,c("factor", "P.LPJ.WSL")  ], all=T)
+anova.fcomp <- merge(anova.fcomp, anova.fcomp.triff[,c("factor", "P.TRIFFID")  ], all=T)
+
+anova.fcomp[,2:ncol(anova.fcomp)] <- round(anova.fcomp[,2:ncol(anova.fcomp)],3)
+anova.fcomp <- anova.fcomp[anova.fcomp$factor!="Residuals",]
+anova.fcomp$level <- unlist(lapply(stringr::str_split(anova.fcomp$factor, ":"), length))
+anova.fcomp <- anova.fcomp[order(anova.fcomp$level),]
+anova.fcomp
+
+write.csv(anova.fcomp, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Composition_Environment_Model.csv"), row.names=F)
 
 # -----------
 # -------------------------------------------

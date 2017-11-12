@@ -500,6 +500,12 @@ ggplot(data=models1) +
   theme_bw()
 dev.off()
 
+lm.refab <- lm(refab ~ model*diff.abs - diff.abs - 1, data=models1)
+bm.summary <- round(summary(lm.refab)$coefficients, 3)
+bm.summary
+write.csv(bm.summary, file.path(path.google, "Current Data/Stability_Synthesis", "Model_v_Data_Biomass.csv"), row.names=T)
+
+
 refab.ed <- lm(refab ~ diff.abs, data=models1[models1$model=="ED2",])
 summary(refab.ed)
 
@@ -593,6 +599,11 @@ ggplot(data=fcomp.stab) +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
 dev.off()
+
+lm.stepps <- lm(stepps ~ model*diff.abs - diff.abs - 1, data=fcomp.stab)
+comp.summary <- round(summary(lm.stepps)$coefficients, 3)
+comp.summary
+write.csv(comp.summary, file.path(path.google, "Current Data/Stability_Synthesis", "Model_v_Data_Composition.csv"), row.names=T)
 
 stepps.ed0 <- lm(stepps ~ deriv.abs, data=fcomp.stab[fcomp.stab$model=="ED2",])
 summary(stepps.ed0)
