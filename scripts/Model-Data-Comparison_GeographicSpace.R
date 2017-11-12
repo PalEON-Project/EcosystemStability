@@ -108,6 +108,8 @@ refab$deriv.abs <- NA
 refab <- merge(refab, refab.means[,c("lon", "lat", "value")])
 summary(refab)
 
+# Doing a unit correction
+refab[,c("value", "diff.mean", "diff.abs")] <- refab[,c("value", "diff.mean", "diff.abs")]*0.1
 
 refab$fract.sig <- refab$n.sig/10
 refab$model <- as.factor("ReFAB")
@@ -125,6 +127,7 @@ models1 <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stabi
 models1 <- models1[,c("lon", "lat", "Model", "mean.bm", "diff.bm", "deriv.bm", "bm.nyr")] # Add in composition once you do it
 names(models1) <- c("lon", "lat", "model", "value", "diff.abs", "deriv.abs", "n.sig")
 models1$fract.sig <- models1$n.sig/1000
+models1[models1$value<=0 & !is.na(models1$value),c("value", "diff.abs", "deriv.abs", "n.sig", "fract.sig")] <- NA
 
 models1$class <- as.factor("biomass")
 models1$var <- as.factor("biomass")
@@ -484,7 +487,7 @@ ggplot(data=models1) +
   geom_point(aes(x=refab, y=deriv.abs, color=model), size=2) +
   stat_smooth(aes(x=refab, y=deriv.abs, color=model, fill=model), method="lm") +
   geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
-  coord_cartesian(ylim=c(0,0.2)) +
+  coord_cartesian(ylim=c(0,quantile(models1$deriv.abs, 0.97, na.rm=T))) +
   theme_bw()
 dev.off()
 
@@ -493,7 +496,7 @@ ggplot(data=models1) +
   geom_point(aes(x=refab, y=diff.abs, color=model), size=2) +
   stat_smooth(aes(x=refab, y=diff.abs, color=model, fill=model), method="lm") +
   geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
-  coord_cartesian(ylim=c(0,0.2)) +
+  coord_cartesian(ylim=c(0,quantile(models1$diff.abs, 0.97, na.rm=T))) +
   theme_bw()
 dev.off()
 
@@ -508,6 +511,10 @@ summary(refab.lpjw)
 
 refab.link <- lm(refab ~ diff.abs, data=models1[models1$model=="LINKAGES",])
 summary(refab.link)
+
+refab.triff <- lm(refab ~ diff.abs, data=models1[models1$model=="TRIFFID",])
+summary(refab.triff)
+
 # -----------
 
 

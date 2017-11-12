@@ -113,6 +113,9 @@ refab$deriv.abs <- NA
 refab <- merge(refab, refab.means[,c("lon", "lat", "value")])
 summary(refab)
 
+# Doing a unit correction
+refab[,c("value", "diff.mean", "diff.abs")] <- refab[,c("value", "diff.mean", "diff.abs")]*0.1
+
 refab <- refab[!is.na(refab$lat),]
 coordinates(refab) <- refab[,c("lon", "lat")]
 projection(refab) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
@@ -126,6 +129,9 @@ models1 <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stabi
 models1 <- models1[,c("lon", "lat", "Model", "mean.bm", "diff.bm", "deriv.bm", "bm.nyr")] # Add in composition once you do it
 names(models1) <- c("lon", "lat", "model", "value", "diff.abs", "deriv.abs", "n.sig")
 models1$fract.sig <- models1$n.sig/1000
+
+models1[models1$value<=0 & !is.na(models1$value),c("value", "diff.abs", "deriv.abs", "n.sig", "fract.sig")] <- NA
+
 coordinates(models1) <- models1[,c("lon", "lat")]
 projection(models1) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 summary(models1)
@@ -517,7 +523,7 @@ dev.off()
 # Linear models
 # -----------
 # Simple comparison with climate
-stab.bm[stab.bm$diff.abs==0 & !is.na(stab.bm$diff.abs), "diff.abs"] <- 1e-10
+# stab.bm[stab.bm$diff.abs==0 & !is.na(stab.bm$diff.abs), "diff.abs"] <- 1e-10
 bm.pdsi0 <- lm(log(diff.abs) ~ model*log(deriv.pdsi), data=stab.bm)
 summary(bm.pdsi0)
 
@@ -531,6 +537,18 @@ plot(residuals(bm.pdsi) ~ predict(bm.pdsi)); abline(h=0, col="red")
 
 bm.pdsi.link1 <- lm(log(diff.abs) ~ log(diff.pdsi), data=stab.bm[stab.bm$model=="LINKAGES",])
 summary(bm.pdsi.link1)
+
+bm.pdsi.triff1 <- lm(log(diff.abs) ~ log(diff.pdsi), data=stab.bm[stab.bm$model=="TRIFFID",])
+summary(bm.pdsi.triff1)
+
+# Looking at biomass-backgroudn biomass
+bm.bm <- lm(log(diff.abs) ~ model*value, data=stab.bm)
+summary(bm.bm)
+
+hist(residuals(bm.bm))
+plot(residuals(bm.bm) ~ predict(bm.bm)); abline(h=0, col="red")
+
+
 
 # Breaking PDSI-Biomass down by PFT within a model
 pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Biomass_v_PDSI_PFTs.pdf"))
@@ -552,6 +570,26 @@ for(mod in unique(stab.bm$model)){
 }
 dev.off()
 
+pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Biomass_v_meanBiomass_PFTs.pdf"))
+for(mod in unique(stab.bm$model)){
+  # Only show pfts with >1 data point
+  pfts.use <- summary(stab.bm[stab.bm$model==mod & !is.na(stab.bm$pft.abs), "pft.abs"])
+  pfts.use <- names(pfts.use)[which(pfts.use>1)]
+  print(
+    ggplot(data=stab.bm[stab.bm$model==mod & stab.bm$pft.abs %in% pfts.use,]) +
+      # facet_wrap(~model, scales="free") +
+      geom_point(aes(x=value, y=log(diff.abs), color=pft.abs), size=2) +
+      stat_smooth(aes(x=value, y=log(diff.abs), color=pft.abs, fill=pft.abs), method="lm") +
+      # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+      # coord_cartesian(ylim=c(0,0.2)) +
+      ggtitle(mod) +
+      theme_bw()
+    
+  )
+}
+dev.off()
+
+# Stability vs climate
 bm.pdsi.refab <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=stab.bm[stab.bm$model=="ReFAB",])
 summary(bm.pdsi.refab)
 
@@ -562,9 +600,6 @@ summary(bm.pdsi.refab2)
 bm.pdsi.ed2 <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=stab.bm[stab.bm$model=="ED2",])
 summary(bm.pdsi.ed2)
 
-bm.pdsi.ed22 <- lm(log(diff.abs) ~ log(diff.pdsi)*value - log(diff.pdsi), data=stab.bm[stab.bm$model=="ED2",])
-summary(bm.pdsi.ed22)
-
 bm.pdsi.lpjg <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=stab.bm[stab.bm$model=="LPJ-GUESS",])
 summary(bm.pdsi.lpjg)
 
@@ -574,31 +609,81 @@ summary(bm.pdsi.lpjw)
 bm.pdsi.link <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=stab.bm[stab.bm$model=="LINKAGES",])
 summary(bm.pdsi.link)
 
+bm.pdsi.triff <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=stab.bm[stab.bm$model=="TRIFFID",])
+summary(bm.pdsi.triff)
+
+
+# Stability vs. Biomass
+bm.bm.refab <- lm(log(diff.abs) ~ value*pft.abs - value, data=stab.bm[stab.bm$model=="ReFAB",])
+summary(bm.bm.refab)
+
+bm.bm.ed2 <- lm(log(diff.abs) ~ value*pft.abs - value, data=stab.bm[stab.bm$model=="ED2",])
+summary(bm.bm.ed2)
+
+bm.bm.lpjg <- lm(log(diff.abs) ~ value*pft.abs - value, data=stab.bm[stab.bm$model=="LPJ-GUESS",])
+summary(bm.bm.lpjg)
+
+bm.bm.lpjw <- lm(log(diff.abs) ~ value*pft.abs - value, data=stab.bm[stab.bm$model=="LPJ-WSL",])
+summary(bm.bm.lpjw)
+
+bm.bm.link <- lm(log(diff.abs) ~ value*pft.abs - value, data=stab.bm[stab.bm$model=="LINKAGES",])
+summary(bm.bm.link)
+
+bm.bm.triff <- lm(log(diff.abs) ~ value*pft.abs - value, data=stab.bm[stab.bm$model=="TRIFFID",])
+summary(bm.bm.triff)
 
 # Multi-variate analysis
-bm.env <- lm(log(diff.abs) ~ model*log(diff.pdsi)*tair.sett*precip.sett*whc, data=stab.bm)
-summary(bm.env)
+bm.env <- lm(log(diff.abs) ~ model*log(diff.pdsi)*tair.sett*precip.sett*whc*value, data=stab.bm)
+# summary(bm.env)
 anova(bm.env)
 
 hist(residuals(bm.env))
 plot(residuals(bm.env) ~ predict(bm.env)); abline(h=0, col="red")
 
-bm.env.refab <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=stab.bm[stab.bm$model=="ReFAB",])
-anova(bm.env.refab)
+bm.env.refab <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs*value, data=stab.bm[stab.bm$model=="ReFAB",])
+anova.bm.refab <- data.frame(anova(bm.env.refab))
+names(anova.bm.refab)[ncol(anova.bm.refab)] <- "P.ReFAB"
+anova.bm.refab$factor <- row.names(anova.bm.refab)
 
-bm.env.ed2 <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=stab.bm[stab.bm$model=="ED2",])
-anova(bm.env.ed2)
+bm.env.ed2 <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs*value, data=stab.bm[stab.bm$model=="ED2",])
+anova.bm.ed2 <- data.frame(anova(bm.env.ed2))
+names(anova.bm.ed2)[ncol(anova.bm.ed2)] <- "P.ED2"
+anova.bm.ed2$factor <- row.names(anova.bm.ed2)
 
-bm.env.lpjg <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=stab.bm[stab.bm$model=="LPJ-GUESS",])
-anova(bm.env.lpjg)
+bm.env.lpjg <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs*value, data=stab.bm[stab.bm$model=="LPJ-GUESS",])
+anova.bm.lpjg <- data.frame(anova(bm.env.lpjg))
+names(anova.bm.lpjg)[ncol(anova.bm.lpjg)] <- "P.LPJ.GUESS"
+anova.bm.lpjg$factor <- row.names(anova.bm.lpjg)
 
-bm.env.lpjw <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=stab.bm[stab.bm$model=="LPJ-WSL",])
-anova(bm.env.lpjw)
+bm.env.lpjw <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs*value, data=stab.bm[stab.bm$model=="LPJ-WSL",])
+anova.bm.lpjw <- data.frame(anova(bm.env.lpjw))
+names(anova.bm.lpjw)[ncol(anova.bm.lpjw)] <- "P.LPJ.WSL"
+anova.bm.lpjw$factor <- row.names(anova.bm.lpjw)
 
-# bm.env.link <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=stab.bm[stab.bm$model=="LINKAGES",])
-bm.env.link <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc, data=stab.bm[stab.bm$model=="LINKAGES",])
-anova(bm.env.link)
+bm.env.link <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs*value, data=stab.bm[stab.bm$model=="LINKAGES",])
+anova.bm.link <- data.frame(anova(bm.env.link))
+names(anova.bm.link)[ncol(anova.bm.link)] <- "P.LINKAGES"
+anova.bm.link$factor <- row.names(anova.bm.link)
 
+bm.env.triff <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs*value, data=stab.bm[stab.bm$model=="TRIFFID",])
+anova.bm.triff <- data.frame(anova(bm.env.triff))
+names(anova.bm.triff)[ncol(anova.bm.triff)] <- "P.TRIFFID"
+anova.bm.triff$factor <- row.names(anova.bm.triff)
+
+# Creating an anova table
+anova.bm <- merge(anova.bm.refab[,c("factor", "P.ReFAB")], anova.bm.ed2[,c("factor", "P.ED2")], all=T)
+anova.bm <- merge(anova.bm, anova.bm.link [,c("factor", "P.LINKAGES") ], all=T)
+anova.bm <- merge(anova.bm, anova.bm.lpjg [,c("factor", "P.LPJ.GUESS")], all=T)
+anova.bm <- merge(anova.bm, anova.bm.lpjw [,c("factor", "P.LPJ.WSL")  ], all=T)
+anova.bm <- merge(anova.bm, anova.bm.triff[,c("factor", "P.TRIFFID")  ], all=T)
+
+anova.bm[,2:ncol(anova.bm)] <- round(anova.bm[,2:ncol(anova.bm)],3)
+anova.bm <- anova.bm[anova.bm$factor!="Residuals",]
+anova.bm$level <- unlist(lapply(str_split(anova.bm$factor, ":"), length))
+anova.bm <- anova.bm[order(anova.bm$level),]
+head(anova.bm); tail(anova.bm)
+ 
+write.csv(anova.bm, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Biomass_Environment_Model.csv"), row.names=F)
 # -----------
 
 
