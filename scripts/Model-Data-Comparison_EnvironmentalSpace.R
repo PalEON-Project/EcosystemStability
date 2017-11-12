@@ -343,7 +343,31 @@ dev.off()
 # Linear models
 # -----------
 # Simple comparison with climate
-fcomp.pdsi0 <- lm(log(diff.abs) ~ model*log(deriv.pdsi), data=fcomp.stab)
+comp.pdsi.pft <- lm(log(diff.abs) ~ model*log(diff.pdsi)*pft.abs, data=fcomp.stab)
+anova(comp.pdsi.pft)
+
+# comp.summary <- round(summary(comp.pdsi.pft)$coefficients, 3)
+comp.summary <- round(data.frame(anova(comp.pdsi.pft)), 3)
+comp.summary
+
+write.csv(comp.summary, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Composition_PFT.csv"), row.names=T)
+
+comp.pdsi.pft2 <- lm(log(diff.abs) ~ model*log(diff.pdsi), data=fcomp.stab)
+anova(comp.pdsi.pft2)
+comp.summary2 <- round(summary(comp.pdsi.pft2)$coefficients, 3)
+comp.summary2
+
+write.csv(comp.summary2, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Composition_RelEffects.csv"), row.names=T)
+
+comp.pdsi.pft3 <- lm(log(diff.abs) ~ model*log(diff.pdsi) - log(diff.pdsi) -1, data=fcomp.stab)
+anova(comp.pdsi.pft3)
+comp.summary3 <- round(summary(comp.pdsi.pft3)$coefficients, 3)
+comp.summary3
+
+write.csv(comp.summary3, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Composition_AbsoltueEffects.csv"), row.names=T)
+
+
+fcomp.pdsi0 <- lm(log(diff.abs) ~ model*log(diff.pdsi), data=fcomp.stab)
 summary(fcomp.pdsi0)
 
 fcomp.pdsi <- lm(log(diff.abs) ~ model*log(diff.pdsi), data=fcomp.stab)
@@ -400,7 +424,7 @@ hist(residuals(fcomp.pdsi))
 plot(residuals(fcomp.pdsi) ~ predict(fcomp.pdsi)); abline(h=0, col="red")
 
 # Multi-variate analysis
-fcomp.env <- lm(log(deriv.abs) ~ model*log(deriv.pdsi)*tair.sett*precip.sett*whc, data=fcomp.stab)
+fcomp.env <- lm(log(deriv.abs) ~ model*log(deriv.pdsi)*tair.sett*precip.sett, data=fcomp.stab)
 # summary(fcomp.env)
 anova(fcomp.env)
 
@@ -409,26 +433,26 @@ plot(residuals(fcomp.env) ~ predict(fcomp.env)); abline(h=0, col="red")
 
 
 # Looking at complicated sets of predictors (don't try explaining results by PFT)
-fcomp.env.stepps <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=fcomp.stab[fcomp.stab$model=="STEPPS",])
+fcomp.env.stepps <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*pft.abs, data=fcomp.stab[fcomp.stab$model=="STEPPS",])
 # summary(fcomp.env.stepps)
 anova(fcomp.env.stepps)
 # hist(residuals(fcomp.env.stepps))
 
 # Main effect for full interaction = 1.155e3
 
-fcomp.env.ed2 <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=fcomp.stab[fcomp.stab$model=="ED2",])
+fcomp.env.ed2 <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*pft.abs, data=fcomp.stab[fcomp.stab$model=="ED2",])
 anova(fcomp.env.ed2)
 
-fcomp.env.link <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=fcomp.stab[fcomp.stab$model=="LINKAGES",])
+fcomp.env.link <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*pft.abs, data=fcomp.stab[fcomp.stab$model=="LINKAGES",])
 anova(fcomp.env.link)
 
-fcomp.env.lpjg <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-GUESS",])
+fcomp.env.lpjg <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*pft.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-GUESS",])
 anova(fcomp.env.lpjg)
 
-fcomp.env.lpjw <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-WSL",])
+fcomp.env.lpjw <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*pft.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-WSL",])
 anova(fcomp.env.lpjw)
 
-fcomp.env.triff <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs, data=fcomp.stab[fcomp.stab$model=="TRIFFID",])
+fcomp.env.triff <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*pft.abs, data=fcomp.stab[fcomp.stab$model=="TRIFFID",])
 anova(fcomp.env.triff)
 
 # -----------
@@ -524,8 +548,18 @@ dev.off()
 # -----------
 # Simple comparison with climate
 # stab.bm[stab.bm$diff.abs==0 & !is.na(stab.bm$diff.abs), "diff.abs"] <- 1e-10
-bm.pdsi0 <- lm(log(diff.abs) ~ model*log(deriv.pdsi), data=stab.bm)
-summary(bm.pdsi0)
+bm.pdsi.bm <- lm(log(diff.abs) ~ model*log(diff.pdsi)*value, data=stab.bm)
+bm.summary <- round(summary(bm.pdsi.bm)$coefficients, 3)
+bm.summary
+
+write.csv(bm.summary, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Biomass_RelEffects.csv"), row.names=T)
+
+bm.pdsi.bm2 <- lm(log(diff.abs) ~ model*log(diff.pdsi)*value-1-value*log(diff.pdsi), data=stab.bm)
+bm.summary2 <- round(summary(bm.pdsi.bm2)$coefficients, 3)
+bm.summary2
+
+write.csv(bm.summary2, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Biomass_AbsoltueEffects.csv"), row.names=T)
+
 
 bm.pdsi <- lm(log(diff.abs) ~ model*log(diff.pdsi), data=stab.bm)
 summary(bm.pdsi)
@@ -633,39 +667,39 @@ bm.bm.triff <- lm(log(diff.abs) ~ value*pft.abs - value, data=stab.bm[stab.bm$mo
 summary(bm.bm.triff)
 
 # Multi-variate analysis
-bm.env <- lm(log(diff.abs) ~ model*log(diff.pdsi)*tair.sett*precip.sett*whc*value, data=stab.bm)
+bm.env <- lm(log(diff.abs) ~ model*log(diff.pdsi)*tair.sett*precip.sett*value, data=stab.bm)
 # summary(bm.env)
 anova(bm.env)
 
 hist(residuals(bm.env))
 plot(residuals(bm.env) ~ predict(bm.env)); abline(h=0, col="red")
 
-bm.env.refab <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs*value, data=stab.bm[stab.bm$model=="ReFAB",])
+bm.env.refab <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*value, data=stab.bm[stab.bm$model=="ReFAB",])
 anova.bm.refab <- data.frame(anova(bm.env.refab))
 names(anova.bm.refab)[ncol(anova.bm.refab)] <- "P.ReFAB"
 anova.bm.refab$factor <- row.names(anova.bm.refab)
 
-bm.env.ed2 <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs*value, data=stab.bm[stab.bm$model=="ED2",])
+bm.env.ed2 <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*value, data=stab.bm[stab.bm$model=="ED2",])
 anova.bm.ed2 <- data.frame(anova(bm.env.ed2))
 names(anova.bm.ed2)[ncol(anova.bm.ed2)] <- "P.ED2"
 anova.bm.ed2$factor <- row.names(anova.bm.ed2)
 
-bm.env.lpjg <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs*value, data=stab.bm[stab.bm$model=="LPJ-GUESS",])
+bm.env.lpjg <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*value, data=stab.bm[stab.bm$model=="LPJ-GUESS",])
 anova.bm.lpjg <- data.frame(anova(bm.env.lpjg))
 names(anova.bm.lpjg)[ncol(anova.bm.lpjg)] <- "P.LPJ.GUESS"
 anova.bm.lpjg$factor <- row.names(anova.bm.lpjg)
 
-bm.env.lpjw <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs*value, data=stab.bm[stab.bm$model=="LPJ-WSL",])
+bm.env.lpjw <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*value, data=stab.bm[stab.bm$model=="LPJ-WSL",])
 anova.bm.lpjw <- data.frame(anova(bm.env.lpjw))
 names(anova.bm.lpjw)[ncol(anova.bm.lpjw)] <- "P.LPJ.WSL"
 anova.bm.lpjw$factor <- row.names(anova.bm.lpjw)
 
-bm.env.link <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs*value, data=stab.bm[stab.bm$model=="LINKAGES",])
+bm.env.link <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*value, data=stab.bm[stab.bm$model=="LINKAGES",])
 anova.bm.link <- data.frame(anova(bm.env.link))
 names(anova.bm.link)[ncol(anova.bm.link)] <- "P.LINKAGES"
 anova.bm.link$factor <- row.names(anova.bm.link)
 
-bm.env.triff <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*whc*pft.abs*value, data=stab.bm[stab.bm$model=="TRIFFID",])
+bm.env.triff <- lm(log(diff.abs) ~ log(diff.pdsi)*tair.sett*precip.sett*value, data=stab.bm[stab.bm$model=="TRIFFID",])
 anova.bm.triff <- data.frame(anova(bm.env.triff))
 names(anova.bm.triff)[ncol(anova.bm.triff)] <- "P.TRIFFID"
 anova.bm.triff$factor <- row.names(anova.bm.triff)
