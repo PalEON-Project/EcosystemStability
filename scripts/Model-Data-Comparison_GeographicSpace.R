@@ -66,6 +66,19 @@ drivers$class <- as.factor("climate")
 drivers$model <- as.factor("drivers")
 drivers <- drivers[,c("lon", "lat", "model", "class", "var", "type", "resolution", "diff.abs", "deriv.abs", "n.sig", "fract.sig")]
 summary(drivers)
+
+# Load in the PDSI calc that's match in temporal extent to LBDA
+pdsi2 <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_PDSI_Drivers_LBDA_time_100.csv"))
+pdsi2$var <- as.factor("pdsi")
+pdsi2$type <- as.factor("model")
+pdsi2$resolution <- as.factor("annual")
+pdsi2$class <- as.factor("climate")
+pdsi2$model <- as.factor("drivers-modified")
+names(pdsi2)[which(names(pdsi2)=="n.yrs.sig")] <- "n.sig"
+summary(pdsi2)
+
+drivers <- merge(drivers, pdsi2, all=T)
+summary(drivers)
 # -----------
 
 # -----------
@@ -226,6 +239,19 @@ for(mod in unique(dat.all$model)){
   }
 }
 
+# quick comparison of deriv vs. diff for all variables & dataset
+diff.deriv <- lm(diff.abs ~ deriv.abs, data=dat.all)
+summary(diff.deriv)
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Diff_v_Deriv_AllVars.png"), height=8, width=10, units="in", res=320)
+ggplot(data=dat.all[dat.all$class %in% c("climate", "biomass"),]) +
+  facet_wrap(~var, scales="free") +
+  geom_point(aes(x=diff.abs, y=deriv.abs, color=model), alpha=0.2, size=0.5) +
+  geom_abline(intercept=0, slope=1, color="black") +
+  stat_smooth(aes(x=diff.abs, y=deriv.abs, color=model), method="lm", se=F) +
+  theme_bw()
+dev.off()
+
 # -------------------------------------------
 
 
@@ -297,7 +323,7 @@ dev.off()
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_PDSI_sig_fract.png"), height=6, width=8, units="in", res=320)
 ggplot(data=dat.all[dat.all$class=="climate" & dat.all$var=="pdsi",]) +
-  facet_wrap(~model, ncol=1) +
+  facet_wrap(~model, ncol=2) +
   geom_tile(aes(x=lon, y=lat, fill=fract.sig)) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
   coord_equal(xlim=range(dat.all$lon), ylim=range(dat.all$lat), expand=0) +
@@ -327,7 +353,7 @@ ggplot(data=dat.all[dat.all$class=="climate" ,]) +
 dev.off()
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Climate_deriv_rel.png"), height=5, width=10, units="in", res=320)
-ggplot(data=dat.all[dat.all$class=="climate" ,]) +
+ggplot(data=dat.all[dat.all$class=="climate" & !dat.all$model=="drivers-modified",]) +
   facet_grid(type~var) +
   geom_tile(aes(x=lon, y=lat, fill=log(deriv.rel))) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
@@ -376,7 +402,25 @@ ggplot(data=dat.all[dat.all$var=="biomass" & lat.lon.ind & !is.na(dat.all$diff.a
   coord_equal(xlim=lon.range, 
               ylim=lat.range, 
               expand=0) +
-  scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(dat.all[dat.all$class=="biomass" & dat.all$resolution=="centennial" & lat.lon.ind, "diff.abs"]), na.rm=T)) +
+  scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(dat.all[dat.all$class=="biomass" & lat.lon.ind, "diff.abs"]), na.rm=T)) +
+  theme_bw() +
+  theme(legend.position="right",
+        panel.background = element_rect(fill="gray80"),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank()) +
+  ggtitle("Centennial-Scale Climate Stability: empirical v. model")
+dev.off()
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_deriv_abs_century.png"), height=5, width=10, units="in", res=320)
+ggplot(data=dat.all[dat.all$var=="biomass" & lat.lon.ind,]) +
+  facet_wrap(~model) +
+  geom_point(aes(x=lon, y=lat, color=log(deriv.abs))) +
+  geom_point(data=dat.all[dat.all$model=="ReFAB",], aes(x=lon, y=lat, color=log(diff.abs))) +
+  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray25") +
+  coord_equal(xlim=lon.range, 
+              ylim=lat.range, 
+              expand=0) +
+  scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(dat.all[dat.all$class=="biomass" & lat.lon.ind, "deriv.abs"]), na.rm=T)) +
   theme_bw() +
   theme(legend.position="right",
         panel.background = element_rect(fill="gray80"),
@@ -387,6 +431,23 @@ dev.off()
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_diff_rel.png"), height=5, width=10, units="in", res=320)
 ggplot(data=dat.all[dat.all$var=="biomass" & lat.lon.ind & !is.na(dat.all$diff.rel),]) +
+  facet_wrap(~model) +
+  geom_point(aes(x=lon, y=lat, color=log(diff.rel))) +
+  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray25") +
+  coord_equal(xlim=lon.range, 
+              ylim=lat.range, 
+              expand=0) +
+  scale_color_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(log(dat.all[dat.all$class=="biomass" & lat.lon.ind, "deriv.rel"]), na.rm=T)) +
+  theme_bw() +
+  theme(legend.position="right",
+        panel.background = element_rect(fill="gray80"),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank()) +
+  ggtitle("Relative Centennial-Scale Climate Stability: empirical v. model")
+dev.off()
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_diff_rel.png"), height=5, width=10, units="in", res=320)
+ggplot(data=dat.all[dat.all$var=="biomass" & lat.lon.ind,]) +
   facet_wrap(~model) +
   geom_point(aes(x=lon, y=lat, color=log(diff.rel))) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray25") +
@@ -481,6 +542,7 @@ for(i in 1:nrow(refab)){
   models1[models1$lon==coords.models$lon[ind.models] & models1$lat==coords.models$lat[ind.models], "refab"] <- refab$diff.abs[i]
 }
 summary(models1)
+
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_DerivAbs_Biomass.png"), height=6, width=6, units="in", res=320)
 ggplot(data=models1) +

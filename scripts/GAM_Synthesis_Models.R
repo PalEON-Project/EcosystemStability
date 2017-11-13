@@ -61,6 +61,9 @@ stab.met$pdsi.deriv.std <- stab.met$pdsi.deriv/mean(stab.met$pdsi.deriv)
 for(mod in unique(stab.models$Model)){
   stab.models[stab.models$Model==mod,"bm.deriv.std"] <- stab.models[stab.models$Model==mod,"deriv.bm"]/mean(stab.models[stab.models$Model==mod,"deriv.bm"], na.rm=T)
   stab.models[stab.models$Model==mod,"npp.deriv.std"] <- stab.models[stab.models$Model==mod,"deriv.npp"]/mean(stab.models[stab.models$Model==mod,"deriv.npp"], na.rm=T)
+  
+  stab.models[stab.models$Model==mod,"bm.diff.std"] <- stab.models[stab.models$Model==mod,"diff.bm"]/mean(stab.models[stab.models$Model==mod,"diff.bm"], na.rm=T)
+  stab.models[stab.models$Model==mod,"npp.diff.std"] <- stab.models[stab.models$Model==mod,"diff.npp"]/mean(stab.models[stab.models$Model==mod,"diff.npp"], na.rm=T)
 }
 
 stab.syn <- merge(stab.models, stab.met)
