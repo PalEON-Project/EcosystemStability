@@ -84,9 +84,9 @@ mean(lpjw.npp1[lpjw.npp1>0], na.rm=T)
 mean(link.npp[link.npp>0], na.rm=T)
 mean(triff.npp1[triff.npp1>0], na.rm=T)
 
-# LINKAGES BM & NPP need to be divided by 10
-link.npp <- link.npp*0.1
-link.bm <- link.bm*0.1
+# LINKAGES BM & NPP look like they need to be divided by 10, but Ann says no
+link.npp <- link.npp
+link.bm <- link.bm
 
 # Doing a bit of formatting
 lpjg.bm <- lpjg.bm[,,dim(lpjg.bm)[3]] # Pull total Biomass

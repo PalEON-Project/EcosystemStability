@@ -122,7 +122,7 @@ refab <- merge(refab, refab.means[,c("lon", "lat", "value")])
 summary(refab)
 
 # Doing a unit correction
-refab[,c("value", "diff.mean", "diff.abs")] <- refab[,c("value", "diff.mean", "diff.abs")]*0.1
+refab[,c("value", "diff.mean", "diff.abs")] <- refab[,c("value", "diff.mean", "diff.abs")]*0.1/2 # Native units = Mg/Ha biomass
 
 refab$fract.sig <- refab$n.sig/10
 refab$model <- as.factor("ReFAB")
@@ -531,6 +531,47 @@ coords.models <- drivers.all[!is.na(drivers.all$umw), c("lon", "lat")]
 summary(coords.models)
 
 # -----------
+# Looking at PDSI
+# -----------
+summary(drivers.all)
+summary(pdsi2)
+summary(lbda)
+
+dim(drivers[drivers$model=="drivers-modified" & drivers$var=="pdsi",])
+dim(lbda)
+lbda2 <- lbda[,c("lon", "lat", "diff.abs")]
+names(lbda2)[which(names(lbda2)=="diff.abs")] <- "lbda"
+
+dat.pdsi <- merge(drivers.all[,c("lon", "lat", "umw")], pdsi2[,c("lon", "lat", "n.yrs", "diff.abs")])
+dat.pdsi <- merge(dat.pdsi, lbda2)
+summary(dat.pdsi)
+
+ggplot(data=dat.pdsi) +
+  geom_point(aes(x=log(lbda), y=log(diff.abs)), size=1, alpha=0.5) +
+  stat_smooth(aes(x=log(lbda), y=log(diff.abs)), method="lm") +
+  geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+  # coord_cartesian(ylim=c(0,quantile(models1$deriv.abs, 0.97, na.rm=T))) +
+  theme_bw()
+
+ggplot(data=dat.pdsi[dat.pdsi$umw=="y",]) +
+  geom_point(aes(x=log(lbda), y=log(diff.abs)), size=1, alpha=0.5) +
+  stat_smooth(aes(x=log(lbda), y=log(diff.abs)), method="lm") +
+  geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+  # coord_cartesian(ylim=c(0,quantile(models1$deriv.abs, 0.97, na.rm=T))) +
+  theme_bw()
+
+# for the whole region
+lm.pdsi <- lm(log(diff.abs) ~ log(lbda), data=dat.pdsi)
+summary(lm.pdsi)
+
+# For where we have good data
+lm.pdsi2 <- lm(log(diff.abs) ~ log(lbda), data=dat.pdsi[dat.pdsi$umw=="y",])
+summary(lm.pdsi2 )
+
+hist(resid(lm.pdsi))
+# -----------
+
+# -----------
 # Biomass first (because it's easiest)
 # -----------
 for(i in 1:nrow(refab)){
@@ -555,10 +596,10 @@ dev.off()
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_DiffAbs_Biomass.png"), height=6, width=6, units="in", res=320)
 ggplot(data=models1) +
-  geom_point(aes(x=refab, y=diff.abs, color=model), size=2) +
-  stat_smooth(aes(x=refab, y=diff.abs, color=model, fill=model), method="lm") +
+  geom_point(aes(x=log(refab), y=log(diff.abs), color=model), size=2) +
+  stat_smooth(aes(x=log(refab), y=log(diff.abs), color=model, fill=model), method="lm") +
   geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
-  coord_cartesian(ylim=c(0,quantile(models1$diff.abs, 0.97, na.rm=T))) +
+  # coord_cartesian(ylim=c(0,quantile(models1$diff.abs, 0.97, na.rm=T))) +
   theme_bw()
 dev.off()
 
@@ -567,20 +608,24 @@ bm.summary <- round(summary(lm.refab)$coefficients, 3)
 bm.summary
 write.csv(bm.summary, file.path(path.google, "Current Data/Stability_Synthesis", "Model_v_Data_Biomass.csv"), row.names=T)
 
+mean(models1[models1$model!="LINKAGES", "diff.abs"], na.rm=T); 
+mean(models1[models1$model!="LINKAGES", "refab"], na.rm=T)
+mean(models1[models1$model=="LINKAGES", "diff.abs"], na.rm=T); 
 
-refab.ed <- lm(refab ~ diff.abs, data=models1[models1$model=="ED2",])
+refab.ed <- lm(log(diff.abs) ~ log(refab), data=models1[models1$model=="ED2",])
 summary(refab.ed)
+hist(resid(refab.ed))
 
-refab.lpjg <- lm(refab ~ diff.abs, data=models1[models1$model=="LPJ-GUESS",])
+refab.lpjg <- lm(log(diff.abs) ~ log(refab), data=models1[models1$model=="LPJ-GUESS",])
 summary(refab.lpjg)
 
-refab.lpjw <- lm(refab ~ diff.abs, data=models1[models1$model=="LPJ-WSL",])
+refab.lpjw <- lm(log(diff.abs) ~ log(refab), data=models1[models1$model=="LPJ-WSL",])
 summary(refab.lpjw)
 
-refab.link <- lm(refab ~ diff.abs, data=models1[models1$model=="LINKAGES",])
+refab.link <- lm(log(diff.abs) ~ log(refab), data=models1[models1$model=="LINKAGES",])
 summary(refab.link)
 
-refab.triff <- lm(refab ~ diff.abs, data=models1[models1$model=="TRIFFID",])
+refab.triff <- lm(log(diff.abs) ~ log(refab), data=models1[models1$model=="TRIFFID",])
 summary(refab.triff)
 
 # -----------

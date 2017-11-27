@@ -49,6 +49,7 @@ lbda.diff
 # Model Drivers
 # -----------
 drivers.all <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Drivers_100.csv"))
+drivers.all <- drivers.all[drivers.all$domain.paleon %in% c("MN", "WI", "MI - lower", "MI - upper"),]
 coordinates(drivers.all) <- drivers.all[,c("lon", "lat")]
 drivers.all$whc.tot[drivers.all$whc.tot>1e3] <- NA
 summary(drivers.all)
@@ -94,7 +95,7 @@ coordinates(stepps) <- stepps[,c("lon", "lat")]
 projection(stepps) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 summary(stepps)
 
-# plot(drivers$whc)
+# plot(drivers$precip.sett)
 # plot(stepps, add=T, col="black", cex=0.2)
 # -----------
 
@@ -120,6 +121,10 @@ refab <- refab[!is.na(refab$lat),]
 coordinates(refab) <- refab[,c("lon", "lat")]
 projection(refab) <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 summary(refab)
+
+# plot(drivers$precip.sett)
+# plot(refab, add=T, col="black", cex=1.25, pch=19)
+
 # -----------
 
 # -----------
@@ -200,6 +205,10 @@ refab <- data.frame(refab)
 refab[,names(drivers.refab)] <- drivers.refab
 refab[,c("deriv.tair", "deriv.precip", "diff.tair", "diff.precip")] <- NA
 summary(refab)
+
+# Subsetting to just what we have data for
+stepps <- stepps[!is.na(stepps$tair.sett),]
+refab <- refab[!is.na(refab$tair.sett),]
 # -----------
 
 # -----------
@@ -215,6 +224,11 @@ drivers.fcomp <- extract(drivers, fcomp)
 fcomp <- data.frame(fcomp)
 fcomp[,names(drivers)] <- drivers.fcomp
 summary(fcomp)
+
+# Subsetting to just what we have data for
+fcomp <- fcomp[!is.na(fcomp$tair.sett),]
+models1 <- models1[!is.na(models1$tair.sett),]
+summary(models1)
 # -----------
 # -------------------------------------------
 
@@ -285,7 +299,7 @@ for(lon in unique(coords.stepps$lon)){
     df.fcomp <- df.fcomp[!df.fcomp$pft %in% c("Deciduous", "Evergreen"),]
     
     ind.fcomp <- which(df.fcomp$value==max(df.fcomp$value))[1]
-
+    
     fcomp.stab[ind.stab, "pft.abs"     ] <- paste(df.fcomp$pft[ind.fcomp])
     fcomp.stab[ind.stab, "diff.abs"    ] <- df.fcomp$diff.abs[ind.fcomp]
     fcomp.stab[ind.stab, "deriv.abs"   ] <- df.fcomp$deriv.abs[ind.fcomp]
@@ -308,7 +322,7 @@ summary(fcomp.stab)
 
 fcomp.stab$model <- factor(fcomp.stab$model, levels=c("STEPPS", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Composition_PDSI.png"), height=6, width=6, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Composition_PDSI_UMW.png"), height=6, width=6, units="in", res=320)
 ggplot(data=fcomp.stab) +
   # facet_wrap(~model, scales="free") +
   geom_point(aes(x=log(diff.pdsi), y=log(diff.abs), color=model), size=1, alpha=0.5) +
@@ -318,7 +332,7 @@ ggplot(data=fcomp.stab) +
   theme_bw()
 dev.off()
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_Composition_Temp.png"), height=6, width=6, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_Composition_Temp_UMW.png"), height=6, width=6, units="in", res=320)
 ggplot(data=fcomp.stab[fcomp.stab$type=="model",]) +
   # facet_wrap(~model, scales="free") +
   geom_point(aes(x=log(diff.tair), y=log(diff.abs), color=model), size=1, alpha=0.5) +
@@ -328,7 +342,7 @@ ggplot(data=fcomp.stab[fcomp.stab$type=="model",]) +
   theme_bw()
 dev.off()
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_Composition_Precip.png"), height=6, width=6, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_Composition_Precip_UMW.png"), height=6, width=6, units="in", res=320)
 ggplot(data=fcomp.stab[fcomp.stab$type=="model",]) +
   # facet_wrap(~model, scales="free") +
   geom_point(aes(x=log(diff.precip), y=log(deriv.abs), color=model), size=1, alpha=0.5) +
@@ -350,21 +364,22 @@ anova(comp.pdsi.pft)
 comp.summary <- round(data.frame(anova(comp.pdsi.pft)), 3)
 comp.summary
 
-write.csv(comp.summary, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Composition_PFT.csv"), row.names=T)
+write.csv(comp.summary, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Composition_PFT_UMW.csv"), row.names=T)
 
 comp.pdsi.pft2 <- lm(log(diff.abs) ~ model*log(diff.pdsi), data=fcomp.stab)
-anova(comp.pdsi.pft2)
+summary(comp.pdsi.pft2)
+# anova(comp.pdsi.pft2)
 comp.summary2 <- round(summary(comp.pdsi.pft2)$coefficients, 3)
 comp.summary2
 
-write.csv(comp.summary2, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Composition_RelEffects.csv"), row.names=T)
+write.csv(comp.summary2, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Composition_RelEffects_UMW.csv"), row.names=T)
 
 comp.pdsi.pft3 <- lm(log(diff.abs) ~ model*log(diff.pdsi) - log(diff.pdsi) -1, data=fcomp.stab)
 anova(comp.pdsi.pft3)
 comp.summary3 <- round(summary(comp.pdsi.pft3)$coefficients, 3)
 comp.summary3
 
-write.csv(comp.summary3, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Composition_AbsoltueEffects.csv"), row.names=T)
+write.csv(comp.summary3, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Composition_AbsoltueEffects_UMW.csv"), row.names=T)
 
 
 fcomp.pdsi0 <- lm(log(diff.abs) ~ model*log(diff.pdsi), data=fcomp.stab)
@@ -376,13 +391,13 @@ summary(fcomp.pdsi)
 anova(fcomp.pdsi)
 
 
-pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Composition_v_PDSI.pdf"))
+pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Composition_v_PDSI_UMW.pdf"))
 for(mod in unique(fcomp.stab$model)){
   # Only show pfts with >1 data point
   pfts.use <- summary(fcomp.stab[fcomp.stab$model==mod & !is.na(fcomp.stab$pft.abs), "pft.abs"])
-  pfts.use <- names(pfts.use)[which(pfts.use>1)]
+  pfts.use1 <- names(pfts.use)[which(pfts.use>1)]
   print(
-    ggplot(data=fcomp.stab[fcomp.stab$model==mod & fcomp.stab$pft.abs %in% pfts.use,]) +
+    ggplot(data=fcomp.stab[fcomp.stab$model==mod & fcomp.stab$pft.abs %in% pfts.use1,]) +
       # facet_wrap(~model, scales="free") +
       geom_point(aes(x=log(diff.pdsi), y=log(diff.abs), color=pft.abs), size=2) +
       stat_smooth(aes(x=log(diff.pdsi), y=log(diff.abs), color=pft.abs, fill=pft.abs), method="lm") +
@@ -398,22 +413,25 @@ dev.off()
 fcomp.pdsi.stepps <- lm(log(diff.abs) ~ log(diff.pdsi), data=fcomp.stab[fcomp.stab$model=="STEPPS",])
 summary(fcomp.pdsi.stepps)
 
-fcomp.pdsi.stepps2 <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=fcomp.stab[fcomp.stab$model=="STEPPS",])
+fcomp.pdsi.stepps2 <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs, data=fcomp.stab[fcomp.stab$model=="STEPPS",])
 summary(fcomp.pdsi.stepps2)
+anova(fcomp.pdsi.stepps2)
 
-fcomp.pdsi.ed2 <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs-log(diff.pdsi), data=fcomp.stab[fcomp.stab$model=="ED2",])
+fcomp.pdsi.ed2 <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs, data=fcomp.stab[fcomp.stab$model=="ED2",])
 summary(fcomp.pdsi.ed2)
+anova(fcomp.pdsi.ed2)
 
-fcomp.pdsi.link <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=fcomp.stab[fcomp.stab$model=="LINKAGES",])
+fcomp.pdsi.link <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs, data=fcomp.stab[fcomp.stab$model=="LINKAGES",])
 summary(fcomp.pdsi.link)
+anova(fcomp.pdsi.link)
 
-fcomp.pdsi.lpjw <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=fcomp.stab[fcomp.stab$model=="LPJ-WSL",])
+fcomp.pdsi.lpjw <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-WSL",])
 summary(fcomp.pdsi.lpjw)
 
-fcomp.pdsi.lpjg <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=fcomp.stab[fcomp.stab$model=="LPJ-GUESS",])
+fcomp.pdsi.lpjg <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-GUESS",])
 summary(fcomp.pdsi.lpjg)
 
-fcomp.pdsi.trif <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=fcomp.stab[fcomp.stab$model=="TRIFFID",])
+fcomp.pdsi.trif <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs, data=fcomp.stab[fcomp.stab$model=="TRIFFID",])
 summary(fcomp.pdsi.trif)
 # B = Broadleaf
 # N = Needleleaf
@@ -480,7 +498,7 @@ anova.fcomp$level <- unlist(lapply(stringr::str_split(anova.fcomp$factor, ":"), 
 anova.fcomp <- anova.fcomp[order(anova.fcomp$level),]
 anova.fcomp
 
-write.csv(anova.fcomp, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Composition_Environment_Model.csv"), row.names=F)
+write.csv(anova.fcomp, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Composition_Environment_Model_UMW.csv"), row.names=F)
 
 # -----------
 # -------------------------------------------
@@ -531,8 +549,7 @@ summary(stab.bm)
 stab.bm$scale <- as.factor(ifelse(stab.bm$model=="LINKAGES", "LINKAGES", "other"))
 summary(stab.bm)
 
-
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_PDSI.png"), height=6, width=6, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_PDSI_UMW.png"), height=6, width=6, units="in", res=320)
 ggplot(data=stab.bm) +
   facet_wrap(~scale, scales="free") +
   geom_point(aes(x=log(diff.pdsi), y=log(diff.abs), color=model), size=1, alpha=0.5) +
@@ -542,7 +559,7 @@ ggplot(data=stab.bm) +
   theme_bw()
 dev.off()
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_Biomass_Temp.png"), height=6, width=6, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_Biomass_Temp_UMW.png"), height=6, width=6, units="in", res=320)
 ggplot(data=stab.bm[stab.bm$type=="model",]) +
   facet_wrap(~scale, scales="free") +
   geom_point(aes(x=log(diff.tair), y=log(diff.abs), color=model), size=1, alpha=0.5) +
@@ -552,7 +569,7 @@ ggplot(data=stab.bm[stab.bm$type=="model",]) +
   theme_bw()
 dev.off()
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_Biomass_Precip.png"), height=6, width=6, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_Biomass_Precip_UMW.png"), height=6, width=6, units="in", res=320)
 ggplot(data=stab.bm[stab.bm$type=="model",]) +
   facet_wrap(~scale, scales="free") +
   geom_point(aes(x=log(diff.precip), y=log(diff.abs), color=model), size=1, alpha=0.5) +
@@ -562,7 +579,7 @@ ggplot(data=stab.bm[stab.bm$type=="model",]) +
   theme_bw()
 dev.off()
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_meanBiomass.png"), height=6, width=6, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_meanBiomass_UMW.png"), height=6, width=6, units="in", res=320)
 ggplot(data=stab.bm) +
   facet_wrap(~scale, scales="free") +
   geom_point(aes(x=value, y=log(diff.abs), color=model), size=1, alpha=0.5) +
@@ -583,13 +600,13 @@ bm.pdsi.bm <- lm(log(diff.abs) ~ model*log(diff.pdsi)*value, data=stab.bm)
 bm.summary <- round(summary(bm.pdsi.bm)$coefficients, 3)
 bm.summary
 
-write.csv(bm.summary, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Biomass_RelEffects.csv"), row.names=T)
+write.csv(bm.summary, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Biomass_RelEffects_UMW.csv"), row.names=T)
 
 bm.pdsi.bm2 <- lm(log(diff.abs) ~ model*log(diff.pdsi)*value-1-value*log(diff.pdsi), data=stab.bm)
 bm.summary2 <- round(summary(bm.pdsi.bm2)$coefficients, 3)
 bm.summary2
 
-write.csv(bm.summary2, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Biomass_AbsoltueEffects.csv"), row.names=T)
+write.csv(bm.summary2, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Biomass_AbsoltueEffects_UMW.csv"), row.names=T)
 
 
 bm.pdsi <- lm(log(diff.abs) ~ model*log(diff.pdsi), data=stab.bm)
@@ -616,7 +633,7 @@ plot(residuals(bm.bm) ~ predict(bm.bm)); abline(h=0, col="red")
 
 
 # Breaking PDSI-Biomass down by PFT within a model
-pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Biomass_v_PDSI_PFTs.pdf"))
+pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Biomass_v_PDSI_PFTs_UMW.pdf"))
 for(mod in unique(stab.bm$model)){
   # Only show pfts with >1 data point
   pfts.use <- summary(stab.bm[stab.bm$model==mod & !is.na(stab.bm$pft.abs), "pft.abs"])
@@ -635,7 +652,7 @@ for(mod in unique(stab.bm$model)){
 }
 dev.off()
 
-pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Biomass_v_meanBiomass_PFTs.pdf"))
+pdf(file.path(path.google, "Current Figures/Stability_Synthesis", "Biomass_v_meanBiomass_PFTs_UMW.pdf"))
 for(mod in unique(stab.bm$model)){
   # Only show pfts with >1 data point
   pfts.use <- summary(stab.bm[stab.bm$model==mod & !is.na(stab.bm$pft.abs), "pft.abs"])
@@ -744,11 +761,11 @@ anova.bm <- merge(anova.bm, anova.bm.triff[,c("factor", "P.TRIFFID")  ], all=T)
 
 anova.bm[,2:ncol(anova.bm)] <- round(anova.bm[,2:ncol(anova.bm)],3)
 anova.bm <- anova.bm[anova.bm$factor!="Residuals",]
-anova.bm$level <- unlist(lapply(str_split(anova.bm$factor, ":"), length))
+anova.bm$level <- unlist(lapply(stringr::str_split(anova.bm$factor, ":"), length))
 anova.bm <- anova.bm[order(anova.bm$level),]
 head(anova.bm); tail(anova.bm)
- 
-write.csv(anova.bm, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Biomass_Environment_Model.csv"), row.names=F)
+
+write.csv(anova.bm, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Biomass_Environment_Model_UMW.csv"), row.names=F)
 # -----------
 
 
