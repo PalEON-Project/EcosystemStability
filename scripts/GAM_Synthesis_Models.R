@@ -1,10 +1,26 @@
 # -------------------------------------------
-# Assessing the scales and magnitude of climate change variability over the past millennium in the MIP drivers
+# Assessing the changes in climate sensitivity during a process cascade in differnet models
 # Author: Christy Rollinson, crollinson@gmail.com
-
-# 1. Stastical detection of significant change
-#    - Use loess or TP regression splines
-# 2. Comparison with paleoclimate reconstructions
+#
+# 1. Figure out which climate variable correlates strongest with GPP (basic photosynthesis)
+# 2. Look at how (relative) sensitivity to that climate variable as we move from upstream to downstream processes
+#    GPP --> NEE --> NPP --> LAI --> BM --> Fcomp
+#
+# -------------------------------------------
+# Workflow
+# -------------------------------------------
+# 1. Read in data; 
+# 2. merge climate & fcomp stability with other ecosys variables
+# 3. relativize ecosystem variables so they can be analyzed on common scales
+# 4. determine which climate predictor has the tightest correlation with GPP
+# 5. compare climate sensitivity of ecosystem variables WITHIN MODELS
+# 6. Determine where in the ecosystem the biggest jumps in changes in cliamte sensitivity occurr
+#     - this can then be explained in the discussion by leveraging what we know about the models
+# 7. compare cliamte sensitivity of ecosystem variables generally across models: are fast or slow climate variables MORE or LESS sensitive to climate
+#     - relativized slopes
+#     - fraction points showing significant change
+# 8. Are different variables sensitive to different aspects of climate?
+#     - e.g. GPP tracks temperature, but Fcomp is more correlated with precip
 # -------------------------------------------
 rm(list=ls())
 
@@ -48,339 +64,102 @@ us <- map_data("state")
 # -------------------------------------------
 
 # -------------------------------------------
-# Comparing met & Ecosystem stability
+# 1. Read in data; 
 # -------------------------------------------
 stab.met   <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Drivers_100.csv"))
 stab.models <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Models_100.csv"))
 
-# Standardizing the derivatives relative to the mean
-stab.met$tair.deriv.std <- stab.met$tair.deriv/mean(stab.met$tair.deriv)
-stab.met$precip.deriv.std <- stab.met$precip.deriv/mean(stab.met$precip.deriv)
-stab.met$pdsi.deriv.std <- stab.met$pdsi.deriv/mean(stab.met$pdsi.deriv)
+summary(stab.met)
+summary(stab.models)
 
-for(mod in unique(stab.models$Model)){
-  stab.models[stab.models$Model==mod,"bm.deriv.std"] <- stab.models[stab.models$Model==mod,"deriv.bm"]/mean(stab.models[stab.models$Model==mod,"deriv.bm"], na.rm=T)
-  stab.models[stab.models$Model==mod,"npp.deriv.std"] <- stab.models[stab.models$Model==mod,"deriv.npp"]/mean(stab.models[stab.models$Model==mod,"deriv.npp"], na.rm=T)
-  
-  stab.models[stab.models$Model==mod,"bm.diff.std"] <- stab.models[stab.models$Model==mod,"diff.bm"]/mean(stab.models[stab.models$Model==mod,"diff.bm"], na.rm=T)
-  stab.models[stab.models$Model==mod,"npp.diff.std"] <- stab.models[stab.models$Model==mod,"diff.npp"]/mean(stab.models[stab.models$Model==mod,"diff.npp"], na.rm=T)
+
+# library(GGally)
+vars.graph <- c("gpp", "npp", "nee", "lai", "bm")
+type.graph <- "diff."
+
+# npp.range <- quantile(stab.models[stab.models$Model!="LINKAGES","diff.npp"], c(0.001, 0.75), na.rm=T)
+ggplot(data=stab.models[stab.models$Model!="LINKAGES",]) +
+  geom_point(aes(x=diff.gpp, y=diff.npp, color=Model)) +
+  stat_smooth(aes(x=diff.gpp, y=diff.npp, color=Model, fill=Model), method="lm") 
+
+ggplot(data=stab.models[stab.models$Model!="LINKAGES",]) +
+  geom_point(aes(x=diff.gpp, y=diff.nee, color=Model)) +
+  stat_smooth(aes(x=diff.gpp, y=diff.nee, color=Model, fill=Model), method="lm") 
+
+
+# Duping model data into something very long 
+vars.use <- c("gpp", "npp", "nee", "lai", "bm")
+type.use <- "diff."
+dat.long <- data.frame()
+pb <- txtProgressBar(min=0, max=length(vars.use)^2-1)
+pb.ind=1
+for(i in 1:length(vars.use)){
+  while(i < length(vars.use)){
+    for(j in (i+1):length(vars.use)){
+      print(paste0(vars.use[i], " - ", vars.use[j]))
+      
+      dat.temp <- data.frame(stab.models[, c("lon", "lat", "Model")], 
+                             var1=vars.use[i], value1=stab.models[,paste0(type.use, vars.use[i])],
+                             var2=vars.use[j], value2=stab.models[,paste0(type.use, vars.use[j])]
+                             )
+      
+      dat.long <- rbind(dat.long, dat.temp)
+    }
+  }
 }
 
-stab.syn <- merge(stab.models, stab.met)
-summary(stab.syn)
+summary(dat.long)
 
-summary(stab.met)
-
-plot.precip <- ggplot(data=stab.met) +
-  # facet_wrap(~Model) +
-  geom_tile(aes(x=lon, y=lat, fill=log(precip.deriv.std))) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
-  # geom_point(data=stab.models, aes(x=lon, y=lat, color=bm.deriv.std)) +
-  scale_fill_gradient2(name="stability", low = "blue2", high = "red2", mid = "gray80", midpoint = 0) + 
-  # scale_color_gradient(low = "darkgreen", high="lightgreen") + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("Precipitation") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5, face=2))
-  
-plot.temp <- ggplot(data=stab.met) +
-  # facet_wrap(~Model) +
-  geom_tile(aes(x=lon, y=lat, fill=log(tair.deriv.std))) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
-  # geom_point(data=stab.models, aes(x=lon, y=lat, color=bm.deriv.std)) +
-  scale_fill_gradient2(name="stability", low = "blue2", high = "red2", mid = "gray80", midpoint = 0) + 
-  # scale_color_gradient(low = "darkgreen", high="lightgreen") + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("Temperature") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5, face=2))
-
-
-
-plot.ed.bm <- ggplot(data=stab.models[stab.models$Model=="ED2",]) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") +
-  geom_point(aes(x=lon, y=lat, color=log(bm.deriv.std)), size=2) +
-  scale_color_gradient2(name="stability", low = "blue2", high = "red2", mid = "gray80", midpoint = 0) + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("ED2") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5))
-
-plot.lpjg.bm <- ggplot(data=stab.models[stab.models$Model=="LPJ-GUESS",]) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") +
-  geom_point(aes(x=lon, y=lat, color=log(bm.deriv.std)), size=2) +
-  scale_color_gradient2(name="stability", low = "blue2", high = "red2", mid = "gray80", midpoint = 0) + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("LPJ-GUESS") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5))
-
-plot.lpjw.bm <- ggplot(data=stab.models[stab.models$Model=="LPJ-WSL",]) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") +
-  geom_point(aes(x=lon, y=lat, color=log(bm.deriv.std)), size=2) +
-  scale_color_gradient2(name="stability", low = "blue2", high = "red2", mid = "gray80", midpoint = 0) + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("LPJ-WSL") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5))
-
-plot.link.bm <- ggplot(data=stab.models[stab.models$Model=="LINKAGES",]) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") +
-  geom_point(aes(x=lon, y=lat, color=log(bm.deriv.std)), size=2) +
-  scale_color_gradient2(name="stability", low = "blue2", high = "red2", mid = "gray80", midpoint = 0) + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("LINKAGES") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5))
-
-
-
-png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_Biomass_Region_100.png"), height=6, width=8, units="in", res=320)
-grid.newpage()
-pushViewport(viewport(layout = grid.layout(3, 2)))
-print(plot.temp   , vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
-print(plot.precip , vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
-print(plot.ed.bm  , vp = viewport(layout.pos.row = 2, layout.pos.col = 1))
-print(plot.link.bm, vp = viewport(layout.pos.row = 2, layout.pos.col = 2))
-print(plot.lpjg.bm, vp = viewport(layout.pos.row = 3, layout.pos.col = 1))
-print(plot.lpjw.bm, vp = viewport(layout.pos.row = 3, layout.pos.col = 2))
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Models_CorrelationMatrix.png"), height=9, width=10, units="in", res=220)
+ggplot(data=dat.long[dat.long$Model!="LINKAGES",]) +
+  facet_grid(var2 ~ var1, scales="free") +
+  geom_point(aes(x=value1, y=value2, color=Model), size=0.2, alpha=0.8) +
+  stat_smooth(aes(x=value1, y=value2, color=Model, fill=Model), method="lm") +
+  coord_cartesian(expand=c(0,0)) +
+  theme_bw()
 dev.off()
-
-
-plot.precip.nyr <- ggplot(data=stab.met) +
-  # facet_wrap(~Model) +
-  geom_tile(aes(x=lon, y=lat, fill=precip.nyr)) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
-  # geom_point(data=stab.models, aes(x=lon, y=lat, color=bm.deriv.std)) +
-  scale_fill_gradient2(name="# Yrs", low = "blue2", high = "red2", mid = "gray80") + 
-  # scale_color_gradient(low = "darkgreen", high="lightgreen") + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("Precipitation") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5, face=2))
-
-plot.temp.nyr <- ggplot(data=stab.met) +
-  # facet_wrap(~Model) +
-  geom_tile(aes(x=lon, y=lat, fill=tair.nyr)) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
-  # geom_point(data=stab.models, aes(x=lon, y=lat, color=bm.deriv.std)) +
-  scale_fill_gradient2(name="# Yrs", low = "blue2", high = "red2", mid = "gray80") + 
-  # scale_color_gradient(low = "darkgreen", high="lightgreen") + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("Temperature") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5, face=2))
-
-
-
-plot.ed.bm.nyr <- ggplot(data=stab.models[stab.models$Model=="ED2",]) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") +
-  geom_point(aes(x=lon, y=lat, color=bm.nyr), size=2) +
-  scale_color_gradient2(name="# Yrs", low = "blue2", high = "red2", mid = "gray80", limits=range(0,1000)) + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("ED2") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5))
-
-plot.lpjg.bm.nyr <- ggplot(data=stab.models[stab.models$Model=="LPJ-GUESS",]) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") +
-  geom_point(aes(x=lon, y=lat, color=bm.nyr), size=2) +
-  scale_color_gradient2(name="# Yrs", low = "blue2", high = "red2", mid = "gray80", limits=range(0,1000)) + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("LPJ-GUESS") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5))
-
-plot.lpjw.bm.nyr <- ggplot(data=stab.models[stab.models$Model=="LPJ-WSL",]) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") +
-  geom_point(aes(x=lon, y=lat, color=bm.nyr), size=2) +
-  scale_color_gradient2(name="# Yrs", low = "blue2", high = "red2", mid = "gray80", limits=range(0,1000)) + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("LPJ-WSL") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5))
-
-plot.link.bm.nyr <- ggplot(data=stab.models[stab.models$Model=="LINKAGES",]) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") +
-  geom_point(aes(x=lon, y=lat, color=bm.nyr), size=2) +
-  scale_color_gradient2(name="# Yrs", low = "blue2", high = "red2", mid = "gray80", limits=range(0,1000)) + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("LINKAGES") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5))
-
-
-
-png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_Biomass_Region_Nyrs_100.png"), height=6, width=8, units="in", res=320)
-grid.newpage()
-pushViewport(viewport(layout = grid.layout(3, 2)))
-print(plot.temp.nyr   , vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
-print(plot.precip.nyr , vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
-print(plot.ed.bm.nyr  , vp = viewport(layout.pos.row = 2, layout.pos.col = 1))
-print(plot.link.bm.nyr, vp = viewport(layout.pos.row = 2, layout.pos.col = 2))
-print(plot.lpjg.bm.nyr, vp = viewport(layout.pos.row = 3, layout.pos.col = 1))
-print(plot.lpjw.bm.nyr, vp = viewport(layout.pos.row = 3, layout.pos.col = 2))
-dev.off()
-
-
-plot.ed.npp.nyr <- ggplot(data=stab.models[stab.models$Model=="ED2",]) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") +
-  geom_point(aes(x=lon, y=lat, color=npp.nyr), size=2) +
-  scale_color_gradient2(name="# Yrs", low = "blue2", high = "red2", mid = "gray80", limits=range(0,1000)) + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("ED2") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5))
-
-plot.lpjg.npp.nyr <- ggplot(data=stab.models[stab.models$Model=="LPJ-GUESS",]) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") +
-  geom_point(aes(x=lon, y=lat, color=npp.nyr), size=2) +
-  scale_color_gradient2(name="# Yrs", low = "blue2", high = "red2", mid = "gray80", limits=range(0,1000)) + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("LPJ-GUESS") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5))
-
-plot.lpjw.npp.nyr <- ggplot(data=stab.models[stab.models$Model=="LPJ-WSL",]) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") +
-  geom_point(aes(x=lon, y=lat, color=npp.nyr), size=2) +
-  scale_color_gradient2(name="# Yrs", low = "blue2", high = "red2", mid = "gray80", limits=range(0,1000)) + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("LPJ-WSL") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5))
-
-plot.link.npp.nyr <- ggplot(data=stab.models[stab.models$Model=="LINKAGES",]) +
-  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") +
-  geom_point(aes(x=lon, y=lat, color=npp.nyr), size=2) +
-  scale_color_gradient2(name="# Yrs", low = "blue2", high = "red2", mid = "gray80", limits=range(0,1000)) + 
-  coord_equal(xlim=c(min(stab.met$lon)-0.25, max(stab.met$lon)+0.25), 
-              ylim=c(min(stab.met$lat)-0.25, max(stab.met$lat)+0.25),
-              expand=0) +
-  ggtitle("LINKAGES") +
-  theme_bw() + theme(plot.title=element_text(hjust=0.5))
-
-
-png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_NPP_Region_Nyrs_100.png"), height=6, width=8, units="in", res=320)
-grid.newpage()
-pushViewport(viewport(layout = grid.layout(3, 2)))
-print(plot.temp.nyr   , vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
-print(plot.precip.nyr , vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
-print(plot.ed.npp.nyr  , vp = viewport(layout.pos.row = 2, layout.pos.col = 1))
-print(plot.link.npp.nyr, vp = viewport(layout.pos.row = 2, layout.pos.col = 2))
-print(plot.lpjg.npp.nyr, vp = viewport(layout.pos.row = 3, layout.pos.col = 1))
-print(plot.lpjw.npp.nyr, vp = viewport(layout.pos.row = 3, layout.pos.col = 2))
-dev.off()
-
-
-ggplot(data=stab.models) +
-  facet_wrap(~Model) +
-  geom_histogram(aes(x=bm.deriv.std)) +
-  geom_vline(xintercept=1, color="red") +
-  theme_bw()
-
-ggplot(data=stab.models) +
-  facet_wrap(~Model) +
-  geom_histogram(aes(x=log(npp.deriv.std))) +
-  geom_vline(xintercept=0, color="red") +
-  theme_bw()
-
-ggplot(data=stab.met) +
-  # facet_wrap(~Model) +
-  geom_histogram(aes(x=log(pdsi.deriv.std))) +
-  geom_vline(xintercept=0, color="red") +
-  theme_bw()
-
-ggplot(data=stab.met) +
-  # facet_wrap(~Model) +
-  geom_histogram(aes(x=log(tair.deriv.std))) +
-  geom_vline(xintercept=0, color="red") +
-  theme_bw()
-
-ggplot(data=stab.met) +
-  # facet_wrap(~Model) +
-  geom_histogram(aes(x=log(precip.deriv.std))) +
-  geom_vline(xintercept=0, color="red") +
-  theme_bw()
-
-
-
-ggplot(data=stab.syn, aes(x=log(pdsi.deriv.std), y=log(bm.deriv.std), color=Model, fill=Model)) +
-  geom_point() +
-  stat_smooth(method="lm") +
-  theme_bw()
-
-pdsi.bm <- lm(log(bm.deriv.std) ~ log(pdsi.deriv.std)*Model - log(pdsi.deriv.std), data=stab.syn)
-summary(pdsi.bm)
-
-
-ggplot(data=stab.syn, aes(x=log(tair.deriv.std), y=log(bm.deriv.std), color=Model, fill=Model)) +
-  geom_point() +
-  stat_smooth(method="lm") +
-  theme_bw()
-
-tair.bm <- lm(log(bm.deriv.std) ~ log(tair.deriv.std)*Model - log(tair.deriv.std), data=stab.syn)
-summary(tair.bm)
-
-ggplot(data=stab.syn, aes(x=log(tair.deriv.std), y=log(npp.deriv.std), color=Model, fill=Model)) +
-  geom_point() +
-  stat_smooth(method="lm") +
-  theme_bw()
-
-tair.npp <- lm(log(npp.deriv.std) ~ log(tair.deriv.std)*Model - log(tair.deriv.std), data=stab.syn)
-summary(tair.npp)
-
-ggplot(data=stab.syn, aes(x=log(npp.deriv.std), y=log(bm.deriv.std), color=Model, fill=Model)) +
-  geom_point() +
-  stat_smooth(method="lm") +
-  theme_bw()
-
-bm.npp <- lm(log(bm.deriv.std) ~ log(npp.deriv.std)*Model - log(npp.deriv.std), data=stab.syn)
-summary(bm.npp)
-
-
-ggplot(data=stab.syn, aes(x=log(pdsi.deriv), y=log(deriv.npp), color=Model, fill=Model)) +
-  geom_point() +
-  stat_smooth(method="lm") +
-  theme_bw()
-
-
-ggplot(data=stab.syn, aes(x=log(precip.deriv), y=log(deriv.bm), color=Model, fill=Model)) +
-  geom_point() +
-  stat_smooth(method="lm") +
-  theme_bw()
-
-
-ggplot(data=stab.syn, aes(x=log(precip.deriv), y=log(pdsi.deriv))) +
-  geom_point() +
-  stat_smooth(method="lm") +
-  theme_bw()
-ggplot(data=stab.syn, aes(x=log(tair.deriv), y=log(pdsi.deriv))) +
-  geom_point() +
-  stat_smooth(method="lm") +
-  theme_bw()
-ggplot(data=stab.syn, aes(x=log(tair.deriv), y=log(precip.deriv))) +
-  geom_point() +
-  stat_smooth(method="lm") +
-  theme_bw()
-
-
+# -------------------------------------------
 
 
 # -------------------------------------------
+# 2. merge climate & fcomp stability with other ecosys variables
+# -------------------------------------------
+# -------------------------------------------
+
+# -------------------------------------------
+# 3. relativize ecosystem variables so they can be analyzed on common scales
+# -------------------------------------------
+# -------------------------------------------
+
+# -------------------------------------------
+# 4. determine which climate predictor has the tightest correlation with GPP
+# -------------------------------------------
+# -------------------------------------------
+
+# -------------------------------------------
+# 5. compare climate sensitivity of ecosystem variables WITHIN MODELS
+# -------------------------------------------
+# -------------------------------------------
+
+# -------------------------------------------
+# 6. Determine where in the ecosystem the biggest jumps in changes in cliamte sensitivity occurr
+#     - this can then be explained in the discussion by leveraging what we know about the models
+# -------------------------------------------
+# -------------------------------------------
+
+# -------------------------------------------
+# 7. compare cliamte sensitivity of ecosystem variables generally across models: are fast or slow climate variables MORE or LESS sensitive to climate
+#     - relativized slopes
+#     - fraction points showing significant change
+# -------------------------------------------
+# -------------------------------------------
+
+# -------------------------------------------
+# 8. Are different variables sensitive to different aspects of climate?
+#     - e.g. GPP tracks temperature, but Fcomp is more correlated with precip
+# -------------------------------------------
+# -------------------------------------------
+
+
+
 
