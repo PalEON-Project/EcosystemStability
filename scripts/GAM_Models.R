@@ -156,7 +156,7 @@ for(i in 1:length(yrs)){
   rows.jja <- which(time.mos$year==yrs[i] & time.mos$month %in% c(6:8))
   
   # doing the aggregation
-  pdsi.ann  [i,] <- colMeans(pdsi   [rows.yrs,])
+  pdsi.ann  [i,] <- colMeans(pdsi   [rows.jja,])
   tair.ann  [i,] <- colMeans(tair   [rows.yrs,])
   precip.ann[i,] <- colMeans(precipf[rows.yrs,])
   
