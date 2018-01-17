@@ -137,7 +137,7 @@ summary(refab)
 # Model Output - Biomass (annually-resovled)
 # -----------
 models1 <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_Models_100.csv"))
-models1 <- models1[,c("lon", "lat", "Model", "mean.bm", "diff.bm", "deriv.bm", "bm.nyr")] # Add in composition once you do it
+models1 <- models1[,c("lon", "lat", "Model", "mean.bm", "diff.bm", "deriv.bm", "nyr.bm")] # Add in composition once you do it
 names(models1) <- c("lon", "lat", "model", "value", "diff.abs", "deriv.abs", "n.sig")
 models1$fract.sig <- models1$n.sig/1000
 models1[models1$value<=0 & !is.na(models1$value),c("value", "diff.abs", "deriv.abs", "n.sig", "fract.sig")] <- NA
