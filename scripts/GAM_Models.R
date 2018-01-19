@@ -197,7 +197,7 @@ calc.stability <- function(x, width){
   k.use=round(length(x)/width, 0)
   mod.gam <- gam(Y ~ s(Year, k=k.use), data=dat.tmp)
   
-  yrs.cent <- rev(seq(length(x), 1, by=-100)) # Go backwards so everything lines up in 1850
+  yrs.cent <- rev(seq(length(x), 1, by=-width)) # Go backwards so everything lines up in 1850
   
   mod.out <- list()
   

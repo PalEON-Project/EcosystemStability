@@ -260,39 +260,39 @@ triff.bm[is.na(triff.bm)]  <- -9999
 
 
 ed.list <- list()
-ed.list$gpp <- ed.gpp  [which(yrs<1850), hf.ind.mod]
-ed.list$npp <- ed.npp  [which(yrs<1850), hf.ind.mod]
-ed.list$nee <- ed.nee  [which(yrs<1850), hf.ind.mod]
-ed.list$lai <- ed.lai  [which(yrs<1850), hf.ind.mod]
-ed.list$bm  <- ed.bm   [which(yrs<1850), hf.ind.mod]
+ed.list$gpp <- ed.gpp  [which(yrs<=1850), hf.ind.mod]
+ed.list$npp <- ed.npp  [which(yrs<=1850), hf.ind.mod]
+ed.list$nee <- ed.nee  [which(yrs<=1850), hf.ind.mod]
+ed.list$lai <- ed.lai  [which(yrs<=1850), hf.ind.mod]
+ed.list$bm  <- ed.bm   [which(yrs<=1850), hf.ind.mod]
 
 lpjg.list <- list()
-lpjg.list$gpp <- lpjg.gpp  [which(yrs<1850), hf.ind.mod]
-lpjg.list$npp <- lpjg.npp  [which(yrs<1850), hf.ind.mod]
-lpjg.list$nee <- lpjg.nee  [which(yrs<1850), hf.ind.mod]
-lpjg.list$lai <- lpjg.lai  [which(yrs<1850), hf.ind.mod]
-lpjg.list$bm  <- lpjg.bm   [which(yrs<1850), hf.ind.mod]
+lpjg.list$gpp <- lpjg.gpp  [which(yrs<=1850), hf.ind.mod]
+lpjg.list$npp <- lpjg.npp  [which(yrs<=1850), hf.ind.mod]
+lpjg.list$nee <- lpjg.nee  [which(yrs<=1850), hf.ind.mod]
+lpjg.list$lai <- lpjg.lai  [which(yrs<=1850), hf.ind.mod]
+lpjg.list$bm  <- lpjg.bm   [which(yrs<=1850), hf.ind.mod]
 
 lpjw.list <- list()
-lpjw.list$gpp <- lpjw.gpp  [which(yrs<1850), hf.ind.mod]
-lpjw.list$npp <- lpjw.npp  [which(yrs<1850), hf.ind.mod]
-lpjw.list$nee <- lpjw.nee  [which(yrs<1850), hf.ind.mod]
-lpjw.list$lai <- lpjw.lai  [which(yrs<1850), hf.ind.mod]
-lpjw.list$bm  <- lpjw.bm   [which(yrs<1850), hf.ind.mod]
+lpjw.list$gpp <- lpjw.gpp  [which(yrs<=1850), hf.ind.mod]
+lpjw.list$npp <- lpjw.npp  [which(yrs<=1850), hf.ind.mod]
+lpjw.list$nee <- lpjw.nee  [which(yrs<=1850), hf.ind.mod]
+lpjw.list$lai <- lpjw.lai  [which(yrs<=1850), hf.ind.mod]
+lpjw.list$bm  <- lpjw.bm   [which(yrs<=1850), hf.ind.mod]
 
 link.list <- list()
-link.list$gpp <- link.gpp  [which(yrs<1850), hf.ind.mod]
-link.list$npp <- link.npp  [which(yrs<1850), hf.ind.mod]
-link.list$nee <- link.nee  [which(yrs<1850), hf.ind.mod]
-link.list$lai <- link.lai  [which(yrs<1850), hf.ind.mod]
-link.list$bm  <- link.bm   [which(yrs<1850), hf.ind.mod]
+link.list$gpp <- link.gpp  [which(yrs<=1850), hf.ind.mod]
+link.list$npp <- link.npp  [which(yrs<=1850), hf.ind.mod]
+link.list$nee <- link.nee  [which(yrs<=1850), hf.ind.mod]
+link.list$lai <- link.lai  [which(yrs<=1850), hf.ind.mod]
+link.list$bm  <- link.bm   [which(yrs<=1850), hf.ind.mod]
 
 triff.list <- list()
-triff.list$gpp <- triff.gpp  [which(yrs<1850), hf.ind.mod]
-triff.list$npp <- triff.npp  [which(yrs<1850), hf.ind.mod]
-triff.list$nee <- triff.nee  [which(yrs<1850), hf.ind.mod]
-triff.list$lai <- triff.lai  [which(yrs<1850), hf.ind.mod]
-triff.list$bm  <- triff.bm   [which(yrs<1850), hf.ind.mod]
+triff.list$gpp <- triff.gpp  [which(yrs<=1850), hf.ind.mod]
+triff.list$npp <- triff.npp  [which(yrs<=1850), hf.ind.mod]
+triff.list$nee <- triff.nee  [which(yrs<=1850), hf.ind.mod]
+triff.list$lai <- triff.lai  [which(yrs<=1850), hf.ind.mod]
+triff.list$bm  <- triff.bm   [which(yrs<=1850), hf.ind.mod]
 
 ed.out   <- mclapply(ed.list, calc.stability, mc.cores=min(8, length(ed.list)), width=100)
 lpjg.out   <- mclapply(lpjg.list, calc.stability, mc.cores=min(8, length(lpjg.list)), width=100)
@@ -306,11 +306,64 @@ lines(ed.out$bm$gam.post$ci$lwr, type="l", lwd=2, col="red", lty="dashed")
 lines(ed.out$bm$gam.post$ci$upr, type="l", lwd=2, col="red", lty="dashed")
 points(ed.out$bm$gam.post$ci$mean[yrs.cent]~yrs.cent, pch=19, col="blue")
 
+plot(ed.out$bm$gam.post$ci$mean[yrs.cent]~yrs.cent, pch=19, col="blue")
+lines(ed.list$bm, type="l")
+lines(ed.out$bm$gam.post$ci$mean, type="l", lwd=5, col="red")
+lines(ed.out$bm$gam.post$ci$lwr, type="l", lwd=2, col="red", lty="dashed")
+lines(ed.out$bm$gam.post$ci$upr, type="l", lwd=2, col="red", lty="dashed")
+points(ed.out$bm$gam.post$ci$mean[yrs.cent]~yrs.cent, pch=19, col="blue")
+
 
 plot(lpjg.list$bm, type="l")
 lines(lpjg.out$bm$gam.post$ci$mean, type="l", lwd=5, col="red")
 lines(lpjg.out$bm$gam.post$ci$lwr, type="l", lwd=2, col="red", lty="dashed")
 lines(lpjg.out$bm$gam.post$ci$upr, type="l", lwd=2, col="red", lty="dashed")
 points(lpjg.out$bm$gam.post$ci$mean[yrs.cent]~yrs.cent, pch=19, col="blue")
+
+# -------------------
+
+
+# -------------------
+# Making a figure that approximates pollen data
+# -------------------
+df.ed <- data.frame(Year=850:1850, Biomass = ed.list$bm, 
+                    gam.mean = ed.out$bm$gam.post$ci$mean, 
+                    gam.lwr = ed.out$bm$gam.post$ci$lwr,
+                    gam.upr = ed.out$bm$gam.post$ci$upr)
+summary(df.ed)
+
+png(file.path(path.google, "Current Figures/GAM_Methods", "HF_TimeSeries1_Points.png"), height=9, width=10, units="in", res=220)
+ggplot(data=df.ed) +
+  geom_point(data=df.ed[df.ed$Year %in% seq(850, 1850, 100),], aes(x=Year, y=gam.mean), size=10, color="blue") +
+  geom_linerange(data=df.ed[df.ed$Year %in% seq(850, 1850, 100),], aes(x=Year, ymin=gam.lwr, ymax=gam.upr), size=5, color="blue") +
+  scale_y_continuous(limits=range(df.ed$Biomass), name="Biomass") +
+  theme_bw() +
+  theme(axis.text=element_text(size=rel(2)),
+        axis.title=element_text(size=rel(2.5)))
+dev.off()
+
+png(file.path(path.google, "Current Figures/GAM_Methods", "HF_TimeSeries2_Actual.png"), height=9, width=10, units="in", res=220)
+ggplot(data=df.ed) +
+  geom_line(data=df.ed[,], aes(x=Year, y=Biomass), size=0.5, color="black") +
+  geom_point(data=df.ed[df.ed$Year %in% seq(850, 1850, 100),], aes(x=Year, y=gam.mean), size=10, color="blue") +
+  geom_linerange(data=df.ed[df.ed$Year %in% seq(850, 1850, 100),], aes(x=Year, ymin=gam.lwr, ymax=gam.upr), size=5, color="blue") +
+  scale_y_continuous(limits=range(df.ed$Biomass), name="Biomass") +
+  theme_bw() +
+  theme(axis.text=element_text(size=rel(2)),
+        axis.title=element_text(size=rel(2.5)))
+dev.off()
+
+png(file.path(path.google, "Current Figures/GAM_Methods", "HF_TimeSeries3_GAM.png"), height=9, width=10, units="in", res=220)
+ggplot(data=df.ed) +
+  geom_line(aes(x=Year, y=Biomass), size=0.5, color="black") +
+  geom_ribbon(aes(x=Year, ymin=gam.lwr, ymax=gam.upr), alpha=0.5, fill="blue") +
+  geom_line(aes(x=Year, y=gam.mean), size=5, color="blue") +
+  geom_point(data=df.ed[df.ed$Year %in% seq(850, 1850, 100),], aes(x=Year, y=gam.mean), size=10, color="blue4") +
+  geom_linerange(data=df.ed[df.ed$Year %in% seq(850, 1850, 100),], aes(x=Year, ymin=gam.lwr, ymax=gam.upr), size=5, color="blue4") +
+  scale_y_continuous(limits=range(df.ed$Biomass), name="Biomass") +
+  theme_bw() +
+  theme(axis.text=element_text(size=rel(2)),
+        axis.title=element_text(size=rel(2.5)))
+dev.off()
 
 # -------------------
