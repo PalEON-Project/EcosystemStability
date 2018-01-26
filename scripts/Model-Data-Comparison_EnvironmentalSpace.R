@@ -17,6 +17,11 @@ path.data <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 
 # Path to where data are; lets just pull straight from the Google Drive folder
 path.google <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/"
+
+dat.colors <- data.frame(model=c("LBDA", "STEPPS", "ReFAB", "drivers", "drivers-modified", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"),
+                         type=c(rep("emipirical", 3), rep("model", 7)),
+                         color=c(rep("#000000", 3), rep("#999999", 2),  "#009E73", "#0072B2", "#D55E00", "#D69F00", "#CC79A7"))
+dat.colors
 # -------------------------------------------
 
 # -------------------------------------------
@@ -313,9 +318,12 @@ ggplot(data=fcomp.stab) +
   # facet_wrap(~model, scales="free") +
   geom_point(aes(x=log(diff.pdsi), y=log(diff.abs), color=model), size=1, alpha=0.5) +
   stat_smooth(aes(x=log(diff.pdsi), y=log(diff.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position=c(0.8, 0.2))
 dev.off()
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_Composition_Temp.png"), height=6, width=6, units="in", res=320)
@@ -323,6 +331,8 @@ ggplot(data=fcomp.stab[fcomp.stab$type=="model",]) +
   # facet_wrap(~model, scales="free") +
   geom_point(aes(x=log(diff.tair), y=log(diff.abs), color=model), size=1, alpha=0.5) +
   stat_smooth(aes(x=log(diff.tair), y=log(diff.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model[fcomp.stab$type=="model"]),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model[fcomp.stab$type=="model"]),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
@@ -331,8 +341,10 @@ dev.off()
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_Composition_Precip.png"), height=6, width=6, units="in", res=320)
 ggplot(data=fcomp.stab[fcomp.stab$type=="model",]) +
   # facet_wrap(~model, scales="free") +
-  geom_point(aes(x=log(diff.precip), y=log(deriv.abs), color=model), size=1, alpha=0.5) +
-  stat_smooth(aes(x=log(diff.precip), y=log(deriv.abs), color=model, fill=model), method="lm") +
+  geom_point(aes(x=log(diff.precip), y=log(diff.abs), color=model), size=1, alpha=0.5) +
+  stat_smooth(aes(x=log(diff.precip), y=log(diff.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model[fcomp.stab$type=="model"]),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model[fcomp.stab$type=="model"]),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
@@ -400,18 +412,26 @@ summary(fcomp.pdsi.stepps)
 
 fcomp.pdsi.stepps2 <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=fcomp.stab[fcomp.stab$model=="STEPPS",])
 summary(fcomp.pdsi.stepps2)
+anova(fcomp.pdsi.stepps2)
 
 fcomp.pdsi.ed2 <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs-log(diff.pdsi), data=fcomp.stab[fcomp.stab$model=="ED2",])
 summary(fcomp.pdsi.ed2)
+anova(fcomp.pdsi.ed2)
+
+fcomp.pdsi.link0 <- lm(log(diff.abs) ~ log(diff.pdsi) , data=fcomp.stab[fcomp.stab$model=="LINKAGES",])
+summary(fcomp.pdsi.link0)
 
 fcomp.pdsi.link <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=fcomp.stab[fcomp.stab$model=="LINKAGES",])
 summary(fcomp.pdsi.link)
+anova(fcomp.pdsi.link)
 
 fcomp.pdsi.lpjw <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=fcomp.stab[fcomp.stab$model=="LPJ-WSL",])
+anova(fcomp.pdsi.lpjw)
 summary(fcomp.pdsi.lpjw)
 
 fcomp.pdsi.lpjg <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=fcomp.stab[fcomp.stab$model=="LPJ-GUESS",])
 summary(fcomp.pdsi.lpjg)
+anova(fcomp.pdsi.lpjg)
 
 fcomp.pdsi.trif <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=fcomp.stab[fcomp.stab$model=="TRIFFID",])
 summary(fcomp.pdsi.trif)
@@ -537,6 +557,8 @@ ggplot(data=stab.bm) +
   facet_wrap(~scale, scales="free") +
   geom_point(aes(x=log(diff.pdsi), y=log(diff.abs), color=model), size=1, alpha=0.5) +
   stat_smooth(aes(x=log(diff.pdsi), y=log(diff.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
@@ -547,6 +569,8 @@ ggplot(data=stab.bm[stab.bm$type=="model",]) +
   facet_wrap(~scale, scales="free") +
   geom_point(aes(x=log(diff.tair), y=log(diff.abs), color=model), size=1, alpha=0.5) +
   stat_smooth(aes(x=log(diff.tair), y=log(diff.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model[stab.bm$type=="model"]),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model[stab.bm$type=="model"]),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
@@ -557,6 +581,8 @@ ggplot(data=stab.bm[stab.bm$type=="model",]) +
   facet_wrap(~scale, scales="free") +
   geom_point(aes(x=log(diff.precip), y=log(diff.abs), color=model), size=1, alpha=0.5) +
   stat_smooth(aes(x=log(diff.precip), y=log(diff.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model[stab.bm$type=="model"]),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model[stab.bm$type=="model"]),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
@@ -567,6 +593,8 @@ ggplot(data=stab.bm) +
   facet_wrap(~scale, scales="free") +
   geom_point(aes(x=value, y=log(diff.abs), color=model), size=1, alpha=0.5) +
   stat_smooth(aes(x=value, y=log(diff.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
@@ -579,13 +607,13 @@ dev.off()
 # -----------
 # Simple comparison with climate
 # stab.bm[stab.bm$diff.abs==0 & !is.na(stab.bm$diff.abs), "diff.abs"] <- 1e-10
-bm.pdsi.bm <- lm(log(diff.abs) ~ model*log(diff.pdsi)*value, data=stab.bm)
+bm.pdsi.bm <- lm(log(diff.abs) ~ model*log(diff.pdsi), data=stab.bm)
 bm.summary <- round(summary(bm.pdsi.bm)$coefficients, 3)
 bm.summary
 
 write.csv(bm.summary, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Biomass_RelEffects.csv"), row.names=T)
 
-bm.pdsi.bm2 <- lm(log(diff.abs) ~ model*log(diff.pdsi)*value-1-value*log(diff.pdsi), data=stab.bm)
+bm.pdsi.bm2 <- lm(log(diff.abs) ~ model*log(diff.pdsi)-1 - log(diff.pdsi), data=stab.bm)
 bm.summary2 <- round(summary(bm.pdsi.bm2)$coefficients, 3)
 bm.summary2
 
@@ -657,25 +685,60 @@ dev.off()
 # Stability vs climate
 bm.pdsi.refab <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=stab.bm[stab.bm$model=="ReFAB",])
 summary(bm.pdsi.refab)
+anova(bm.pdsi.refab)
 
-bm.pdsi.refab2 <- lm(log(diff.abs) ~ log(diff.pdsi)*value - log(diff.pdsi), data=stab.bm[stab.bm$model=="ReFAB",])
+bm.pdsi.refab2 <- lm(log(diff.abs) ~ log(diff.pdsi)*log(value) - log(diff.pdsi), data=stab.bm[stab.bm$model=="ReFAB",])
+anova(bm.pdsi.refab2)
 summary(bm.pdsi.refab2)
+
+# bm.pdsi.refab3 <- lm(log(diff.abs) ~ log(value) - log(diff.pdsi), data=stab.bm[stab.bm$model=="ReFAB",])
+# anova(bm.pdsi.refab3)
+# summary(bm.pdsi.refab3)
 
 
 bm.pdsi.ed2 <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=stab.bm[stab.bm$model=="ED2",])
+anova(bm.pdsi.ed2)
 summary(bm.pdsi.ed2)
 
+bm.pdsi.ed22 <- lm(log(diff.abs) ~ log(diff.pdsi)*log(value) - log(diff.pdsi), data=stab.bm[stab.bm$model=="ED2",])
+anova(bm.pdsi.ed22)
+summary(bm.pdsi.ed22)
+
 bm.pdsi.lpjg <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=stab.bm[stab.bm$model=="LPJ-GUESS",])
+anova(bm.pdsi.lpjg)
 summary(bm.pdsi.lpjg)
 
+bm.pdsi.lpjg2 <- lm(log(diff.abs) ~ log(diff.pdsi)*log(value) - log(diff.pdsi), data=stab.bm[stab.bm$model=="LPJ-GUESS",])
+anova(bm.pdsi.lpjg2)
+summary(bm.pdsi.lpjg2)
+
 bm.pdsi.lpjw <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=stab.bm[stab.bm$model=="LPJ-WSL",])
+anova(bm.pdsi.lpjw)
 summary(bm.pdsi.lpjw)
 
+bm.pdsi.lpjw2 <- lm(log(diff.abs) ~ log(diff.pdsi)*log(value) - log(diff.pdsi), data=stab.bm[stab.bm$model=="LPJ-WSL",])
+anova(bm.pdsi.lpjw2)
+summary(bm.pdsi.lpjw2)
+
+# bm.pdsi.lpjw3 <- lm(log(diff.abs) ~ log(value), data=stab.bm[stab.bm$model=="LPJ-WSL",])
+# anova(bm.pdsi.lpjw3)
+# summary(bm.pdsi.lpjw3)
+
 bm.pdsi.link <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=stab.bm[stab.bm$model=="LINKAGES",])
+anova(bm.pdsi.link)
 summary(bm.pdsi.link)
 
+bm.pdsi.link2 <- lm(log(diff.abs) ~ log(diff.pdsi)*log(value) - log(diff.pdsi), data=stab.bm[stab.bm$model=="LINKAGES",])
+anova(bm.pdsi.link2)
+summary(bm.pdsi.link2)
+
 bm.pdsi.triff <- lm(log(diff.abs) ~ log(diff.pdsi)*pft.abs - log(diff.pdsi), data=stab.bm[stab.bm$model=="TRIFFID",])
+anova(bm.pdsi.triff)
 summary(bm.pdsi.triff)
+
+bm.pdsi.triff2 <- lm(log(diff.abs) ~ log(diff.pdsi)*log(value) - log(diff.pdsi), data=stab.bm[stab.bm$model=="TRIFFID",])
+anova(bm.pdsi.triff2)
+summary(bm.pdsi.triff2)
 
 
 # Stability vs. Biomass

@@ -19,6 +19,14 @@ path.data <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 
 # Path to where data are; lets just pull straight from the Google Drive folder
 path.google <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/"
+
+
+# Set up a table with colors for models & data
+# Using a CB palette from here: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/
+dat.colors <- data.frame(model=c("LBDA", "STEPPS", "ReFAB", "drivers", "drivers-modified", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"),
+                         type=c(rep("emipirical", 3), rep("model", 7)),
+                         color=c(rep("#000000", 3), rep("#999999", 2),  "#009E73", "#0072B2", "#D55E00", "#D69F00", "#CC79A7"))
+dat.colors
 # -------------------------------------------
 
 # -------------------------------------------
@@ -239,6 +247,8 @@ for(mod in unique(dat.all$model)){
   }
 }
 
+dat.colors$model <- factor(dat.colors$model, levels(dat.all$model))
+dat.colors[,] <- dat.colors[order(dat.colors$model),]
 # quick comparison of deriv vs. diff for all variables & dataset
 diff.deriv <- lm(diff.abs ~ deriv.abs, data=dat.all)
 summary(diff.deriv)
@@ -249,6 +259,7 @@ ggplot(data=dat.all[dat.all$class %in% c("climate", "biomass"),]) +
   geom_point(aes(x=diff.abs, y=deriv.abs, color=model), alpha=0.2, size=0.5) +
   geom_abline(intercept=0, slope=1, color="black") +
   stat_smooth(aes(x=diff.abs, y=deriv.abs, color=model), method="lm", se=F) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(dat.all[dat.all$class %in% c("climate", "biomass"),"model"]),"color"])) +
   theme_bw()
 dev.off()
 
@@ -590,20 +601,44 @@ ggplot(data=models1) +
   geom_point(aes(x=refab, y=deriv.abs, color=model), size=2) +
   stat_smooth(aes(x=refab, y=deriv.abs, color=model, fill=model), method="lm") +
   geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(models1$model),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(models1$model),"color"])) +
   coord_cartesian(ylim=c(0,quantile(models1$deriv.abs, 0.97, na.rm=T))) +
   theme_bw()
 dev.off()
+
+# png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_DerivAbs_Biomass.png"), height=6, width=6, units="in", res=320)
+ggplot(data=models1[models1$model!="LINKAGES",]) +
+  geom_point(aes(x=refab, y=deriv.abs, color=model), size=2) +
+  stat_smooth(aes(x=refab, y=deriv.abs, color=model, fill=model), method="lm") +
+  geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(models1$model[models1$model!="LINKAGES"]),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(models1$model[models1$model!="LINKAGES"]),"color"])) +
+  coord_cartesian(ylim=c(0,quantile(models1$deriv.abs[models1$model!="LINKAGES"], 0.97, na.rm=T))) +
+  theme_bw()
+# dev.off()
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_DiffAbs_Biomass.png"), height=6, width=6, units="in", res=320)
 ggplot(data=models1) +
   geom_point(aes(x=log(refab), y=log(diff.abs), color=model), size=2) +
   stat_smooth(aes(x=log(refab), y=log(diff.abs), color=model, fill=model), method="lm") +
   geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(models1$model),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(models1$model),"color"])) +
   # coord_cartesian(ylim=c(0,quantile(models1$diff.abs, 0.97, na.rm=T))) +
   theme_bw()
 dev.off()
 
-lm.refab <- lm(refab ~ model*diff.abs - diff.abs - 1, data=models1)
+ggplot(data=models1[models1$model!="LINKAGES",]) +
+  geom_point(aes(x=log(refab), y=log(diff.abs), color=model), size=2) +
+  stat_smooth(aes(x=log(refab), y=log(diff.abs), color=model, fill=model), method="lm") +
+  geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(models1$model[models1$model!="LINKAGES"]),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(models1$model[models1$model!="LINKAGES"]),"color"])) +
+  # coord_cartesian(ylim=c(0,quantile(models1$deriv.abs[models1$model!="LINKAGES"], 0.97, na.rm=T))) +
+  theme_bw()
+
+lm.refab <- lm(log(refab) ~ model*log(diff.abs) - log(diff.abs) - 1, data=models1)
 bm.summary <- round(summary(lm.refab)$coefficients, 3)
 bm.summary
 write.csv(bm.summary, file.path(path.google, "Current Data/Stability_Synthesis", "Model_v_Data_Biomass.csv"), row.names=T)
@@ -694,6 +729,8 @@ ggplot(data=fcomp.stab) +
   geom_point(aes(x=stepps, y=deriv.abs, color=model), size=2) +
   stat_smooth(aes(x=stepps, y=deriv.abs, color=model, fill=model), method="lm") +
   geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model),"color"])) +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
 dev.off()
@@ -703,28 +740,30 @@ ggplot(data=fcomp.stab) +
   geom_point(aes(x=stepps, y=diff.abs, color=model), size=2) +
   stat_smooth(aes(x=stepps, y=diff.abs, color=model, fill=model), method="lm") +
   geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model),"color"])) +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
 dev.off()
 
-lm.stepps <- lm(stepps ~ model*diff.abs - diff.abs - 1, data=fcomp.stab)
+lm.stepps <- lm(log(stepps) ~ model*log(diff.abs) - log(diff.abs) - 1, data=fcomp.stab)
 comp.summary <- round(summary(lm.stepps)$coefficients, 3)
 comp.summary
 write.csv(comp.summary, file.path(path.google, "Current Data/Stability_Synthesis", "Model_v_Data_Composition.csv"), row.names=T)
 
-stepps.ed0 <- lm(stepps ~ deriv.abs, data=fcomp.stab[fcomp.stab$model=="ED2",])
+stepps.ed0 <- lm(log(stepps) ~ log(diff.abs), data=fcomp.stab[fcomp.stab$model=="ED2",])
 summary(stepps.ed0)
 
-stepps.ed <- lm(stepps ~ diff.abs, data=fcomp.stab[fcomp.stab$model=="ED2",])
+stepps.ed <- lm(log(stepps) ~ log(diff.abs), data=fcomp.stab[fcomp.stab$model=="ED2",])
 summary(stepps.ed)
 
-stepps.lpjg <- lm(stepps ~ diff.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-GUESS",])
+stepps.lpjg <- lm(log(stepps) ~ log(diff.abs), data=fcomp.stab[fcomp.stab$model=="LPJ-GUESS",])
 summary(stepps.lpjg)
 
-stepps.lpjw <- lm(stepps ~ diff.abs, data=fcomp.stab[fcomp.stab$model=="LPJ-WSL",])
+stepps.lpjw <- lm(log(stepps) ~ log(diff.abs), data=fcomp.stab[fcomp.stab$model=="LPJ-WSL",])
 summary(stepps.lpjw)
 
-stepps.trif <- lm(stepps ~ diff.abs, data=fcomp.stab[fcomp.stab$model=="TRIFFID",])
+stepps.trif <- lm(log(stepps) ~ log(diff.abs), data=fcomp.stab[fcomp.stab$model=="TRIFFID",])
 summary(stepps.trif)
 
 

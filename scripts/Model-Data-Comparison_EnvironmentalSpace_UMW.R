@@ -17,6 +17,11 @@ path.data <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 
 # Path to where data are; lets just pull straight from the Google Drive folder
 path.google <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/"
+
+dat.colors <- data.frame(model=c("LBDA", "STEPPS", "ReFAB", "drivers", "drivers-modified", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"),
+                         type=c(rep("emipirical", 3), rep("model", 7)),
+                         color=c(rep("#000000", 3), rep("#999999", 2),  "#009E73", "#0072B2", "#D55E00", "#D69F00", "#CC79A7"))
+dat.colors
 # -------------------------------------------
 
 # -------------------------------------------
@@ -327,6 +332,8 @@ ggplot(data=fcomp.stab) +
   # facet_wrap(~model, scales="free") +
   geom_point(aes(x=log(diff.pdsi), y=log(diff.abs), color=model), size=1, alpha=0.5) +
   stat_smooth(aes(x=log(diff.pdsi), y=log(diff.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
@@ -337,6 +344,8 @@ ggplot(data=fcomp.stab[fcomp.stab$type=="model",]) +
   # facet_wrap(~model, scales="free") +
   geom_point(aes(x=log(diff.tair), y=log(diff.abs), color=model), size=1, alpha=0.5) +
   stat_smooth(aes(x=log(diff.tair), y=log(diff.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model[fcomp.stab$type=="model"]),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model[fcomp.stab$type=="model"]),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
@@ -347,6 +356,8 @@ ggplot(data=fcomp.stab[fcomp.stab$type=="model",]) +
   # facet_wrap(~model, scales="free") +
   geom_point(aes(x=log(diff.precip), y=log(deriv.abs), color=model), size=1, alpha=0.5) +
   stat_smooth(aes(x=log(diff.precip), y=log(deriv.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model[fcomp.stab$type=="model"]),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(fcomp.stab$model[fcomp.stab$type=="model"]),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
@@ -554,6 +565,8 @@ ggplot(data=stab.bm) +
   facet_wrap(~scale, scales="free") +
   geom_point(aes(x=log(diff.pdsi), y=log(diff.abs), color=model), size=1, alpha=0.5) +
   stat_smooth(aes(x=log(diff.pdsi), y=log(diff.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
@@ -564,6 +577,8 @@ ggplot(data=stab.bm[stab.bm$type=="model",]) +
   facet_wrap(~scale, scales="free") +
   geom_point(aes(x=log(diff.tair), y=log(diff.abs), color=model), size=1, alpha=0.5) +
   stat_smooth(aes(x=log(diff.tair), y=log(diff.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model[stab.bm$type=="model"]),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model[stab.bm$type=="model"]),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
@@ -574,6 +589,8 @@ ggplot(data=stab.bm[stab.bm$type=="model",]) +
   facet_wrap(~scale, scales="free") +
   geom_point(aes(x=log(diff.precip), y=log(diff.abs), color=model), size=1, alpha=0.5) +
   stat_smooth(aes(x=log(diff.precip), y=log(diff.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model[stab.bm$type=="model"]),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model[stab.bm$type=="model"]),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
@@ -584,6 +601,8 @@ ggplot(data=stab.bm) +
   facet_wrap(~scale, scales="free") +
   geom_point(aes(x=value, y=log(diff.abs), color=model), size=1, alpha=0.5) +
   stat_smooth(aes(x=value, y=log(diff.abs), color=model, fill=model), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(stab.bm$model),"color"])) +
   # geom_abline(intercept=0, slope=1, color="black", linetype="dashed") +
   # coord_cartesian(ylim=c(0,0.2)) +
   theme_bw()
@@ -596,13 +615,13 @@ dev.off()
 # -----------
 # Simple comparison with climate
 # stab.bm[stab.bm$diff.abs==0 & !is.na(stab.bm$diff.abs), "diff.abs"] <- 1e-10
-bm.pdsi.bm <- lm(log(diff.abs) ~ model*log(diff.pdsi)*value, data=stab.bm)
+bm.pdsi.bm <- lm(log(diff.abs) ~ model*log(diff.pdsi), data=stab.bm)
 bm.summary <- round(summary(bm.pdsi.bm)$coefficients, 3)
 bm.summary
 
 write.csv(bm.summary, file.path(path.google, "Current Data/Stability_Synthesis", "ANOVA_Biomass_RelEffects_UMW.csv"), row.names=T)
 
-bm.pdsi.bm2 <- lm(log(diff.abs) ~ model*log(diff.pdsi)*value-1-value*log(diff.pdsi), data=stab.bm)
+bm.pdsi.bm2 <- lm(log(diff.abs) ~ model*log(diff.pdsi)-1 - log(diff.pdsi), data=stab.bm)
 bm.summary2 <- round(summary(bm.pdsi.bm2)$coefficients, 3)
 bm.summary2
 
