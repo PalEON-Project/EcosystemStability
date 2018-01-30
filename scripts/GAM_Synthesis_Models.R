@@ -342,6 +342,7 @@ mod.link <- lm(log(rel.mean) ~ log(pdsi.rel.mean)*var, data=models.long[models.l
 trend.link <- emmeans::emtrends(mod.link, "var", var="log(pdsi.rel.mean)")
 summary(mod.link)
 trend.link
+pairs(trend.link)
 
 mod.lpjg <- lm(log(rel.mean) ~ log(pdsi.rel.mean)*var, data=models.long[models.long$Model=="LPJ-GUESS", ])
 trend.lpjg <- emmeans::emtrends(mod.lpjg, "var", var="log(pdsi.rel.mean)")
