@@ -46,7 +46,7 @@ path.soil <- "~/Dropbox/PalEON_CR/env_regional/phase2_env_drivers_v2/soil/"
 path.pdsi <- "~/Dropbox/PalEON_CR/met_ensemble/scripts/"
 
 # Lets just save processed to the Google Drive folder
-path.out <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data"
+path.out <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data"
 
 # Set up some time variables just to help with indexing
 yrs <- 850:2010

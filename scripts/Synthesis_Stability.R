@@ -21,10 +21,10 @@ path.repo <- "~/Desktop/Research/PalEON_EcosystemStability/"
 setwd(path.repo)
 
 # Path to where data are; lets just pull straight from the Google Drive folder
-path.data <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/Current Data/Stability_Index/"
+path.data <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data/Current Data/Stability_Index/"
 
 # Path to where data are; lets just pull straight from the Google Drive folder
-path.google <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/"
+path.google <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data/"
 
 library(ggplot2); library(grid)
 us <- map_data("state")

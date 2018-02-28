@@ -26,7 +26,7 @@ setwd(path.repo)
 path.data <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 
 # Path to where data are; lets just pull straight from the Google Drive folder
-path.google <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/"
+path.google <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data/"
 
 # Set up some time variables just to help with indexing
 yrs <- 850:2010

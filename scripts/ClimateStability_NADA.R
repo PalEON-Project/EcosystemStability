@@ -23,8 +23,8 @@ setwd(path.repo)
 path.data <- "~/Desktop/Research/PalEON_MIP_Region/NADA/"
 
 # Lets just save processed to the Google Drive folder
-path.out <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/Current Data/Stability_Index/"
-path.fig <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/Current Figures/Stability_Index/"
+path.out <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data/Current Data/Stability_Index/"
+path.fig <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data/Current Figures/Stability_Index/"
 
 # Set up some time variables just to help with indexing
 yrs <- 850:2010

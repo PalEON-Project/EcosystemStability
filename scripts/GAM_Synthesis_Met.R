@@ -20,7 +20,7 @@ setwd(path.repo)
 path.models <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 
 # Path to where data are; lets just pull straight from the Google Drive folder
-path.google <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data/"
+path.google <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data/"
 
 # Path to github repository of my GAMM helper functions: https://github.com/crollinson/R_Functions.git
 path.gamm.func <- "~/Desktop/Research/R_Functions/"

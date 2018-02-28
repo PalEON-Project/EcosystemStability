@@ -31,7 +31,7 @@ path.data <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 
 
 # Path to the google drive; best for pulling data
-path.google <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data"
+path.google <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data"
 
 # Path to where the model environmental drivers are; these can be downloaded
 # from Cyverse

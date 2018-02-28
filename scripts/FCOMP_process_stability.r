@@ -4,7 +4,7 @@ library(grid)
 
 # read in stability index table
 stepps_si = read.csv('data/Stability_STEPPS.csv')
-path.google <- "~/Google Drive/PalEON_ecosystem-change_models-vs-data"
+path.google <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data"
 
 # read in stability model annual
 fcomp_annual = read.csv('data/Stability_FCOMP_annual.csv')
