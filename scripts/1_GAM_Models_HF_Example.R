@@ -320,6 +320,11 @@ lines(lpjg.out$bm$gam.post$ci$lwr, type="l", lwd=2, col="red", lty="dashed")
 lines(lpjg.out$bm$gam.post$ci$upr, type="l", lwd=2, col="red", lty="dashed")
 points(lpjg.out$bm$gam.post$ci$mean[yrs.cent]~yrs.cent, pch=19, col="blue")
 
+save(ed.list , ed.out   , file=file.path(path.google, "Current Data/Stability_GAMs", "Stability_Example_ED2_HarvardForest.RData"))
+save(lpjg.list , lpjg.out , file=file.path(path.google, "Current Data/Stability_GAMs", "Stability_Example_LPJ-GUESS_HarvardForest.RData"))
+save(lpjw.list , lpjw.out , file=file.path(path.google, "Current Data/Stability_GAMs", "Stability_Example_LPJ-WSL_HarvardForest.RData"))
+save(link.list , link.out , file=file.path(path.google, "Current Data/Stability_GAMs", "Stability_Example_LINKAGES_HarvardForest.RData"))
+save(triff.list, triff.out, file=file.path(path.google, "Current Data/Stability_GAMs", "Stability_Example_TRIFFID_HarvardForest.RData"))
 # -------------------
 
 
