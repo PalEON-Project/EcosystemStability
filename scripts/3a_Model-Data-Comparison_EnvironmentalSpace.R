@@ -238,7 +238,9 @@ fcomp.stab$type <- "model"
 for(mod in unique(fcomp$model)){
   # If we need to add the model, do so first
   if(length(which(fcomp.stab$model==mod))==0) fcomp.stab <- rbind(fcomp.stab, 
-                                                                  data.frame(coords.models, model=mod, type="model", pft.abs=NA, diff.abs=NA, deriv.abs=NA,
+                                                                  data.frame(coords.models, model=mod, type="model", 
+                                                                             pft.abs=NA, value=NA,
+                                                                             diff.abs=NA, deriv.abs=NA,
                                                                              whc=NA, tair.sett=NA, precip.sett=NA, 
                                                                              deriv.pdsi=NA, deriv.tair=NA, deriv.precip=NA, 
                                                                              diff.pdsi=NA, diff.tair=NA, diff.precip=NA))
@@ -255,6 +257,7 @@ for(mod in unique(fcomp$model)){
       ind.stab <- which(fcomp.stab$model==mod & fcomp.stab$lon==lon & fcomp.stab$lat==lat)
       
       fcomp.stab[ind.stab, "pft.abs"     ] <- paste(df.fcomp$pft[ind.fcomp])
+      fcomp.stab[ind.stab, "value"     ] <- df.fcomp$value[ind.fcomp]
       fcomp.stab[ind.stab, "diff.abs"    ] <- df.fcomp$diff.abs[ind.fcomp]
       fcomp.stab[ind.stab, "deriv.abs"   ] <- df.fcomp$deriv.abs[ind.fcomp]
       fcomp.stab[ind.stab, "whc"         ] <- df.fcomp$whc[ind.fcomp]
@@ -269,13 +272,16 @@ for(mod in unique(fcomp$model)){
       
       # Adding the dominant PFT into the model output
       models1[models1$model==mod & models1$lon==lon & models1$lat==lat,"pft.abs"] <- paste(df.fcomp$pft[ind.fcomp])
+      models1[models1$model==mod & models1$lon==lon & models1$lat==lat,"value"] <- paste(df.fcomp$value[ind.fcomp])
     }
   }
 }
 
 coords.stepps <- stepps[stepps$pft=="OTHER.HARDWOOD", c("lon", "lat")]
 fcomp.stab <- rbind(fcomp.stab, 
-                    data.frame(coords.stepps, model="STEPPS", type="empirical", pft.abs=NA, diff.abs=NA, deriv.abs=NA,
+                    data.frame(coords.stepps, model="STEPPS", type="empirical", 
+                               pft.abs=NA, value =NA,
+                               diff.abs=NA, deriv.abs=NA,
                                whc=NA, tair.sett=NA, precip.sett=NA, 
                                deriv.pdsi=NA, deriv.tair=NA, deriv.precip=NA,
                                diff.pdsi=NA , diff.tair=NA , diff.precip=NA))
@@ -292,6 +298,7 @@ for(lon in unique(coords.stepps$lon)){
     ind.fcomp <- which(df.fcomp$value==max(df.fcomp$value))[1]
 
     fcomp.stab[ind.stab, "pft.abs"     ] <- paste(df.fcomp$pft[ind.fcomp])
+    fcomp.stab[ind.stab, "value"     ] <- df.fcomp$value[ind.fcomp]
     fcomp.stab[ind.stab, "diff.abs"    ] <- df.fcomp$diff.abs[ind.fcomp]
     fcomp.stab[ind.stab, "deriv.abs"   ] <- df.fcomp$deriv.abs[ind.fcomp]
     fcomp.stab[ind.stab, "whc"         ] <- df.fcomp$whc[ind.fcomp]
@@ -312,6 +319,7 @@ fcomp.stab$pft.abs <- as.factor(fcomp.stab$pft.abs)
 summary(fcomp.stab)
 
 fcomp.stab$model <- factor(fcomp.stab$model, levels=c("STEPPS", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
+write.csv(fcomp.stab, file.path(path.google, "Current Data/Stability_Synthesis", "StabilityComparision_EnvironmentalSpace_Composition.csv"), row.names=F)
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Composition_PDSI.png"), height=6, width=6, units="in", res=320)
 ggplot(data=fcomp.stab) +
@@ -550,6 +558,8 @@ summary(stab.bm)
 
 stab.bm$scale <- as.factor(ifelse(stab.bm$model=="LINKAGES", "LINKAGES", "other"))
 summary(stab.bm)
+
+write.csv(stab.bm, file.path(path.google, "Current Data/Stability_Synthesis", "StabilityComparision_EnvironmentalSpace_Biomass.csv"), row.names=F)
 
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Model_v_Data_Biomass_PDSI.png"), height=6, width=6, units="in", res=320)

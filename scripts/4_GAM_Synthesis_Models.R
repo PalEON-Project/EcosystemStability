@@ -209,7 +209,7 @@ summary(models.long)
 # relativize pdsi.diff to test
 # models.long$pdsi.rel.mean  <- models.long$pdsi.diff/mean(models.long$pdsi.diff)
 # models.long$pdsi.rel.range <- 1 - (max(models.long$pdsi.diff) - models.long$pdsi.diff) / 
-                                  (max(models.long$pdsi.diff) - min(models.long$pdsi.diff))
+                                  # (max(models.long$pdsi.diff) - min(models.long$pdsi.diff))
 summary(models.long)
 
 for(v in unique(models.long$var)){
