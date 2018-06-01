@@ -6,8 +6,15 @@
 #        Prediction: Locations that have experienced the most changes in 
 #                    climate show the most changes in biomass and composition
 #        Prediction: Places with the greatest change in composition also 
-#                    have the greatest change in biomass (Zhang 2018 Nature Climate Chante)
-#
+#                    have the greatest change in biomass (Zhang 2018 Nature Climate Change)
+# 
+# -------------------------------------------
+# Steps:
+# -------------------------------------------
+# 0. Load libraries, set file paths etc.
+# 1. Read in Datasets; Standardize Stability Metrics
+# 2. Compare Biomass & Composition to Climate (climate window; do they show the same pattern?)
+# 3. Compare Biomass to Composition (Full time?; are they correlated at all?)
 # -------------------------------------------
 rm(list=ls())
 
@@ -35,7 +42,7 @@ dat.colors
 # -------------------------------------------
 
 # -------------------------------------------
-# Read in & align data
+# 1. Read in Datasets; Standardize Stability Metrics
 # -------------------------------------------
 # -----------
 # Empirical Drought Reconstruction (LBDA, annually-resolved)
@@ -47,7 +54,10 @@ lbda$var <- as.factor("pdsi")
 lbda$type <- as.factor("empirical")
 lbda$resolution <- as.factor("annual")
 names(lbda)[which(names(lbda)=="n.yrs.sig")] <- "n.sig"
+lbda$stability <- -log(lbda$diff.abs/mean(lbda$diff.abs, na.rm=T))  # Note: Positive numbers mean MORE stable
 summary(lbda)
+
+# plot(stability ~ log(diff.abs), data=lbda)
 
 us <- map_data("state")
 
@@ -84,6 +94,7 @@ stepps$class <- as.factor("composition")
 stepps$var <- stepps$pft
 stepps$type <- as.factor("empirical")
 stepps$resolution <- as.factor("centennial")
+stepps$stability <- -log(stepps$diff.abs/mean(stepps$diff.abs, na.rm=T))
 summary(stepps)
 # -----------
 
@@ -110,10 +121,77 @@ refab$class <- as.factor("biomass")
 refab$var <- as.factor("biomass")
 refab$type <- as.factor("empirical")
 refab$resolution <- as.factor("centennial")
+refab$stability <- -log(refab$diff.abs/mean(refab$diff.abs, na.rm=T))
 summary(refab)
 # -----------
+# -------------------------------------------
 
-stepps[which(stepps$deriv.abs==max(stepps$deriv.abs, na.rm=T)),]
+# -------------------------------------------
+# 3. Compare Biomass to Composition (Full time?; are they correlated at all?)
+# -------------------------------------------
+# -----------
+# Extracting STEPPS info for refab
+# -----------
 
-refab.stepps <- refab[refab$lon<max(stepps[stepps$lat<45, "lon"]),]
-refab.stepps[which(refab.stepps$refab.mean.slope.abs==max(refab.stepps$refab.mean.slope.abs, na.rm=T)),]
+coords.stepps <- stepps[stepps$pft=="OTHER.HARDWOOD", c("lon", "lat")]
+
+dat.sites <- data.frame(refab[,c("lat", "lon")],
+                        stab.refab=refab$stability)
+for(i in 1:nrow(dat.sites)){
+  # Find the closest stepps site
+  stepps.dist <- sqrt((stepps$lon - refab$lon[i])^2 + (stepps$lat - refab$lat[i])^2)
+  stepps.ind <- which(stepps.dist==min(stepps.dist, na.rm=T) & !df.fcomp$pft %in% c("Deciduous", "Evergreen")) # Don't include generic Decid/Evergreen
+  
+  # Subset to just that site
+  fcomp.tmp <- stepps[stepps.ind,]
+
+  # Find the dominant PFT 
+  ind.fcomp <- which(fcomp.tmp$value==max(fcomp.tmp$value))
+  
+  dat.sites[i, "H.prime"    ] <- - sum(fcomp.tmp$value * log(fcomp.tmp$value)) # calculate shannon-weiner index
+  dat.sites[i, "dom.pft"    ] <- paste(fcomp.tmp$pft[ind.fcomp])
+  dat.sites[i, "stab.stepps"] <- fcomp.tmp$stability[ind.fcomp]
+}
+dat.sites$dom.pft <- as.factor(dat.sites$dom.pft)
+summary(dat.sites)
+# -----------
+
+
+# -----------
+# Quantitative comparisons between Biomass & Composition Stability
+# -----------
+# Comparing means -- is one more stable than the other?
+t.test(dat.sites$stab.refab, dat.sites$stab.stepps, paired=T)
+mean(dat.sites$stab.refab - dat.sites$stab.stepps)
+sd(dat.sites$stab.refab - dat.sites$stab.stepps)
+
+# Is biomass stability correlated with composition stability?
+lm.comp <- lm(stab.refab ~ stab.stepps, data=dat.sites)
+summary(lm.comp)
+
+# Is biomass stability correlated with diversity?
+lm.diversity <- lm(stab.refab ~ H.prime, data=dat.sites)
+summary(lm.diversity)
+
+# Is composition stability correlated with Diversity
+lm.diversity2 <- lm(stab.stepps ~ H.prime, data=dat.sites)
+summary(lm.diversity2)
+
+# Some summary figures
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Data_Biomass_v_Composition.png"), height=6, width=6, units="in", res=320)
+ggplot(data=dat.sites) +
+  geom_point(aes(x=stab.stepps, y=stab.refab)) +
+  stat_smooth(aes(x=stab.stepps, y=stab.refab), method="lm") +
+  theme_bw()
+dev.off()
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Data_Biomass_v_Diversity.png"), height=6, width=6, units="in", res=320)
+ggplot(data=dat.sites) +
+  geom_point(aes(x=H.prime, y=stab.refab)) +
+  stat_smooth(aes(x=H.prime, y=stab.refab), method="lm") +
+  theme_bw()
+dev.off()
+# -----------
+
+# -------------------------------------------
+# -------------------------------------------
