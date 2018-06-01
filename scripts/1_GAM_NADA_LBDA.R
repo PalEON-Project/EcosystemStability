@@ -259,7 +259,7 @@ write.csv(lbda.df, file.path(path.google, "Current Data/Stability_GAMs", "Stabil
 
 lbda.df <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_LBDA_100.csv"))
 
-lbda.deriv <- ggplot(data=lbda.df) +
+lbda.deriv <- ggplot(data=lbda.df[lbda.df$n.yrs>250,]) +
   geom_tile(aes(x=lon, y=lat, fill=deriv.abs)) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
   coord_equal(xlim=range(lbda.df$lon), ylim=range(lbda.df$lat), expand=0) +
@@ -267,13 +267,13 @@ lbda.deriv <- ggplot(data=lbda.df) +
   theme_bw() +
   ggtitle("Mean Absolute Rate of Change")
 
-lbda.sig <- ggplot(data=lbda.df) +
-  geom_tile(aes(x=lon, y=lat, fill=n.yrs.sig/n.yrs)) +
+lbda.nyrs <- ggplot(data=lbda.df[lbda.df$n.yrs>250,]) +
+  geom_tile(aes(x=lon, y=lat, fill=n.yrs)) +
   geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
   coord_equal(xlim=range(lbda.df$lon), ylim=range(lbda.df$lat), expand=0) +
-  scale_fill_gradient2(name="yrs.sig/\n nyrs", low = "blue", high = "red", mid = "white", midpoint = mean(lbda.df$n.yrs.sig/lbda.df$n.yrs, na.rm=T)) +
+  # scale_fill_gradient2(name="n nyrs", low = "blue", high = "red", mid = "white", midpoint = mean(lbda.df$n.yrs.sig/lbda.df$n.yrs, na.rm=T)) +
   theme_bw() +
-  ggtitle("Fraction of Years Showing Change")
+  ggtitle("Temporal Depth")
 
 
 # lbda.frac <- ggplot(data=lbda.df) +
@@ -289,11 +289,113 @@ png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_LBDA_100
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(2, 1)))
 print(lbda.deriv, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
-print(lbda.sig, vp = viewport(layout.pos.row = 2, layout.pos.col = 1))
+print(lbda.nyrs, vp = viewport(layout.pos.row = 2, layout.pos.col = 1))
 # print(lbda.frac, vp = viewport(layout.pos.row = 3, layout.pos.col = 1))
 dev.off()
 
 # ------------------
+
+# ------------------
+# Doing another round for the LBDA just on a common time period
+# ------------------
+summary(paleon)
+summary(lbda.df)
+hips.latlon <- data.frame(site=c("PBL", "PDL", "PUN"), lat=c(46.28, 47.17, 46.22), lon=c(-94.58, -95.17, -89.53))
+us <- map_data("state")
+
+# 400 years seems to be a reasonable cutoff:
+hist(lbda.df$n.yrs)
+
+ggplot(data=lbda.df[lbda.df$n.yrs>400,]) +
+  geom_tile(aes(x=lon, y=lat, fill=n.yrs)) +
+  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray20") + 
+  coord_equal(xlim=range(lbda.df$lon, na.rm=T), ylim=range(lbda.df$lat,na.rm=T), expand=0) #+
+  # coord_cartesian(expand=0)
+
+yr.min <- 1850-400
+lbda.df2 <- data.frame(lon=rep(lbda.lon), lat=rep(lbda.lat, each=length(lbda.lon)))
+lbda.deriv2 <- array(dim=c(dim(lbda.raw)[1:2], 401))
+lbda.sig2   <- array(dim=c(dim(lbda.raw)[1:2], 401))
+
+pb <- txtProgressBar(min=0, max=dim(lbda.raw)[1] * dim(lbda.raw)[2], style=3)
+pb.ind=1
+for(i in 1:dim(lbda.raw)[1]){
+  for(j in 1:dim(lbda.raw)[2]){
+    row.ind <- which(lbda.df2$lon==lbda.lon[i] & lbda.df2$lat==lbda.lat[j])
+    
+    setTxtProgressBar(pb, pb.ind)
+    pb.ind=pb.ind+1
+    
+    if(length(which(!is.na(lbda.raw[i,j,]))) < 400) next
+    
+    stab.tmp <- calc.stability(lbda.raw[i,j,(dim(lbda.raw)[3]-400):dim(lbda.raw)[3]], width=100)
+    stab.tmp$mod.deriv[is.na(stab.tmp$mod.deriv$Y), c("mean", "lwr", "upr", "sig")] <- NA
+    
+    lbda.deriv2[i,j,] <- stab.tmp$mod.deriv$mean
+    lbda.sig2  [i,j,] <- stab.tmp$mod.deriv$sig
+    
+    # Store some summaryinfo
+    tmp.diff <- apply(stab.tmp$gam.post[,3:ncol(stab.tmp$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+    
+    lbda.df2[row.ind, "diff.abs"  ] <- mean(abs(tmp.diff))
+    lbda.df2[row.ind, "deriv.mean"] <- mean(stab.tmp$mod.deriv$mean, na.rm=T)
+    lbda.df2[row.ind, "deriv.abs" ] <- mean(abs(stab.tmp$mod.deriv$mean), na.rm=T)
+    lbda.df2[row.ind, "n.yrs"     ] <- length(which(!is.na(stab.tmp$mod.deriv$Y)))
+    lbda.df2[row.ind, "n.yrs.sig" ] <- length(which(!is.na(stab.tmp$mod.deriv$sig)))
+    
+  }
+}
+lbda.df2$fract.sig <- lbda.df2$n.yrs.sig/lbda.df2$n.yrs 
+summary(lbda.df2)
+write.csv(lbda.df2, file.path(path.google, "Current Data/Stability_GAMs", "Stability_LBDA_100_1450-1850.csv"), row.names=F)
+
+pdsi.comparison <- data.frame(lbda.df[,c("lat", "lon", "n.yrs")],
+                              full = lbda.df$diff.abs,
+                              common = lbda.df2$diff.abs)
+pdsi.comparison <- merge(pdsi.comparison, paleon[,c("lat", "lon", "umw")], all.x=T)
+summary(pdsi.comparison)
+
+test <- lm(log(full) ~ log(common), data=pdsi.comparison)
+summary(test)
+
+umw.approx <- lbda.df2$lat>43 & lbda.df2$lat < 49 & lbda.df2$lon< -82 & lbda.df2$lon > -97.5
+test.umw <- lm(log(full) ~ log(common), data=pdsi.comparison[umw.approx,])
+summary(test.umw)
+
+# lbda.deriv2 <- 
+ggplot(data=lbda.df2[lbda.df2$n.yrs>250 ,]) +
+  geom_tile(aes(x=lon, y=lat, fill=deriv.abs)) +
+  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
+  coord_equal(xlim=range(lbda.df$lon), ylim=range(lbda.df$lat), expand=0) +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(lbda.df$deriv.abs, na.rm=T)) +
+  theme_bw() +
+  ggtitle("Mean Absolute Rate of Change")
+
+
+lbda.deriv2 <- ggplot(data=lbda.df2[lbda.df2$n.yrs>250,]) +
+  geom_tile(aes(x=lon, y=lat, fill=deriv.abs)) +
+  geom_path(data=us,aes(x=long, y=lat, group=group), color="gray50") + 
+  coord_equal(xlim=range(lbda.df$lon), ylim=range(lbda.df$lat), expand=0) +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = mean(lbda.df$deriv.abs, na.rm=T)) +
+  theme_bw() +
+  ggtitle("Mean Absolute Rate of Change (1450-1850)")
+
+png(file.path(path.google, "Current Figures/Stability_GAMs", "StabilityComparison_LBDA_100_Full_vs_Common_Period.png"), height=4, width=6, units="in", res=320)
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(2, 1)))
+print(lbda.deriv, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+print(lbda.deriv2, vp = viewport(layout.pos.row = 2, layout.pos.col = 1))
+# print(lbda.frac, vp = viewport(layout.pos.row = 3, layout.pos.col = 1))
+dev.off()
+
+png(file.path(path.google, "Current Figures/Stability_GAMs", "MetComparison_Full_vs_Common_Period.png"))
+plot(log(lbda.df2$diff.abs) ~ log(lbda.df$diff.abs), xlab="Full Time", ylab="Past common period (400 years)"); 
+abline(a=0, b=1, col="red")
+text(x=-8.5, y=-5.1, labels=paste("R2 = ", round(summary(test)$r.squared, 2)), fontface="bold", cex=1.5)
+dev.off()
+
+# ------------------
+
 
 # ------------------
 # 2.2. Re-Calculate PalEON PDSI stability with same time frame as LBDA
