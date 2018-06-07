@@ -31,8 +31,8 @@ setwd(path.repo)
 path.data <- "~/Desktop/Research/PalEON_MIP_Region/NADA/"
 
 # Lets just save processed to the Google Drive folder
-path.out <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data/Current Data/Stability_Index/"
-path.fig <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data/Current Figures/Stability_Index/"
+path.out <- file.path(path.google, "Current Data/Stability")
+path.fig <- file.path(path.google, "Current Figures/Stability")
 
 # Set up some time variables just to help with indexing
 yrs <- 850:2010
@@ -190,7 +190,7 @@ for(i in 1:dim(nada.raw)[1]){
   }
 }
 nada.df$fract.sig <- nada.df$n.yrs.sig/nada.df$n.yrs 
-write.csv(nada.df, file.path(path.google, "Current Data/Stability_GAMs", "Stability_NADA_100.csv"), row.names=F)
+write.csv(nada.df, file.path(path.out, "Stability_NADA_100.csv"), row.names=F)
 summary(nada.df)
 
 nada.deriv <- ggplot(data=nada.df) +
@@ -209,7 +209,7 @@ nada.sig <- ggplot(data=nada.df) +
   theme_bw() +
   ggtitle("Number of Years Showing Change")
 
-png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_NADA_100.png"), height=4, width=6, units="in", res=320)
+png(file.path(path.fig, "Stability_NADA_100.png"), height=4, width=6, units="in", res=320)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(2, 1)))
 print(nada.deriv, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
@@ -255,9 +255,9 @@ for(i in 1:dim(lbda.raw)[1]){
 }
 lbda.df$fract.sig <- lbda.df$n.yrs.sig/lbda.df$n.yrs 
 summary(lbda.df)
-write.csv(lbda.df, file.path(path.google, "Current Data/Stability_GAMs", "Stability_LBDA_100.csv"), row.names=F)
+write.csv(lbda.df, file.path(path.out, "Stability_LBDA_100.csv"), row.names=F)
 
-lbda.df <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_LBDA_100.csv"))
+lbda.df <- read.csv(file.path(path.out, "Stability_LBDA_100.csv"))
 
 lbda.deriv <- ggplot(data=lbda.df[lbda.df$n.yrs>250,]) +
   geom_tile(aes(x=lon, y=lat, fill=deriv.abs)) +
@@ -285,7 +285,7 @@ lbda.nyrs <- ggplot(data=lbda.df[lbda.df$n.yrs>250,]) +
 #   ggtitle("Fraction of Years Showing Change")
 
 
-png(file.path(path.google, "Current Figures/Stability_GAMs", "Stability_LBDA_100.png"), height=4, width=6, units="in", res=320)
+png(file.path(path.fig, "Stability_LBDA_100.png"), height=4, width=6, units="in", res=320)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(2, 1)))
 print(lbda.deriv, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
@@ -347,7 +347,7 @@ for(i in 1:dim(lbda.raw)[1]){
 }
 lbda.df2$fract.sig <- lbda.df2$n.yrs.sig/lbda.df2$n.yrs 
 summary(lbda.df2)
-write.csv(lbda.df2, file.path(path.google, "Current Data/Stability_GAMs", "Stability_LBDA_100_1450-1850.csv"), row.names=F)
+write.csv(lbda.df2, file.path(path.out, "Stability_LBDA_100_1450-1850.csv"), row.names=F)
 
 pdsi.comparison <- data.frame(lbda.df[,c("lat", "lon", "n.yrs")],
                               full = lbda.df$diff.abs,
@@ -380,7 +380,7 @@ lbda.deriv2 <- ggplot(data=lbda.df2[lbda.df2$n.yrs>250,]) +
   theme_bw() +
   ggtitle("Mean Absolute Rate of Change (1450-1850)")
 
-png(file.path(path.google, "Current Figures/Stability_GAMs", "StabilityComparison_LBDA_100_Full_vs_Common_Period.png"), height=4, width=6, units="in", res=320)
+png(file.path(path.fig, "StabilityComparison_LBDA_100_Full_vs_Common_Period.png"), height=4, width=6, units="in", res=320)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(2, 1)))
 print(lbda.deriv, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
@@ -388,7 +388,7 @@ print(lbda.deriv2, vp = viewport(layout.pos.row = 2, layout.pos.col = 1))
 # print(lbda.frac, vp = viewport(layout.pos.row = 3, layout.pos.col = 1))
 dev.off()
 
-png(file.path(path.google, "Current Figures/Stability_GAMs", "MetComparison_Full_vs_Common_Period.png"))
+png(file.path(path.fig, "MetComparison_Full_vs_Common_Period.png"))
 plot(log(lbda.df2$diff.abs) ~ log(lbda.df$diff.abs), xlab="Full Time", ylab="Past common period (400 years)"); 
 abline(a=0, b=1, col="red")
 text(x=-8.5, y=-5.1, labels=paste("R2 = ", round(summary(test)$r.squared, 2)), fontface="bold", cex=1.5)
@@ -452,6 +452,6 @@ for(i in 1:ncol(pdsi.ann)){
 
 pdsi.df$fract.sig <- pdsi.df$n.yrs.sig/pdsi.df$n.yrs 
 summary(pdsi.df)
-write.csv(pdsi.df, file.path(path.google, "Current Data/Stability_GAMs", "Stability_PDSI_Drivers_LBDA_time_100.csv"), row.names=F)
+write.csv(pdsi.df, file.path(path.out, "Stability_PDSI_Drivers_LBDA_time_100.csv"), row.names=F)
 
 # --------------------------------------------

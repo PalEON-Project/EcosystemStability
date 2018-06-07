@@ -60,7 +60,7 @@ refab.mean.slope = data.frame(lat = lat.lon.df.missing[,1], lon = lat.lon.df.mis
                               n.signif.1k = n.signif.all)
 
 # Adding in the stability just for the period for which we have climate data
-lbda.df <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_LBDA_100.csv"))
+lbda.df <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_LBDA_100.csv"))
 summary(lbda.df)
 
 # Loop through each point and get the number of points we should look at
@@ -92,4 +92,4 @@ for(i in 1:nrow(refab.mean.slope)){
 }
 summary(refab.mean.slope)
 
-write.csv(refab.mean.slope, file = file.path(path.google, "Current Data/Stability_Index", 'refab.stability.csv'))
+write.csv(refab.mean.slope, file = file.path(path.google, "Current Data/Stability", 'Stability_ReFAB.csv'))

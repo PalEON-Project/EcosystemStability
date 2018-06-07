@@ -250,7 +250,7 @@ method.comp$var <- as.factor(unlist(lapply(stringr::str_split(method.comp$var, "
 method.comp$deriv <- stack(paleon[,c("pdsi.deriv", "tair.deriv", "precip.deriv")])[,1]
 summary(method.comp)
 
-png(file.path(path.google, "Current Figures/Stability_GAMs", "Diff_v_Deriv_ClimateDrivers.png"), height=6, width=7, unit="in", res=320)
+png(file.path(path.google, "Current Figures/Stability", "Diff_v_Deriv_ClimateDrivers.png"), height=6, width=7, unit="in", res=320)
 ggplot(data=method.comp) +
   facet_wrap(~var, scales="free", ncol=2) +
   geom_point(aes(x=diff, y=deriv, color=var)) +
@@ -602,6 +602,6 @@ summary(model.stability)
 summary(paleon)
 summary(model.stability)
 
-write.csv(paleon, file.path(path.google, "Current Data/Stability_GAMs", "Stability_Drivers_100.csv"), row.names=F)
-write.csv(model.stability, file.path(path.google, "Current Data/Stability_GAMs", "Stability_Models_100.csv"), row.names=F)
+write.csv(paleon, file.path(path.google, "Current Data/Stability", "Stability_Drivers_100.csv"), row.names=F)
+write.csv(model.stability, file.path(path.google, "Current Data/Stability", "Stability_Models_100.csv"), row.names=F)
 # -------------------------------------------

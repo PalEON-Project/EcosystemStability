@@ -21,7 +21,7 @@ stepps <- merge(stepps, stepps.sp)
 summary(stepps)
 
 # Adding in the stability just for the period for which we have climate data
-lbda.df <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_LBDA_100.csv"))
+lbda.df <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_LBDA_100.csv"))
 summary(lbda.df)
 
 # Setting up a blank data frame to store stability metrics in
@@ -78,4 +78,4 @@ for(CELL in unique(stab.stepps$cell)){
 } # End Grid Cell Loop
 summary(stab.stepps)
 
-write.csv(stab.stepps, file = file.path(path.google, "Current Data/Stability_Index", 'stepps.stability.csv'))
+write.csv(stab.stepps, file = file.path(path.google, "Current Data/Stability", 'Stability_STEPPS2.csv'))
