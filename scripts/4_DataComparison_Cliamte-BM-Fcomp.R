@@ -47,7 +47,7 @@ dat.colors
 # -----------
 # Empirical Drought Reconstruction (LBDA, annually-resolved)
 # -----------
-lbda <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_LBDA_100.csv"))
+lbda <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_LBDA_100.csv"))
 lbda$model <- as.factor("LBDA")
 lbda$class <- as.factor("climate")
 lbda$var <- as.factor("pdsi")
@@ -74,7 +74,7 @@ us <- map_data("state")
 # -----------
 # STEPPS (empirical composition, centennially-resolved)
 # -----------
-stepps <- read.csv(file.path(path.google, "Current Data/Stability_GAMs", "Stability_STEPPS.csv"))
+stepps <- read.csv(file.path(path.google, "Current Data/Stability", "stepps.stability.csv"))
 
 # Need to convert this to latlon
 # albers <- sp::CRS("+proj=aea +lat_1=42.122774 +lat_2=49.01518 +lat_0=45.568977 +lon_0=-83.248627 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +datum=NAD83 +units=m +no_defs") # Define the spatial projection
@@ -101,17 +101,10 @@ summary(stepps)
 # -----------
 # ReFAB (empirical biomass, centennially-resolved)
 # -----------
-refab.means <- read.csv(file.path(path.google, "Current Data", "biomass.means.csv"))
-names(refab.means)[4] <- "value" 
-summary(refab.means)
-
-refab <- read.csv(file.path(path.google, "Current Data", "refab.mean.slope.csv"))
+refab <- read.csv(file.path(path.google, "Current Data/Stability", "refab.stability.csv"))
 names(refab) <- c("X", "lat", "lon", "diff.mean", "diff.abs", "n.sig")
 refab$deriv.abs <- NA
-
-refab <- merge(refab, refab.means[,c("lon", "lat", "value")])
-summary(refab)
-
+z
 # Doing a unit correction
 refab[,c("value", "diff.mean", "diff.abs")] <- refab[,c("value", "diff.mean", "diff.abs")]*0.1/2 # Native units = Mg/Ha biomass
 
