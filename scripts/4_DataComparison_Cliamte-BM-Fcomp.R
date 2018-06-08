@@ -118,8 +118,8 @@ summary(refab)
 # -----------
 
 dat.sites.refab <- data.frame(refab[,c("lat", "lon")],
-                        stab.refab.1k=refab$stability.1k,
-                        stab.refab.lbda=refab$stability.lbda)
+                              stab.refab.1k=refab$stability.1k,
+                              stab.refab.lbda=refab$stability.lbda)
 dat.sites.refab <- dat.sites.refab[!is.na(dat.sites.refab$lat),]
 
 # Just Refab sites
@@ -249,6 +249,35 @@ sd(dat.sites.refab$stab.refab.lbda - dat.sites.refab$stab.lbda, na.rm=T)
 
 mean(dat.sites.stepps$stab.stepps.lbda - dat.sites.stepps$stab.lbda, na.rm=T)
 sd(dat.sites.stepps$stab.stepps.lbda - dat.sites.stepps$stab.lbda, na.rm=T)
+
+# Making a figure showing correlation of STEPPS & ReFAB with climate (or lack thereof)
+climate.comparison <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat),
+                                 lon=c(dat.sites.refab$lon, dat.sites.stepps$lon),
+                                 dataset = c(rep("ReFAB", nrow(dat.sites.refab)), rep("STEPPS", nrow(dat.sites.stepps))),
+                                 stab.ecosys = c(dat.sites.refab$stab.refab.lbda, dat.sites.stepps$stab.stepps.lbda),
+                                 stab.pdsi   = c(dat.sites.refab$stab.lbda, dat.sites.stepps$stab.lbda))
+climate.comparison.sp <- data.frame(lat=c(refab$lat, stepps$lat, lbda$lat),
+                                    lon=c(refab$lon, stepps$lon, lbda$lon),
+                                    dataset = c(rep("ReFAB", nrow(refab)), rep("STEPPS", nrow(stepps)), rep("LBDA", nrow(lbda))),
+                                    stability = c(refab$stability.lbda, stepps$stability.lbda, lbda$stability.lbda))
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data_Map.png"), height=6, width=5, units="in", res=320)
+ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$stability),]) +
+  facet_grid(dataset~.) +
+  geom_point(aes(x=lon, y=lat, color=stability), size=1.5) +
+  geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="LBDA",], aes(x=lon, y=lat, fill=stability)) +
+  geom_path(data=us, aes(x=long, y=lat, group=group)) +
+  coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
+  scale_fill_continuous(limits=range(climate.comparison.sp$stability, na.rm=T)) +
+  theme_bw() 
+dev.off()  
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.png"), height=6, width=6, units="in", res=320)
+ggplot(data=climate.comparison) +
+  geom_point(aes(x=stab.pdsi, y=stab.ecosys, color=dataset), size=0.5) +
+  stat_smooth(aes(x=stab.pdsi, y=stab.ecosys, color=dataset, fill=dataset), method="lm") +
+  theme_bw()
+dev.off()
 # -----------
 
 
