@@ -131,7 +131,7 @@ triff.bm1 <- apply(triff.bm1[1:nrow(lpjw.npp1),,], c(1,2), sum, na.rm=T)
 
 # load in the paleon domain info;
 # This got generatlpjw using domain_environment_extraction.R
-paleon <- read.csv(file.path(path.repo, "data/paleon_models_environment_master.csv")) 
+paleon <- read.csv(file.path("../data/paleon_models_environment_master.csv")) 
 paleon$latlon <- as.factor(paleon$latlon)
 summary(paleon)
 
@@ -231,6 +231,10 @@ for(i in 1:length(pdsi.out1)){
   pdsi.diff   <- apply(pdsi.out1  [[i]]$gam.post[,3:ncol(pdsi.out1  [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
   tair.diff   <- apply(tair.out1  [[i]]$gam.post[,3:ncol(tair.out1  [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
   precip.diff <- apply(precip.out1[[i]]$gam.post[,3:ncol(precip.out1[[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
+
+  paleon[i,"pdsi.mean"  ] <- mean(pdsi.list1. [[i]])
+  paleon[i,"tair.mean"  ] <- mean(tair.list1. [[i]])
+  paleon[i,"precip.mean"] <- mean(precip.list1[[i]])
   
   paleon[i,"pdsi.diff"  ] <- mean(abs(pdsi.diff))
   paleon[i,"tair.diff"  ] <- mean(abs(tair.diff))
