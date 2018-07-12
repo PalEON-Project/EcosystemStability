@@ -56,7 +56,7 @@ lbda$var <- as.factor("pdsi")
 lbda$type <- as.factor("empirical")
 lbda$resolution <- as.factor("annual")
 names(lbda)[which(names(lbda)=="n.yrs.sig")] <- "n.sig"
-lbda$stability.lbda <- -log(lbda$diff.abs/mean(lbda$diff.abs, na.rm=T))  # Note: Positive numbers mean MORE stable
+lbda$stability.lbda <- -log(lbda$diff.abs/abs(mean(lbda$lbda.mean, na.rm=T)))  # Note: Positive numbers mean MORE stable
 summary(lbda)
 
 
@@ -82,8 +82,8 @@ stepps$class <- as.factor("composition")
 stepps$var <- stepps$taxon
 stepps$type <- as.factor("empirical")
 stepps$resolution <- as.factor("centennial")
-stepps$stability.1k <- -log(stepps$stepps.diff.abs.1k/mean(stepps$stepps.diff.abs.1k, na.rm=T))
-stepps$stability.lbda <- -log(stepps$stepps.diff.abs.lbda/mean(stepps$stepps.diff.abs.lbda, na.rm=T))
+stepps$stability.1k <- -log(stepps$stepps.diff.abs.1k/abs(mean(stepps$stepps.mean.1k, na.rm=T)))
+stepps$stability.lbda <- -log(stepps$stepps.diff.abs.lbda/abs(mean(stepps$stepps.mean.lbda, na.rm=T)))
 summary(stepps)
 # -----------
 
@@ -104,8 +104,8 @@ refab$class <- as.factor("biomass")
 refab$var <- as.factor("biomass")
 refab$type <- as.factor("empirical")
 refab$resolution <- as.factor("centennial")
-refab$stability.1k <- -log(refab$refab.mean.slope.abs.1k/mean(refab$refab.mean.slope.abs.1k, na.rm=T))
-refab$stability.lbda <- -log(refab$refab.mean.slope.abs.lbda/mean(refab$refab.mean.slope.abs.lbda, na.rm=T))
+refab$stability.1k <- -log(refab$refab.mean.slope.abs.1k/abs(mean(refab$refab.mean.1k, na.rm=T)))
+refab$stability.lbda <- -log(refab$refab.mean.slope.abs.lbda/abs(mean(refab$refab.mean.lbda, na.rm=T)))
 summary(refab)
 # -----------
 # -------------------------------------------
@@ -137,17 +137,22 @@ for(i in 1:nrow(dat.sites.refab)){
   if(dist.stepps>0.5) next 
   
   if(length(stepps.ind)>0){
-    # Subset to just that site
-    fcomp.tmp <- stepps[stepps.ind,]
+    # Subset to just that site, considering only sites with abundance >=0.1% (1e-3)
+    fcomp.tmp.all <- stepps[stepps.ind,]
+    fcomp.tmp <- fcomp.tmp.all[fcomp.tmp.all$stepps.mean.1k>1e-3,]
     
     # Find the dominant PFT 
     ind.fcomp.1k <- which(fcomp.tmp$stepps.mean.1k==max(fcomp.tmp$stepps.mean.1k))
+    
+    dat.sites.refab[i, "richness.1k"   ] <- nrow(fcomp.tmp)
     dat.sites.refab[i, "H.prime.1k"    ] <- - sum(fcomp.tmp$stepps.mean.1k * log(fcomp.tmp$stepps.mean.1k)) # calculate shannon-weiner index
     dat.sites.refab[i, "dom.pft.1k"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.1k])
     dat.sites.refab[i, "stab.stepps.1k"] <- fcomp.tmp$stability.1k[ind.fcomp.1k]
     
+    fcomp.tmp <- fcomp.tmp.all[fcomp.tmp.all$stepps.mean.lbda>1e-3,]
     ind.fcomp.lbda <- which(fcomp.tmp$stepps.mean.lbda==max(fcomp.tmp$stepps.mean.lbda))
     if(length(ind.fcomp.lbda)>0){
+      dat.sites.refab[i, "richness.lbda"   ] <- nrow(fcomp.tmp)
       dat.sites.refab[i, "H.prime.lbda"    ] <- - sum(fcomp.tmp$stepps.mean.lbda * log(fcomp.tmp$stepps.mean.lbda)) # calculate shannon-weiner index
       dat.sites.refab[i, "dom.pft.lbda"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.lbda])
       dat.sites.refab[i, "stab.stepps.lbda"] <- fcomp.tmp$stability.lbda[ind.fcomp.lbda]
@@ -185,16 +190,21 @@ for(i in 1:nrow(dat.sites.stepps)){
   stepps.ind <- which(stepps$lat==dat.sites.stepps$lat[i] & stepps$lon==dat.sites.stepps$lon[i] & !stepps$taxon %in% c("Deciduous", "Evergreen")) # Don't include generic Decid/Evergreen
   
   # Subset to just that site
-  fcomp.tmp <- stepps[stepps.ind,]
+  fcomp.tmp.all <- stepps[stepps.ind,]
+  fcomp.tmp <- fcomp.tmp.all[fcomp.tmp.all$stepps.mean.1k>1e-3,]
   
   # Find the dominant PFT 
   ind.fcomp.1k <- which(fcomp.tmp$stepps.mean.1k==max(fcomp.tmp$stepps.mean.1k))
+  
+  dat.sites.stepps[i, "richness.1k"   ] <- nrow(fcomp.tmp)
   dat.sites.stepps[i, "H.prime.1k"    ] <- - sum(fcomp.tmp$stepps.mean.1k * log(fcomp.tmp$stepps.mean.1k)) # calculate shannon-weiner index
   dat.sites.stepps[i, "dom.pft.1k"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.1k])
   dat.sites.stepps[i, "stab.stepps.1k"] <- fcomp.tmp$stability.1k[ind.fcomp.1k]
   
+  fcomp.tmp <- fcomp.tmp.all[fcomp.tmp.all$stepps.mean.lbda>1e-3,]
   ind.fcomp.lbda <- which(fcomp.tmp$stepps.mean.lbda==max(fcomp.tmp$stepps.mean.lbda))
   if(length(ind.fcomp.lbda)>0){
+    dat.sites.stepps[i, "richness.lbda"   ] <- nrow(fcomp.tmp)
     dat.sites.stepps[i, "H.prime.lbda"    ] <- - sum(fcomp.tmp$stepps.mean.lbda * log(fcomp.tmp$stepps.mean.lbda)) # calculate shannon-weiner index
     dat.sites.stepps[i, "dom.pft.lbda"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.lbda])
     dat.sites.stepps[i, "stab.stepps.lbda"] <- fcomp.tmp$stability.lbda[ind.fcomp.lbda]
@@ -223,32 +233,25 @@ dim(dat.sites.stepps); dim(stepps)
 # -----------
 
 # -----------
-# Evalutating correlation with Climate
+# Comparing distribution of stability
 # -----------
-bm.pdsi <- lm(stab.refab.lbda ~ stab.lbda, data=dat.sites.refab)
-bm.pdsi2 <- lm(stab.refab.lbda ~ stab.lbda, data=dat.sites.refab[dat.sites.refab$nyrs.lbda>=900,])
-summary(bm.pdsi)
-summary(bm.pdsi2)
+lbda.stepps <- lbda[lbda$lon >= min(stepps$lon, refab$lon, na.rm=T) & lbda$lon <= max(stepps$lon, refab$lon, na.rm=T) & 
+                      lbda$lat >= min(stepps$lat, refab$lat, na.rm=T) & lbda$lat <= max(stepps$lat, refab$lat, na.rm=T), ]
+summary(lbda.stepps)
+stab.comparison <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat, lbda.stepps$lat),
+                              lon=c(dat.sites.refab$lon, dat.sites.stepps$lon, lbda.stepps$lon),
+                              dataset = c(rep("ReFAB", nrow(dat.sites.refab)), rep("STEPPS", nrow(dat.sites.stepps)), rep("LBDA", nrow(lbda.stepps))),
+                              stability = c(dat.sites.refab$stab.refab.lbda, dat.sites.stepps$stab.stepps.lbda, lbda.stepps$stability.lbda)
+                              )
+stab.comparison$dataset <- factor(stab.comparison$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
 
-# fcomp.pdsi <- lm(stab.stepps.lbda ~ stab.lbda, data=dat.sites.refab)
-# summary(fcomp.pdsi)
-fcomp.pdsi <- lm(stab.stepps.lbda ~ stab.lbda, data=dat.sites.stepps)
-fcomp.pdsi2 <- lm(stab.stepps.lbda ~ stab.lbda, data=dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$stab.lbda),])
-summary(fcomp.pdsi)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Comparisons_Histograms.png"), height=6, width=5, units="in", res=320)
+ggplot(data=stab.comparison) +
+  facet_grid(dataset~.) +
+  geom_histogram(aes(x=stability)) +
+  theme_bw()
+dev.off()
 
-summary(fcomp.pdsi2); 
-nrow(dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$stab.lbda),])
-
-
-t.test(dat.sites.refab$stab.refab.lbda, dat.sites.refab$stab.lbda, paired=T)
-t.test(dat.sites.refab$stab.stepps.lbda, dat.sites.refab$stab.lbda, paired=T)
-t.test(dat.sites.stepps$stab.stepps.lbda, dat.sites.stepps$stab.lbda, paired=T)
-
-mean(dat.sites.refab$stab.refab.lbda - dat.sites.refab$stab.lbda, na.rm=T)
-sd(dat.sites.refab$stab.refab.lbda - dat.sites.refab$stab.lbda, na.rm=T)
-
-mean(dat.sites.stepps$stab.stepps.lbda - dat.sites.stepps$stab.lbda, na.rm=T)
-sd(dat.sites.stepps$stab.stepps.lbda - dat.sites.stepps$stab.lbda, na.rm=T)
 
 # Making a figure showing correlation of STEPPS & ReFAB with climate (or lack thereof)
 climate.comparison <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat),
@@ -260,11 +263,14 @@ climate.comparison.sp <- data.frame(lat=c(refab$lat, stepps$lat, lbda$lat),
                                     lon=c(refab$lon, stepps$lon, lbda$lon),
                                     dataset = c(rep("ReFAB", nrow(refab)), rep("STEPPS", nrow(stepps)), rep("LBDA", nrow(lbda))),
                                     stability = c(refab$stability.lbda, stepps$stability.lbda, lbda$stability.lbda))
+climate.comparison$dataset <- factor(climate.comparison$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
+climate.comparison.sp$dataset <- factor(climate.comparison.sp$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
+
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data_Map.png"), height=6, width=5, units="in", res=320)
 ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$stability),]) +
   facet_grid(dataset~.) +
-  geom_point(aes(x=lon, y=lat, color=stability), size=1.5) +
+  geom_point(aes(x=lon, y=lat, color=stability), size=2) +
   geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="LBDA",], aes(x=lon, y=lat, fill=stability)) +
   geom_path(data=us, aes(x=long, y=lat, group=group)) +
   coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
@@ -278,31 +284,132 @@ ggplot(data=climate.comparison) +
   stat_smooth(aes(x=stab.pdsi, y=stab.ecosys, color=dataset, fill=dataset), method="lm") +
   theme_bw()
 dev.off()
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "LBDA_depth_STEPPS_area.png"), height=6, width=8, units="in", res=320)
+ggplot(data=lbda[,]) +
+  geom_tile(aes(x=lon, y=lat, fill=n.yrs)) +
+  geom_path(data=us, aes(x=long, y=lat, group=group)) +
+  coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
+  # scale_fill_continuous(limits=range(climate.comparison.sp$stability, na.rm=T)) +
+  theme_bw() 
+dev.off()
+# -----------
+
+# -----------
+# Quantitative comparisons with climate
+# -----------
+# Is biomass stability correlated with climate?
+bm.pdsi <- lm(stab.refab.lbda ~ stab.lbda, data=dat.sites.refab)
+bm.pdsi2 <- lm(stab.refab.lbda ~ stab.lbda, data=dat.sites.refab[dat.sites.refab$nyrs.lbda>=900,])
+summary(bm.pdsi)
+summary(bm.pdsi2)
+
+# Is composition stability correlated with climate?
+# fcomp.pdsi <- lm(stab.stepps.lbda ~ stab.lbda, data=dat.sites.refab)
+# summary(fcomp.pdsi)
+fcomp.pdsi <- lm(stab.stepps.lbda ~ stab.lbda, data=dat.sites.stepps)
+fcomp.pdsi2 <- lm(stab.stepps.lbda ~ stab.lbda, data=dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$stab.lbda),])
+summary(fcomp.pdsi)
+summary(fcomp.pdsi2); 
+nrow(dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$stab.lbda),])
+nrow(lbda.stepps[lbda.stepps$n.yrs>=900 & !is.na(lbda.stepps$stability.lbda),])
+
+# Is biomass and/or composition more/less stable than overall climate?
+t.test(dat.sites.refab$stab.refab.lbda, dat.sites.refab$stab.lbda, paired=T)
+# t.test(dat.sites.refab$stab.stepps.lbda, dat.sites.refab$stab.lbda, paired=T)
+t.test(dat.sites.stepps$stab.stepps.lbda, dat.sites.stepps$stab.lbda, paired=T)
+
+mean(dat.sites.refab$stab.refab.lbda - dat.sites.refab$stab.lbda, na.rm=T)
+sd(dat.sites.refab$stab.refab.lbda - dat.sites.refab$stab.lbda, na.rm=T)
+
+mean(dat.sites.stepps$stab.stepps.lbda - dat.sites.stepps$stab.lbda, na.rm=T)
+sd(dat.sites.stepps$stab.stepps.lbda - dat.sites.stepps$stab.lbda, na.rm=T)
+
 # -----------
 
 
 # -----------
 # Quantitative comparisons between Biomass & Composition Stability
 # -----------
+dat.sites <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat), 
+                        lon=c(dat.sites.refab$lon, dat.sites.stepps$lon), 
+                        dataset=c(rep("ReFAB", nrow(dat.sites.refab)), rep("STEPPS", nrow(dat.sites.stepps))),
+                        stability=c(dat.sites.refab$stab.refab.1k, dat.sites.stepps$stab.stepps.1k),
+                        H.prime = c(dat.sites.refab$H.prime.1k, dat.sites.stepps$H.prime.1k),
+                        richness = c(dat.sites.refab$richness.1k, dat.sites.stepps$richness.1k),
+                        dom.pft = c(paste(dat.sites.refab$dom.pft.1k), paste(dat.sites.stepps$dom.pft.1k))
+                        )
+dat.sites[dat.sites$dom.pft=="NA","dom.pft"] <- NA
+summary(dat.sites)
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Map_STEPPS_Hprime.png"), height=6, width=6, units="in", res=320)
+ggplot(data=dat.sites[,]) +
+  facet_grid(dataset~.) +
+  geom_point(aes(x=lon, y=lat, color=H.prime), size=2) +
+  geom_path(data=us, aes(x=long, y=lat, group=group)) +
+  coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
+  # scale_fill_continuous(limits=range(dat.sites$H.prime, na.rm=T)) +
+  theme_bw() 
+dev.off()
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Map_STEPPS_DominantPFT.png"), height=6, width=6, units="in", res=320)
+ggplot(data=dat.sites[,]) +
+  facet_grid(dataset~.) +
+  geom_point(aes(x=lon, y=lat, color=dom.pft), size=2) +
+  geom_path(data=us, aes(x=long, y=lat, group=group)) +
+  coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
+  # scale_fill_continuous(limits=range(dat.sites$H.prime, na.rm=T)) +
+  theme_bw() +
+  theme(legend.position="top")
+dev.off()
+# ggplot(data=dat.sites[,]) +
+#   facet_grid(dataset~.) +
+#   geom_point(aes(x=lon, y=lat, color=richness), size=2) +
+#   geom_path(data=us, aes(x=long, y=lat, group=group)) +
+#   coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
+#   # scale_fill_continuous(limits=range(dat.sites$H.prime, na.rm=T)) +
+#   theme_bw() 
+
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Data_Stability_v_Diversity_NoTrendline.png"), height=6, width=6, units="in", res=320)
+ggplot(data=dat.sites) +
+  facet_grid(dataset~., scales="free_y") +
+  geom_point(aes(x=H.prime, y=stability, color=dom.pft)) +
+  # stat_smooth(data=dat.sites[dat.sites$dataset=="ReFAB",], aes(x=H.prime, y=stability, color=dataset, fill=dataset), method="lm") +
+  # stat_smooth(data=dat.sites[dat.sites$dataset=="STEPPS",], aes(x=H.prime, y=stability, color=dataset, fill=dataset), method="lm") +
+  theme_bw() +
+  theme(legend.position="top")
+dev.off()
+
 # Comparing means -- is one more stable than the other?
 t.test(dat.sites.refab$stab.refab.1k, dat.sites.refab$stab.stepps.1k, paired=T)
-mean(dat.sites.refab$stab.refab.1k - dat.sites.refab$stab.stepps.1k)
-sd(dat.sites.refab$stab.refab.1k - dat.sites.refab$stab.stepps.1k)
+mean(dat.sites.refab$stab.refab.1k - dat.sites.refab$stab.stepps.1k, na.rm=T)
+sd(dat.sites.refab$stab.refab.1k - dat.sites.refab$stab.stepps.1k, na.rm=T)
 
 # Is biomass stability correlated with composition stability?
 lm.comp <- lm(stab.refab.1k ~ stab.stepps.1k, data=dat.sites.refab)
 summary(lm.comp)
 
 # Is biomass stability correlated with diversity?
-lm.diversity <- lm(stab.refab.1k ~ H.prime.1k, data=dat.sites.refab)
-summary(lm.diversity)
+lm.diversity1 <- lm(stab.refab.1k ~ H.prime.1k, data=dat.sites.refab)
+summary(lm.diversity1)
+
+lm.diversity1b <- lm(stab.refab.1k ~ H.prime.1k + I(H.prime.1k^2), data=dat.sites.refab)
+summary(lm.diversity1b)
+dat.sites[dat.sites$dataset=="ReFAB" & !is.na(dat.sites$H.prime), "H.prime.quad"] <- predict(lm.diversity1b)
 
 # Is composition stability correlated with Diversity
-lm.diversity2 <- lm(stab.stepps.1k ~ H.prime.1k, data=dat.sites.refab)
+lm.diversity2 <- lm(stab.stepps.1k ~ H.prime.1k + I(H.prime.1k^2), data=dat.sites.stepps)
 summary(lm.diversity2)
 
-lm.diversity2b <- lm(stab.stepps.1k ~ H.prime.1k, data=dat.sites.stepps)
+lm.diversity2b <- lm(stab.stepps.1k ~ H.prime.1k + I(H.prime.1k^2), data=dat.sites.stepps)
+dat.sites[dat.sites$dataset=="STEPPS", "H.prime.quad"] <- predict(lm.diversity2b)
 summary(lm.diversity2b)
+
+# Testing residuals for normalcy
+plot(predict(lm.diversity2b)~dat.sites.stepps$stab.stepps.1k[!is.na(dat.sites.stepps$H.prime.1k)]); abline(a=0, b=1, col="red")
+plot(resid(lm.diversity2b)~predict(lm.diversity2b))
+hist(resid(lm.diversity2b))
 
 # Some summary figures
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Data_Biomass_v_Composition.png"), height=6, width=6, units="in", res=320)
@@ -312,12 +419,15 @@ ggplot(data=dat.sites.refab) +
   theme_bw()
 dev.off()
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Data_Biomass_v_Diversity.png"), height=6, width=6, units="in", res=320)
-ggplot(data=dat.sites.refab) +
-  geom_point(aes(x=H.prime.1k, y=stab.refab.1k)) +
-  stat_smooth(aes(x=H.prime.1k, y=stab.refab.1k), method="lm") +
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Data_Stability_v_Diversity_ModFit_Quad.png"), height=6, width=6, units="in", res=320)
+ggplot(data=dat.sites) +
+  facet_wrap(~dataset, scales="free", ncol=1) +
+  geom_point(aes(x=H.prime.quad, y=stability)) +
+  stat_smooth(aes(x=H.prime.quad, y=stability), method="lm") +
   theme_bw()
 dev.off()
+
 # -----------
 
 # -------------------------------------------

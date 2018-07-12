@@ -181,6 +181,7 @@ for(i in 1:dim(nada.raw)[1]){
     # Store some summaryinfo
     tmp.diff <- apply(stab.tmp$gam.post[,3:ncol(stab.tmp$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
     
+    nada.df[row.ind, "lbda.mean"  ] <- mean(nada.raw[i,j,], na.rm=T)
     nada.df[row.ind, "diff.abs"  ] <- mean(abs(tmp.diff))
     nada.df[row.ind, "deriv.mean"] <- mean(stab.tmp$mod.deriv$mean, na.rm=T)
     nada.df[row.ind, "deriv.abs" ] <- mean(abs(stab.tmp$mod.deriv$mean), na.rm=T)
@@ -245,6 +246,7 @@ for(i in 1:dim(lbda.raw)[1]){
     # Store some summaryinfo
     tmp.diff <- apply(stab.tmp$gam.post[,3:ncol(stab.tmp$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
     
+    lbda.df[row.ind, "lbda.mean"  ] <- mean(lbda.raw[i,j,], na.rm=T)
     lbda.df[row.ind, "diff.abs"  ] <- mean(abs(tmp.diff))
     lbda.df[row.ind, "deriv.mean"] <- mean(stab.tmp$mod.deriv$mean, na.rm=T)
     lbda.df[row.ind, "deriv.abs" ] <- mean(abs(stab.tmp$mod.deriv$mean), na.rm=T)
@@ -337,6 +339,7 @@ for(i in 1:dim(lbda.raw)[1]){
     # Store some summaryinfo
     tmp.diff <- apply(stab.tmp$gam.post[,3:ncol(stab.tmp$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
     
+    lbda.df2[row.ind, "lbda.mean" ] <- mean(lbda.raw[i,j,], na.rm=T)
     lbda.df2[row.ind, "diff.abs"  ] <- mean(abs(tmp.diff))
     lbda.df2[row.ind, "deriv.mean"] <- mean(stab.tmp$mod.deriv$mean, na.rm=T)
     lbda.df2[row.ind, "deriv.abs" ] <- mean(abs(stab.tmp$mod.deriv$mean), na.rm=T)
@@ -442,6 +445,7 @@ for(i in 1:ncol(pdsi.ann)){
   # Store some summaryinfo
   tmp.diff <- apply(stab.tmp$gam.post[,3:ncol(stab.tmp$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
   
+  pdsi.df[i, "pdsi.mean" ] <- mean(dat.tmp, na.rm=T)
   pdsi.df[i, "diff.abs"  ] <- mean(abs(tmp.diff))
   pdsi.df[i, "deriv.mean"] <- mean(stab.tmp$mod.deriv$mean, na.rm=T)
   pdsi.df[i, "deriv.abs" ] <- mean(abs(stab.tmp$mod.deriv$mean), na.rm=T)
