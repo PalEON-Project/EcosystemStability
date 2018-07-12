@@ -233,6 +233,10 @@ dat.sites.stepps$dom.pft.lbda <- as.factor(dat.sites.stepps$dom.pft.lbda)
 summary(dat.sites.stepps)
 
 dim(dat.sites.stepps); dim(stepps)
+
+write.csv(dat.sites.stepps, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_STEPPS.csv"), row.names=F)
+write.csv(dat.sites.refab , file.path(path.google, "Current Data/Stability_Synthesis", "Stability_ReFAB.csv"), row.names=F)
+
 # -----------
 
 # -----------
@@ -269,6 +273,7 @@ climate.comparison.sp <- data.frame(lat=c(refab$lat, stepps$lat, lbda$lat),
 climate.comparison$dataset <- factor(climate.comparison$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
 climate.comparison.sp$dataset <- factor(climate.comparison.sp$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
 
+write.csv(climate.comparison, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.csv"), row.names=F)
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data_Map.png"), height=6, width=5, units="in", res=320)
 ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$stability),]) +
@@ -344,6 +349,8 @@ dat.sites <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat),
                         )
 dat.sites[dat.sites$dom.pft=="NA","dom.pft"] <- NA
 summary(dat.sites)
+
+write.csv(dat.sites, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Diversity_Data.csv"), row.names=F)
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Map_STEPPS_Hprime.png"), height=6, width=6, units="in", res=320)
 ggplot(data=dat.sites[,]) +
