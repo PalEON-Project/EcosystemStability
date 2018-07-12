@@ -232,8 +232,8 @@ for(i in 1:length(pdsi.out1)){
   tair.diff   <- apply(tair.out1  [[i]]$gam.post[,3:ncol(tair.out1  [[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
   precip.diff <- apply(precip.out1[[i]]$gam.post[,3:ncol(precip.out1[[i]]$gam.post)], 2, function(x) diff(x, na.rm=TRUE)/100)
 
-  paleon[i,"pdsi.mean"  ] <- mean(pdsi.list1. [[i]])
-  paleon[i,"tair.mean"  ] <- mean(tair.list1. [[i]])
+  paleon[i,"pdsi.mean"  ] <- mean(pdsi.list1  [[i]])
+  paleon[i,"tair.mean"  ] <- mean(tair.list1  [[i]])
   paleon[i,"precip.mean"] <- mean(precip.list1[[i]])
   
   paleon[i,"pdsi.diff"  ] <- mean(abs(pdsi.diff))
