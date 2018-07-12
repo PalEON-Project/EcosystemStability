@@ -7,7 +7,10 @@
 #                    climate show the most changes in biomass and composition
 #        Prediction: Places with the greatest change in composition also 
 #                    have the greatest change in biomass (Zhang 2018 Nature Climate Change)
-# 
+# H1: Changes in composition facilitate biomass stability or vice versa
+#        Prediction: There is a negative correlation between stability of
+#                    composition and biomass (stable biomass because comp shift)
+#        Prediction: Sites with higher diversity have higher biomass stability
 # -------------------------------------------
 # Steps:
 # -------------------------------------------
