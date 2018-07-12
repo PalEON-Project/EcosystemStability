@@ -18,8 +18,8 @@ library(mgcv)
 library(plyr); library(parallel)
 
 # Setting the path to this repository
-path.repo <- "~/Desktop/Research/PalEON_EcosystemStability/"
-setwd(path.repo)
+# path.repo <- "~/Desktop/Research/PalEON_EcosystemStability/"
+# setwd(path.repo)
 
 # Path to where the raw output is
 path.data <- "~/Dropbox/PalEON_Regional_Extract/"

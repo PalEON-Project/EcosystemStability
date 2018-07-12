@@ -84,6 +84,7 @@ for(i in 1:length(yrs)){
   # Generating indices for the cells we want to aggregate across
   rows.yrs <- which(time.mos$year==yrs[i])
   ed.fcomp   [i,,] <- apply(ed.fcomp.mo[rows.yrs,,], c(2,3), mean)
+  triff.fcomp[i,,] <- apply(triff.fcomp.mo[rows.yrs,,], c(2,3), mean)
 }
 dimnames(ed.fcomp)[[1]] <- dimnames(lpjg.fcomp)[[1]] <- dimnames(lpjw.fcomp)[[1]] <- dimnames(link.fcomp)[[1]] <- dimnames(triff.fcomp)[[1]] <- yrs
 
