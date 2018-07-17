@@ -132,7 +132,7 @@ stab.met   <- read.csv(file.path(path.google, "Current Data/Stability", "Stabili
 summary(stab.met)
 
 # Merge the met drivers into models.long
-models.long <- merge(models.long, stab.met[,c("lon", "lat", "pdsi.diff", "tair.diff", "precip.diff", "tair.yr.set", "precip.yr.set")])
+models.long <- merge(models.long, stab.met[,c("lon", "lat", "pdsi.diff", "tair.diff", "precip.diff", "pdsi.mean", "tair.mean", "precip.mean")])
 models.long$var <- factor(models.long$var, levels=c("gpp", "nee", "npp", "lai", "bm", "fcomp"))
 summary(models.long)
 # ------------
@@ -140,19 +140,133 @@ summary(models.long)
 # ------------
 # Calculate our final stability index value
 # ------------
+# Log won't work with stability=0, so we need to turn it to somethign *very* tiny
+# NOTE: This will cause some very large outliers in our data, but we can trim those
+models.long[models.long$diff.abs==0, "diff.abs"] <- 1e-20 
+# quantile(models.long$diff.abs, 0.0001)
 for(v in unique(models.long$var)){
   for(mod in unique(models.long$Model)){
     dat.ind <- which(models.long$var==v & models.long$Model==mod & !is.na(models.long$diff.abs))
     dat.tmp <- models.long[dat.ind, ]
     
-    models.long[dat.ind, "stability" ] <- dat.tmp$diff.abs/mean(dat.tmp$diff.abs)
-    models.long[dat.ind, "rel.range"] <- 1 - (max(dat.tmp$diff.abs) - dat.tmp$diff.abs) / 
-      (max(dat.tmp$diff.abs) - min(dat.tmp$diff.abs))
-    
-    models.long[dat.ind, "stab.pdsi" ] <- -log(dat.tmp$pdsi.diff/mean(dat.tmp$pdsi.diff))
+    models.long[dat.ind, "stability" ] <- -log(dat.tmp$diff.abs/abs(mean(dat.tmp$val.mean)))
+    models.long[dat.ind, "stab.rel"] <- (models.long[dat.ind, "stability" ]) / mean(models.long[dat.ind, "stability" ]) 
+
+    models.long[dat.ind, "stab.pdsi" ] <- -log(dat.tmp$pdsi.diff/abs(mean(dat.tmp$pdsi.diff)))
   }
 }
 summary(models.long)
+models.long$type <- "Model"
 # ------------
 
+# ------------
+# Read in the empirical data from script #4
+# ------------
+dat.emp <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.csv"))
+dat.emp$var <- as.factor(ifelse(dat.emp$dataset=="ReFAB", "bm", "fcomp"))
+dat.emp$type <- "Empirical"
+summary(dat.emp)
+# ------------
+
+
+# ------------
+# Combining emprirical and model datasets together
+# ------------
+mod.v.dat <- data.frame(lat=c(models.long$lat[models.long$var %in% c("bm", "fcomp")], dat.emp$lat),
+                        lon=c(models.long$lon[models.long$var %in% c("bm", "fcomp")], dat.emp$lon),
+                        type=c(models.long$type[models.long$var %in% c("bm", "fcomp")], dat.emp$type),
+                        var=c(paste(models.long$var[models.long$var %in% c("bm", "fcomp")]), paste(dat.emp$var)),
+                        source=c(paste(models.long$Model[models.long$var %in% c("bm", "fcomp")]), paste(dat.emp$dataset)),
+                        stab.ecosys=c(models.long$stability[models.long$var %in% c("bm", "fcomp")], dat.emp$stab.ecosys),
+                        stab.pdsi=c(models.long$stab.pdsi[models.long$var %in% c("bm", "fcomp")], dat.emp$stab.pdsi))
+mod.v.dat$source <- factor(mod.v.dat$source, levels=c("ReFAB", "STEPPS", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
+summary(mod.v.dat)
+
+# Making an additional one that will let us make a pretty scatter plot
+dat.refab <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_ReFAB.csv"))
+summary(dat.refab)
+mod.dat2 <- data.frame(lat=c(mod.v.dat$lat, models.long$lat[models.long$var=="fcomp"], dat.refab$lat),
+                       lon=c(mod.v.dat$lon, models.long$lon[models.long$var=="fcomp"], dat.refab$lon),
+                       type=c(paste(mod.v.dat$type), paste(models.long$type[models.long$var=="fcomp"]), rep("Empirical", nrow(dat.refab))),
+                       source=c(paste(mod.v.dat$source), paste(models.long$Model[models.long$var=="fcomp"]), rep("ReFAB", nrow(dat.refab))),
+                       var1=c(rep("PDSI", nrow(mod.v.dat)), rep("Composition", nrow(models.long[models.long$var=="fcomp",])+nrow(dat.refab))),
+                       var2=c(paste(mod.v.dat$var), rep("bm", nrow(models.long[models.long$var=="fcomp",])+nrow(dat.refab))),
+                       stability1 = c(mod.v.dat$stab.pdsi, models.long$stability[models.long$var=="fcomp"], dat.refab$stab.stepps.1k),
+                       stability2 = c(mod.v.dat$stab.ecosys, rep(NA, length(models.long$stability[models.long$var=="fcomp"])), dat.refab$stab.refab.1k))
+summary(mod.dat2)
+
+# Looping through to pair model BM & Fcomp stability
+for(i in 1:nrow(mod.dat2)){
+  if(mod.dat2$type[i]=="Empirical" | !is.na(mod.dat2$stability2[i])) next
+  
+  val.fill <- models.long[models.long$var=="bm" & models.long$Model==paste(mod.dat2$source[i]) & models.long$lat==mod.dat2$lat[i] & models.long$lon==mod.dat2$lon[i], "stability"]
+  
+  if(length(val.fill)==0) next 
+  
+  mod.dat2[i,"stability2"] <- val.fill
+}
+mod.dat2$var2 <- car::recode(mod.dat2$var2, "'bm'='Biomass'; 'fcomp'='Composition'")
+mod.dat2$source <- factor(mod.dat2$source, levels=c("ReFAB", "STEPPS", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
+summary(mod.dat2)
+# ------------
+# -------------------------------------------
+
+
+# -------------------------------------------
+# Comparing stabiltiy in models versus data
+# -------------------------------------------
+mod.dat2$var1 <- factor(mod.dat2$var1, levels=c("PDSI", "Composition"))
+mod.dat2$var2 <- factor(mod.dat2$var2, levels=c("Composition", "Biomass"))
+mod.dat2[!is.na(mod.dat2$stability1) & mod.dat2$stability1>20, "stability1"] <- NA
+mod.dat2[!is.na(mod.dat2$stability2) & mod.dat2$stability2>20, "stability2"] <- NA
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Model_v_Data.png"), height=6, width=6, units="in", res=320)
+ggplot(dat=mod.dat2) +
+  facet_grid(var2 ~ var1, scales="free", switch="both") +
+  geom_point(aes(x=stability1, y=stability2, color=source), size=0.25, alpha=0.5) +
+  stat_smooth(aes(x=stability1, y=stability2, color=source, fill=source), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
+  theme_bw() +
+  theme(strip.placement = "outside",
+        strip.background = element_blank(),
+        strip.text = element_text(face="bold", size=rel(1)),
+        axis.title = element_blank()) +
+  theme(legend.position=c(0.75, 0.75),
+        legend.title=element_blank())
+dev.off()  
+
+summary(models.long)
+
+# ------------
+# Biomass-PDSI Comparisons
+# ------------
+md.comp.bm.mean <- lm(stab.ecosys ~ source, data=mod.v.dat[mod.v.dat$var=="bm",])
+summary(md.comp.bm.mean)
+
+md.comp.bm.sens1 <- lm(stab.ecosys ~ stab.pdsi*source, data=mod.v.dat[mod.v.dat$var=="bm",])
+summary(md.comp.bm.sens1)
+
+md.comp.bm.sens2 <- lm(stab.ecosys ~ stab.pdsi*source-stab.pdsi, data=mod.v.dat[mod.v.dat$var=="bm",])
+summary(md.comp.bm.sens2)
+# ------------
+
+# ------------
+# Fcomp-PDSI Comparisons
+# ------------
+md.comp.fcomp.mean <- lm(stab.ecosys ~ source, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+summary(md.comp.fcomp.mean)
+
+md.comp.fcomp.sens1 <- lm(stab.ecosys ~ stab.pdsi*source, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+summary(md.comp.fcomp.sens1)
+
+md.comp.fcomp.sens2 <- lm(stab.ecosys ~ stab.pdsi*source-stab.pdsi, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+summary(md.comp.fcomp.sens2)
+# ------------
+
+# ------------
+# Fcomp-BM Comparisons
+# ------------
+
+# ------------
 # -------------------------------------------
