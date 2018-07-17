@@ -267,6 +267,115 @@ summary(md.comp.fcomp.sens2)
 # ------------
 # Fcomp-BM Comparisons
 # ------------
+summary(mod.dat2)
+
+md.comp.v.bm1 <- lm(stability2 ~ stability1*source, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass",])
+summary(md.comp.v.bm1)
+
+md.comp.v.bm2 <- lm(stability2 ~ stability1*source-stability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass",])
+summary(md.comp.v.bm2)
+
+cvb.link <- lm(stability2 ~ stability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="LINKAGES",])
+cvb.triff <- lm(stability2 ~ stability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="TRIFFID",])
+cvb.lpjw <- lm(stability2 ~ stability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="LPJ-WSL",])
+summary(cvb.link)
+summary(cvb.triff)
+summary(cvb.lpjw)
+# ------------
+# -------------------------------------------
+
+# -------------------------------------------
+# Comparing stability sensitivity within models --> find where things fall apart
+# -------------------------------------------
+models.long[models.long$diff.abs==1e-20,"stability"] <- NA
+summary(models.long)
+
+models.long$Model <- factor(models.long$Model, levels=c("ED2", "LPJ-GUESS", "LPJ-WSL", "LINKAGES", "TRIFFID"))
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Models.png"), height=6, width=8, units="in", res=320)
+ggplot(data=models.long, aes(x=stab.pdsi, y=stability, color=var, fill=var)) +
+  labs(x="PDSI Stability", y="Ecosystem Stability") +
+  facet_wrap(~Model) +
+  geom_point(size=0.1, alpha=0.3) +
+  stat_smooth(method=lm, alpha=0.5) + 
+  scale_color_manual(values=c("blue4", "darkseagreen4", "turquoise4", "darkgoldenrod2", "darkorange2", "deeppink3")) +
+  scale_fill_manual(values=c("blue4", "darkseagreen4", "turquoise4", "darkgoldenrod2", "darkorange2", "deeppink3")) +
+  # scale_fill_brewer(palette="Dark2") +
+  # scale_color_brewer(palette="Dark2") +
+  coord_cartesian(ylim=c(3,11.5), expand=0) +
+  theme_bw() +
+  theme(legend.position=c(0.75, 0.25),
+        legend.title=element_blank())
+dev.off()
 
 # ------------
+# ED2
+# ------------
+# Comparing mean stability relative to FCOMP
+stab.ed2 <- lm(stability ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="ED2", ])
+summary(stab.ed2)
+
+mod.ed2 <- lm(stability ~ stab.pdsi*var, data=models.long[models.long$Model=="ED2", ])
+mod.ed2b <- lm(stability ~ stab.pdsi*var-stab.pdsi, data=models.long[models.long$Model=="ED2", ]) # Means parameterization
+summary(mod.ed2)
+summary(mod.ed2b)
+# trend.ed2 <- emmeans::emtrends(mod.ed2, "var", var="stab.pdsi")
+# trend.ed2
+# ------------
+
+# ------------
+# LPJ-GUESS
+# ------------
+# Comparing mean stability relative to FCOMP
+stab.lpjg <- lm(stability ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="LPJ-GUESS", ])
+summary(stab.lpjg)
+stab.lpjg2 <- lm(stability ~ relevel(var, ref="gpp"), data=models.long[models.long$Model=="LPJ-GUESS", ])
+summary(stab.lpjg2)
+
+mod.lpjg <- lm(stability ~ stab.pdsi*var, data=models.long[models.long$Model=="LPJ-GUESS", ])
+mod.lpjgb <- lm(stability ~ stab.pdsi*var-stab.pdsi, data=models.long[models.long$Model=="LPJ-GUESS", ]) # Means parameterization
+summary(mod.lpjg)
+summary(mod.lpjgb)
+# trend.lpjg <- emmeans::emtrends(mod.lpjg, "var", var="stab.pdsi")
+# trend.lpjg
+# pairs(trend.lpjg)
+# ------------
+
+# ------------
+# ------------
+# Comparing mean stability relative to FCOMP
+stab.lpjw <- lm(stability ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="LPJ-WSL", ])
+summary(stab.lpjw)
+
+mod.lpjw <- lm(stability ~ stab.pdsi*var, data=models.long[models.long$Model=="LPJ-WSL", ])
+mod.lpjwb <- lm(stability ~ stab.pdsi*var-stab.pdsi, data=models.long[models.long$Model=="LPJ-WSL", ]) # Means parameterization
+summary(mod.lpjw)
+summary(mod.lpjwb)
+# trend.lpjw <- emmeans::emtrends(mod.lpjw, "var", var="stab.pdsi")
+# trend.lpjw
+# pairs(trend.lpjw)
+# ------------
+
+# ------------
+# ------------
+mod.link <- lm(stability ~ stab.pdsi*var, data=models.long[models.long$Model=="LINKAGES", ])
+mod.linkb <- lm(stability ~ stab.pdsi*var-stab.pdsi, data=models.long[models.long$Model=="LINKAGES", ]) # Means parameterization
+summary(mod.link)
+summary(mod.linkb)
+# trend.link <- emmeans::emtrends(mod.link, "var", var="stab.pdsi")
+# trend.link
+# pairs(trend.link)
+# ------------
+
+# ------------
+# ------------
+mod.triff <- lm(stability ~ stab.pdsi*var, data=models.long[models.long$Model=="TRIFFID", ])
+mod.triffb <- lm(stability ~ stab.pdsi*var-stab.pdsi, data=models.long[models.long$Model=="TRIFFID", ]) # Means parameterization
+summary(mod.triff)
+summary(mod.triffb)
+# trend.triff <- emmeans::emtrends(mod.triff, "var", var="stab.pdsi")
+# trend.triff
+# pairs(trend.triff)
+# ------------
+
 # -------------------------------------------
