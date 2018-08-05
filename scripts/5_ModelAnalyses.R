@@ -153,6 +153,11 @@ for(v in unique(models.long$var)){
     models.long[dat.ind, "stab.rel"] <- (models.long[dat.ind, "stability" ]) / mean(models.long[dat.ind, "stability" ]) 
 
     models.long[dat.ind, "stab.pdsi" ] <- -log(dat.tmp$pdsi.diff/abs(mean(dat.tmp$pdsi.diff)))
+    
+    models.long[dat.ind, "variability" ] <- dat.tmp$diff.abs/abs(mean(dat.tmp$val.mean))
+    models.long[dat.ind, "var.pdsi" ] <- dat.tmp$pdsi.diff/abs(mean(dat.tmp$pdsi.diff))
+    models.long[dat.ind, "var.rel"] <- (models.long[dat.ind, "variability" ]) / mean(models.long[dat.ind, "variability" ]) 
+    
   }
 }
 summary(models.long)
@@ -178,7 +183,11 @@ mod.v.dat <- data.frame(lat=c(models.long$lat[models.long$var %in% c("bm", "fcom
                         var=c(paste(models.long$var[models.long$var %in% c("bm", "fcomp")]), paste(dat.emp$var)),
                         source=c(paste(models.long$Model[models.long$var %in% c("bm", "fcomp")]), paste(dat.emp$dataset)),
                         stab.ecosys=c(models.long$stability[models.long$var %in% c("bm", "fcomp")], dat.emp$stab.ecosys),
-                        stab.pdsi=c(models.long$stab.pdsi[models.long$var %in% c("bm", "fcomp")], dat.emp$stab.pdsi))
+                        stab.pdsi=c(models.long$stab.pdsi[models.long$var %in% c("bm", "fcomp")], dat.emp$stab.pdsi),
+                        var.ecosys=c(models.long$variability[models.long$var %in% c("bm", "fcomp")], dat.emp$var.ecosys),
+                        var.pdsi=c(models.long$var.pdsi[models.long$var %in% c("bm", "fcomp")], dat.emp$var.pdsi)
+                        )
+
 mod.v.dat$source <- factor(mod.v.dat$source, levels=c("ReFAB", "STEPPS", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
 summary(mod.v.dat)
 
@@ -192,7 +201,10 @@ mod.dat2 <- data.frame(lat=c(mod.v.dat$lat, models.long$lat[models.long$var=="fc
                        var1=c(rep("PDSI", nrow(mod.v.dat)), rep("Composition", nrow(models.long[models.long$var=="fcomp",])+nrow(dat.refab))),
                        var2=c(paste(mod.v.dat$var), rep("bm", nrow(models.long[models.long$var=="fcomp",])+nrow(dat.refab))),
                        stability1 = c(mod.v.dat$stab.pdsi, models.long$stability[models.long$var=="fcomp"], dat.refab$stab.stepps.1k),
-                       stability2 = c(mod.v.dat$stab.ecosys, rep(NA, length(models.long$stability[models.long$var=="fcomp"])), dat.refab$stab.refab.1k))
+                       stability2 = c(mod.v.dat$stab.ecosys, rep(NA, length(models.long$stability[models.long$var=="fcomp"])), dat.refab$stab.refab.1k),
+                       variability1 = c(mod.v.dat$var.pdsi, models.long$variability[models.long$var=="fcomp"], dat.refab$var.stepps.1k),
+                       variability2 = c(mod.v.dat$var.ecosys, rep(NA, length(models.long$variability[models.long$var=="fcomp"])), dat.refab$var.refab.1k)
+                       )
 summary(mod.dat2)
 
 # Looping through to pair model BM & Fcomp stability
@@ -200,14 +212,20 @@ for(i in 1:nrow(mod.dat2)){
   if(mod.dat2$type[i]=="Empirical" | !is.na(mod.dat2$stability2[i])) next
   
   val.fill <- models.long[models.long$var=="bm" & models.long$Model==paste(mod.dat2$source[i]) & models.long$lat==mod.dat2$lat[i] & models.long$lon==mod.dat2$lon[i], "stability"]
+  val.fill2 <- models.long[models.long$var=="bm" & models.long$Model==paste(mod.dat2$source[i]) & models.long$lat==mod.dat2$lat[i] & models.long$lon==mod.dat2$lon[i], "variability"]
   
   if(length(val.fill)==0) next 
   
   mod.dat2[i,"stability2"] <- val.fill
+  mod.dat2[i,"variability2"] <- val.fill2
 }
 mod.dat2$var2 <- car::recode(mod.dat2$var2, "'bm'='Biomass'; 'fcomp'='Composition'")
 mod.dat2$source <- factor(mod.dat2$source, levels=c("ReFAB", "STEPPS", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
 summary(mod.dat2)
+
+# write.csv(dat.sites, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Diversity_Data.csv"), row.names=F)
+
+write.csv(mod.dat2, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_and_Data.csv"), row.names=F)
 # ------------
 # -------------------------------------------
 

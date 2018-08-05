@@ -60,6 +60,7 @@ lbda$type <- as.factor("empirical")
 lbda$resolution <- as.factor("annual")
 names(lbda)[which(names(lbda)=="n.yrs.sig")] <- "n.sig"
 lbda$stability.lbda <- -log(lbda$diff.abs/abs(mean(lbda$lbda.mean, na.rm=T)))  # Note: Positive numbers mean MORE stable
+lbda$variability.lbda <- lbda$diff.abs/abs(mean(lbda$lbda.mean, na.rm=T))  # Note: Positive numbers mean MORE stable
 summary(lbda)
 
 
@@ -87,6 +88,8 @@ stepps$type <- as.factor("empirical")
 stepps$resolution <- as.factor("centennial")
 stepps$stability.1k <- -log(stepps$stepps.diff.abs.1k/abs(mean(stepps$stepps.mean.1k, na.rm=T)))
 stepps$stability.lbda <- -log(stepps$stepps.diff.abs.lbda/abs(mean(stepps$stepps.mean.lbda, na.rm=T)))
+stepps$variability.1k <- stepps$stepps.diff.abs.1k/abs(mean(stepps$stepps.mean.1k, na.rm=T))
+stepps$variability.lbda <- stepps$stepps.diff.abs.lbda/abs(mean(stepps$stepps.mean.lbda, na.rm=T))
 summary(stepps)
 # -----------
 
@@ -109,6 +112,8 @@ refab$type <- as.factor("empirical")
 refab$resolution <- as.factor("centennial")
 refab$stability.1k <- -log(refab$refab.mean.slope.abs.1k/abs(mean(refab$refab.mean.1k, na.rm=T)))
 refab$stability.lbda <- -log(refab$refab.mean.slope.abs.lbda/abs(mean(refab$refab.mean.lbda, na.rm=T)))
+refab$variability.1k <- refab$refab.mean.slope.abs.1k/abs(mean(refab$refab.mean.1k, na.rm=T))
+refab$variability.lbda <- refab$refab.mean.slope.abs.lbda/abs(mean(refab$refab.mean.lbda, na.rm=T))
 summary(refab)
 # -----------
 # -------------------------------------------
@@ -122,7 +127,9 @@ summary(refab)
 
 dat.sites.refab <- data.frame(refab[,c("lat", "lon")],
                               stab.refab.1k=refab$stability.1k,
-                              stab.refab.lbda=refab$stability.lbda)
+                              stab.refab.lbda=refab$stability.lbda,
+                              var.refab.1k=refab$variability.1k,
+                              var.refab.lbda=refab$variability.lbda)
 dat.sites.refab <- dat.sites.refab[!is.na(dat.sites.refab$lat),]
 
 # Just Refab sites
@@ -151,6 +158,7 @@ for(i in 1:nrow(dat.sites.refab)){
     dat.sites.refab[i, "H.prime.1k"    ] <- - sum(fcomp.tmp$stepps.mean.1k * log(fcomp.tmp$stepps.mean.1k)) # calculate shannon-weiner index
     dat.sites.refab[i, "dom.pft.1k"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.1k])
     dat.sites.refab[i, "stab.stepps.1k"] <- fcomp.tmp$stability.1k[ind.fcomp.1k]
+    dat.sites.refab[i, "var.stepps.1k"] <- fcomp.tmp$variability.1k[ind.fcomp.1k]
     
     fcomp.tmp <- fcomp.tmp.all[fcomp.tmp.all$stepps.mean.lbda>1e-3,]
     ind.fcomp.lbda <- which(fcomp.tmp$stepps.mean.lbda==max(fcomp.tmp$stepps.mean.lbda))
@@ -159,6 +167,7 @@ for(i in 1:nrow(dat.sites.refab)){
       dat.sites.refab[i, "H.prime.lbda"    ] <- - sum(fcomp.tmp$stepps.mean.lbda * log(fcomp.tmp$stepps.mean.lbda)) # calculate shannon-weiner index
       dat.sites.refab[i, "dom.pft.lbda"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.lbda])
       dat.sites.refab[i, "stab.stepps.lbda"] <- fcomp.tmp$stability.lbda[ind.fcomp.lbda]
+      dat.sites.refab[i, "var.stepps.lbda"] <- fcomp.tmp$variability.lbda[ind.fcomp.lbda]
     }
   }
   # ------------
@@ -172,7 +181,8 @@ for(i in 1:nrow(dat.sites.refab)){
   
   if(length(lbda.ind)>0){
     dat.sites.refab[i, "nyrs.lbda"] <- mean(lbda$n.yrs[lbda.ind]) # If we have 2 equidistant sites, use the mean
-    dat.sites.refab[i, "stab.lbda"] <- mean(lbda$stability[lbda.ind]) # If we have 2 equidistant sites, use the mean
+    dat.sites.refab[i, "stab.lbda"] <- mean(lbda$stability[lbda.ind]) # If we have 2 equidistant sites, use
+    dat.sites.refab[i, "var.lbda"] <- mean(lbda$variability[lbda.ind]) # If we have 2 equidistant sites, use the mean
   }
   # ------------
   
@@ -203,6 +213,7 @@ for(i in 1:nrow(dat.sites.stepps)){
   dat.sites.stepps[i, "H.prime.1k"    ] <- - sum(fcomp.tmp$stepps.mean.1k * log(fcomp.tmp$stepps.mean.1k)) # calculate shannon-weiner index
   dat.sites.stepps[i, "dom.pft.1k"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.1k])
   dat.sites.stepps[i, "stab.stepps.1k"] <- fcomp.tmp$stability.1k[ind.fcomp.1k]
+  dat.sites.stepps[i, "var.stepps.1k"] <- fcomp.tmp$variability.1k[ind.fcomp.1k]
   
   fcomp.tmp <- fcomp.tmp.all[fcomp.tmp.all$stepps.mean.lbda>1e-3,]
   ind.fcomp.lbda <- which(fcomp.tmp$stepps.mean.lbda==max(fcomp.tmp$stepps.mean.lbda))
@@ -211,6 +222,7 @@ for(i in 1:nrow(dat.sites.stepps)){
     dat.sites.stepps[i, "H.prime.lbda"    ] <- - sum(fcomp.tmp$stepps.mean.lbda * log(fcomp.tmp$stepps.mean.lbda)) # calculate shannon-weiner index
     dat.sites.stepps[i, "dom.pft.lbda"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.lbda])
     dat.sites.stepps[i, "stab.stepps.lbda"] <- fcomp.tmp$stability.lbda[ind.fcomp.lbda]
+    dat.sites.stepps[i, "var.stepps.lbda"] <- fcomp.tmp$variability.lbda[ind.fcomp.lbda]
   }
   # ------------
   
@@ -223,7 +235,8 @@ for(i in 1:nrow(dat.sites.stepps)){
   
   if(length(lbda.ind)>0){
     dat.sites.stepps[i, "nyrs.lbda"] <- mean(lbda$n.yrs[lbda.ind]) # If we have 2 equidistant sites, use the mean
-    dat.sites.stepps[i, "stab.lbda"] <- mean(lbda$stability[lbda.ind]) # If we have 2 equidistant sites, use the mean
+    dat.sites.stepps[i, "stab.lbda"] <- mean(lbda$stability.lbda[lbda.ind]) # If we have 2 equidistant sites, use the mean
+    dat.sites.stepps[i, "var.lbda"] <- mean(lbda$variability.lbda[lbda.ind]) # If we have 2 equidistant sites, use the mean
   }
   # ------------
   
@@ -236,7 +249,6 @@ dim(dat.sites.stepps); dim(stepps)
 
 write.csv(dat.sites.stepps, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_STEPPS.csv"), row.names=F)
 write.csv(dat.sites.refab , file.path(path.google, "Current Data/Stability_Synthesis", "Stability_ReFAB.csv"), row.names=F)
-
 # -----------
 
 # -----------
@@ -248,14 +260,16 @@ summary(lbda.stepps)
 stab.comparison <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat, lbda.stepps$lat),
                               lon=c(dat.sites.refab$lon, dat.sites.stepps$lon, lbda.stepps$lon),
                               dataset = c(rep("ReFAB", nrow(dat.sites.refab)), rep("STEPPS", nrow(dat.sites.stepps)), rep("LBDA", nrow(lbda.stepps))),
-                              stability = c(dat.sites.refab$stab.refab.lbda, dat.sites.stepps$stab.stepps.lbda, lbda.stepps$stability.lbda)
+                              stability = c(dat.sites.refab$stab.refab.lbda, dat.sites.stepps$stab.stepps.lbda, lbda.stepps$stability.lbda),
+                              variability = c(dat.sites.refab$var.refab.lbda, dat.sites.stepps$var.stepps.lbda, lbda.stepps$variability.lbda)
+                              
                               )
 stab.comparison$dataset <- factor(stab.comparison$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Comparisons_Histograms.png"), height=6, width=5, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Comparisons_Histograms.png"), height=6, width=5, units="in", res=320)
 ggplot(data=stab.comparison) +
   facet_grid(dataset~.) +
-  geom_histogram(aes(x=stability)) +
+  geom_histogram(aes(x=log(variability))) +
   theme_bw()
 dev.off()
 
@@ -265,31 +279,37 @@ climate.comparison <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat
                                  lon=c(dat.sites.refab$lon, dat.sites.stepps$lon),
                                  dataset = c(rep("ReFAB", nrow(dat.sites.refab)), rep("STEPPS", nrow(dat.sites.stepps))),
                                  stab.ecosys = c(dat.sites.refab$stab.refab.lbda, dat.sites.stepps$stab.stepps.lbda),
-                                 stab.pdsi   = c(dat.sites.refab$stab.lbda, dat.sites.stepps$stab.lbda))
+                                 stab.pdsi   = c(dat.sites.refab$stab.lbda, dat.sites.stepps$stab.lbda),
+                                 var.ecosys = c(dat.sites.refab$var.refab.lbda, dat.sites.stepps$var.stepps.lbda),
+                                 var.pdsi   = c(dat.sites.refab$var.lbda, dat.sites.stepps$var.lbda)
+                                 )
+
 climate.comparison.sp <- data.frame(lat=c(refab$lat, stepps$lat, lbda$lat),
                                     lon=c(refab$lon, stepps$lon, lbda$lon),
                                     dataset = c(rep("ReFAB", nrow(refab)), rep("STEPPS", nrow(stepps)), rep("LBDA", nrow(lbda))),
-                                    stability = c(refab$stability.lbda, stepps$stability.lbda, lbda$stability.lbda))
+                                    stability = c(refab$stability.lbda, stepps$stability.lbda, lbda$stability.lbda),
+                                    variability = c(refab$variability.lbda, stepps$variability.lbda, lbda$variability.lbda)
+                                    )
 climate.comparison$dataset <- factor(climate.comparison$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
 climate.comparison.sp$dataset <- factor(climate.comparison.sp$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
 
 write.csv(climate.comparison, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.csv"), row.names=F)
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data_Map.png"), height=6, width=5, units="in", res=320)
-ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$stability),]) +
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Data_Map.png"), height=6, width=5, units="in", res=320)
+ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability),]) +
   facet_grid(dataset~.) +
-  geom_point(aes(x=lon, y=lat, color=stability), size=2) +
-  geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="LBDA",], aes(x=lon, y=lat, fill=stability)) +
+  geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
+  geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="LBDA",], aes(x=lon, y=lat, fill=log(variability))) +
   geom_path(data=us, aes(x=long, y=lat, group=group)) +
   coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
-  scale_fill_continuous(limits=range(climate.comparison.sp$stability, na.rm=T)) +
+  scale_fill_continuous(limits=range(log(climate.comparison.sp$variability), na.rm=T)) +
   theme_bw() 
 dev.off()  
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.png"), height=6, width=6, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Data.png"), height=6, width=6, units="in", res=320)
 ggplot(data=climate.comparison) +
-  geom_point(aes(x=stab.pdsi, y=stab.ecosys, color=dataset), size=0.5) +
-  stat_smooth(aes(x=stab.pdsi, y=stab.ecosys, color=dataset, fill=dataset), method="lm") +
+  geom_point(aes(x=log(var.pdsi), y=log(var.ecosys), color=dataset), size=0.5) +
+  stat_smooth(aes(x=log(var.pdsi), y=log(var.ecosys), color=dataset, fill=dataset), method="lm") +
   theme_bw()
 dev.off()
 
@@ -343,6 +363,7 @@ dat.sites <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat),
                         lon=c(dat.sites.refab$lon, dat.sites.stepps$lon), 
                         dataset=c(rep("ReFAB", nrow(dat.sites.refab)), rep("STEPPS", nrow(dat.sites.stepps))),
                         stability=c(dat.sites.refab$stab.refab.1k, dat.sites.stepps$stab.stepps.1k),
+                        variability=c(dat.sites.refab$var.refab.1k, dat.sites.stepps$var.stepps.1k),
                         H.prime = c(dat.sites.refab$H.prime.1k, dat.sites.stepps$H.prime.1k),
                         richness = c(dat.sites.refab$richness.1k, dat.sites.stepps$richness.1k),
                         dom.pft = c(paste(dat.sites.refab$dom.pft.1k), paste(dat.sites.stepps$dom.pft.1k))
@@ -381,10 +402,10 @@ dev.off()
 #   theme_bw() 
 
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Data_Stability_v_Diversity_NoTrendline.png"), height=6, width=6, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Data_Variability_v_Diversity_NoTrendline.png"), height=6, width=6, units="in", res=320)
 ggplot(data=dat.sites) +
   facet_grid(dataset~., scales="free_y") +
-  geom_point(aes(x=H.prime, y=stability, color=dom.pft)) +
+  geom_point(aes(x=H.prime, y=log(variability), color=dom.pft)) +
   # stat_smooth(data=dat.sites[dat.sites$dataset=="ReFAB",], aes(x=H.prime, y=stability, color=dataset, fill=dataset), method="lm") +
   # stat_smooth(data=dat.sites[dat.sites$dataset=="STEPPS",], aes(x=H.prime, y=stability, color=dataset, fill=dataset), method="lm") +
   theme_bw() +
@@ -422,10 +443,10 @@ plot(resid(lm.diversity2b)~predict(lm.diversity2b))
 hist(resid(lm.diversity2b))
 
 # Some summary figures
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Data_Biomass_v_Composition.png"), height=6, width=6, units="in", res=320)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Data_Biomass_v_Composition.png"), height=6, width=6, units="in", res=320)
 ggplot(data=dat.sites.refab) +
-  geom_point(aes(x=stab.stepps.1k, y=stab.refab.1k)) +
-  stat_smooth(aes(x=stab.stepps.1k, y=stab.refab.1k), method="lm") +
+  geom_point(aes(x=stab.stepps.1k, y=var.refab.1k)) +
+  stat_smooth(aes(x=stab.stepps.1k, y=var.refab.1k), method="lm") +
   theme_bw()
 dev.off()
 
