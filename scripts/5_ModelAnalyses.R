@@ -162,6 +162,8 @@ for(v in unique(models.long$var)){
 }
 summary(models.long)
 models.long$type <- "Model"
+
+write.csv(models.long,  file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_long.csv"), row.names=F)
 # ------------
 
 # ------------
