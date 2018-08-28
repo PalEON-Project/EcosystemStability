@@ -294,16 +294,27 @@ climate.comparison$dataset <- factor(climate.comparison$dataset, levels=c("LBDA"
 climate.comparison.sp$dataset <- factor(climate.comparison.sp$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
 
 write.csv(climate.comparison, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.csv"), row.names=F)
+write.csv(climate.comparison.sp, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data_Spatial.csv"), row.names=F)
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Data_Map.png"), height=6, width=5, units="in", res=320)
+climate.comparison <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.csv"))
+climate.comparison.sp <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.csv"))
+
+climate.comparison.sp$dataset <- car::recode(climate.comparison.sp$dataset, "'LBDA'='Drought'; 'STEPPS'='Composition'; 'ReFAB'='Biomass'")
+climate.comparison.sp$dataset <- factor(climate.comparison.sp$dataset, levels=c("Drought", "Composition", "Biomass"))
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Data_Map.png"), height=5.5, width=5, units="in", res=320)
 ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability),]) +
   facet_grid(dataset~.) +
+  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray90") +
   geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
-  geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="LBDA",], aes(x=lon, y=lat, fill=log(variability))) +
+  geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="Drought" & !is.na(climate.comparison.sp$variability),], aes(x=lon, y=lat, fill=log(variability))) +
   geom_path(data=us, aes(x=long, y=lat, group=group)) +
   coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
-  scale_fill_continuous(limits=range(log(climate.comparison.sp$variability), na.rm=T)) +
-  theme_bw() 
+  scale_fill_gradient2(name="Log\nRelative\nvariability", low="#27647B", high="#CA3542", limits=range(log(climate.comparison.sp$variability), na.rm=T), midpoint=mean(log(climate.comparison.sp$variability), na.rm=T)) +
+  scale_color_gradient2(name="Log\nRelative\nvariability", low="#27647B", high="#CA3542", limits=range(log(climate.comparison.sp$variability), na.rm=T), midpoint=mean(log(climate.comparison.sp$variability), na.rm=T)) +
+  theme_bw() +
+  theme(panel.background=element_rect(fill="gray25"),
+        panel.grid = element_blank())
 dev.off()  
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Data.png"), height=6, width=6, units="in", res=320)

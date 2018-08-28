@@ -235,27 +235,57 @@ write.csv(mod.dat2, file.path(path.google, "Current Data/Stability_Synthesis", "
 # -------------------------------------------
 # Comparing stabiltiy in models versus data
 # -------------------------------------------
-mod.dat2$var1 <- factor(mod.dat2$var1, levels=c("PDSI", "Composition"))
+mod.dat2 <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_and_Data.csv"))
+mod.dat2$source <- factor(mod.dat2$source, levels=c("ReFAB", "STEPPS", "ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
+mod.dat2$var1 <- car::recode(mod.dat2$var1, "'PDSI'='Drought'")
+mod.dat2$var1 <- factor(mod.dat2$var1, levels=c("Drought", "Composition"))
 mod.dat2$var2 <- factor(mod.dat2$var2, levels=c("Composition", "Biomass"))
-mod.dat2[!is.na(mod.dat2$stability1) & mod.dat2$stability1>20, "stability1"] <- NA
-mod.dat2[!is.na(mod.dat2$stability2) & mod.dat2$stability2>20, "stability2"] <- NA
+mod.dat2[!is.na(mod.dat2$stability1) & mod.dat2$stability1>20, c("stability1", "variability1")] <- NA
+mod.dat2[!is.na(mod.dat2$stability2) & mod.dat2$stability2>20, c("stability2", c("variability2"))] <- NA
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Model_v_Data.png"), height=6, width=6, units="in", res=320)
+dat.colors$model <- factor(dat.colors$model, levels=c("drivers", "drivers-modified", "LBDA", "ReFAB", "STEPPS", "ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
+dat.colors <- dat.colors[order(dat.colors$model),]
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Model_v_Data.png"), height=6, width=6, units="in", res=320)
 ggplot(dat=mod.dat2) +
   facet_grid(var2 ~ var1, scales="free", switch="both") +
-  geom_point(aes(x=stability1, y=stability2, color=source), size=0.25, alpha=0.5) +
-  stat_smooth(aes(x=stability1, y=stability2, color=source, fill=source), method="lm") +
+  geom_point(aes(x=log(variability1), y=log(variability2), color=source), size=0.1, alpha=0.25) +
+  stat_smooth(aes(x=log(variability1), y=log(variability2), color=source, fill=source), method="lm") +
   scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
   scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
+  scale_x_continuous(name="Log Relative Variability") +
+  scale_y_continuous(name="Log Relative Variability") +
   theme_bw() +
   theme(strip.placement = "outside",
         strip.background = element_blank(),
         strip.text = element_text(face="bold", size=rel(1)),
-        axis.title = element_blank()) +
+        # axis.title = element_blank()
+        axis.title = element_text(size=rel(1.25))
+        ) +
   theme(legend.position=c(0.75, 0.75),
         legend.title=element_blank())
 dev.off()  
 
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Model_v_Data_fixedaxes.png"), height=6, width=6, units="in", res=320)
+ggplot(dat=mod.dat2) +
+  facet_grid(var2 ~ var1, scales="free", switch="both") +
+  geom_point(aes(x=log(variability1), y=log(variability2), color=source), size=0.15, alpha=0.25) +
+  stat_smooth(aes(x=log(variability1), y=log(variability2), color=source, fill=source), method="lm") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
+  scale_x_continuous(name="Log Relative Variability") +
+  scale_y_continuous(name="Log Relative Variability") +
+  coord_cartesian(ylim=c(-10,0.25), xlim=c(-10, 2.5)) +
+  theme_bw() +
+  theme(strip.placement = "outside",
+        strip.background = element_blank(),
+        strip.text = element_text(face="bold", size=rel(1)),
+        # axis.title = element_blank()
+        axis.title = element_text(size=rel(1.25))
+  ) +
+  theme(legend.position=c(0.75, 0.75),
+        legend.title=element_blank())
+dev.off()  
 summary(models.long)
 
 # ------------
@@ -307,93 +337,138 @@ summary(cvb.lpjw)
 # -------------------------------------------
 # Comparing stability sensitivity within models --> find where things fall apart
 # -------------------------------------------
-models.long[models.long$diff.abs==1e-20,"stability"] <- NA
+models.long <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_long.csv"))
+summary(models.long)
+
+models.long$Model <- factor(models.long$Model, levels=c("ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
+
+
+models.long$var <- car::recode(models.long$var, "'gpp'='GPP'; 'npp'='NPP'; 'lai'='LAI'; 'bm'='Biomass'; 'fcomp'='Composition'; 'nee'='NEE'")
+models.long$var <- factor(models.long$var, levels=c("GPP", "NPP", "NEE", "LAI", "Biomass", "Composition"))
+
+
+# -----
+# Adding in emprical data
+# -----
+dat.emp <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.csv"))
+dat.emp$var <- as.factor(ifelse(dat.emp$dataset=="ReFAB", "Biomass", "Composition"))
+dat.emp$type <- "Empirical"
+dat.emp$Model <- dat.emp$dataset
+summary(dat.emp)
+
+summary(models.long)
+models.long$type <- "model"
+models.long[models.long$diff.abs==1e-20,c("stability", "variability")] <- NA
 summary(models.long)
 
 models.long$Model <- factor(models.long$Model, levels=c("ED2", "LPJ-GUESS", "LPJ-WSL", "LINKAGES", "TRIFFID"))
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Models.png"), height=6, width=8, units="in", res=320)
-ggplot(data=models.long, aes(x=stab.pdsi, y=stability, color=var, fill=var)) +
-  labs(x="PDSI Stability", y="Ecosystem Stability") +
+
+# A combined thing for graphing
+var.comparison <- data.frame(lon=c(models.long$lon, dat.emp$lon),
+                             lat=c(models.long$lat, dat.emp$lat),
+                             type=c(models.long$type, dat.emp$type),
+                             Model=c(paste(models.long$Model), rep("Pollen", nrow(dat.emp))),
+                             var=c(paste(models.long$var), paste(dat.emp$var)),
+                             var.ecosys=c(models.long$variability, dat.emp$var.ecosys),
+                             var.pdsi=c(models.long$var.pdsi, dat.emp$var.pdsi)
+)
+var.comparison$Model <- factor(var.comparison$Model, levels=c("ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID", "Pollen"))
+var.comparison$var <- factor(var.comparison$var, levels=c("GPP", "NPP", "NEE", "LAI", "Biomass", "Composition"))
+
+summary(var.comparison)
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Models.png"), height=6, width=8, units="in", res=320)
+ggplot(data=var.comparison, aes(x=log(var.pdsi), y=log(var.ecosys), color=var, fill=var)) +
+  labs(x="Log Relative Drought Variability", y="Log Relative Ecosystem Variability") +
   facet_wrap(~Model) +
-  geom_point(size=0.1, alpha=0.3) +
+  geom_point(size=0.05, alpha=0.2) +
   stat_smooth(method=lm, alpha=0.5) + 
   scale_color_manual(values=c("blue4", "darkseagreen4", "turquoise4", "darkgoldenrod2", "darkorange2", "deeppink3")) +
   scale_fill_manual(values=c("blue4", "darkseagreen4", "turquoise4", "darkgoldenrod2", "darkorange2", "deeppink3")) +
+  guides(fill=guide_legend(nrow=1), color=guide_legend(nrow=1)) +
   # scale_fill_brewer(palette="Dark2") +
   # scale_color_brewer(palette="Dark2") +
-  coord_cartesian(ylim=c(3,11.5), expand=0) +
+  coord_cartesian(ylim=c(-10.5,0), expand=0) +
   theme_bw() +
-  theme(legend.position=c(0.75, 0.25),
-        legend.title=element_blank())
+  theme(panel.background=element_blank(),
+        panel.grid = element_blank(),
+        axis.text = element_text(size=rel(1.25)),
+        axis.title = element_text(size=rel(1.25), face="bold"),
+        axis.ticks = element_blank(),
+        legend.position="top",
+        legend.title=element_blank(),
+        legend.text = element_text(size=rel(1.25)),
+        strip.text = element_text(size=rel(1.5), face="bold"))
+
 dev.off()
 
 # ------------
 # ED2
 # ------------
-# Comparing mean stability relative to FCOMP
-stab.ed2 <- lm(stability ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="ED2", ])
-summary(stab.ed2)
+# Comparing mean var.ecosys relative to FCOMP
+var.ed2 <- lm(var.ecosys ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="ED2", ])
+summary(var.ed2)
 
-mod.ed2 <- lm(stability ~ stab.pdsi*var, data=models.long[models.long$Model=="ED2", ])
-mod.ed2b <- lm(stability ~ stab.pdsi*var-stab.pdsi, data=models.long[models.long$Model=="ED2", ]) # Means parameterization
+mod.ed2 <- lm(var.ecosys ~ var.pdsi*var, data=models.long[models.long$Model=="ED2", ])
+mod.ed2b <- lm(var.ecosys ~ var.pdsi*var-var.pdsi, data=models.long[models.long$Model=="ED2", ]) # Means parameterization
 summary(mod.ed2)
 summary(mod.ed2b)
-# trend.ed2 <- emmeans::emtrends(mod.ed2, "var", var="stab.pdsi")
+# trend.ed2 <- emmeans::emtrends(mod.ed2, "var", var="var.pdsi")
 # trend.ed2
 # ------------
 
 # ------------
 # LPJ-GUESS
 # ------------
-# Comparing mean stability relative to FCOMP
-stab.lpjg <- lm(stability ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="LPJ-GUESS", ])
-summary(stab.lpjg)
-stab.lpjg2 <- lm(stability ~ relevel(var, ref="gpp"), data=models.long[models.long$Model=="LPJ-GUESS", ])
-summary(stab.lpjg2)
+# Comparing mean var.ecosys relative to FCOMP
+var.lpjg <- lm(var.ecosys ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="LPJ-GUESS", ])
+summary(var.lpjg)
+var.lpjg2 <- lm(var.ecosys ~ relevel(var, ref="gpp"), data=models.long[models.long$Model=="LPJ-GUESS", ])
+summary(var.lpjg2)
 
-mod.lpjg <- lm(stability ~ stab.pdsi*var, data=models.long[models.long$Model=="LPJ-GUESS", ])
-mod.lpjgb <- lm(stability ~ stab.pdsi*var-stab.pdsi, data=models.long[models.long$Model=="LPJ-GUESS", ]) # Means parameterization
+mod.lpjg <- lm(var.ecosys ~ var.pdsi*var, data=models.long[models.long$Model=="LPJ-GUESS", ])
+mod.lpjgb <- lm(var.ecosys ~ var.pdsi*var-var.pdsi, data=models.long[models.long$Model=="LPJ-GUESS", ]) # Means parameterization
 summary(mod.lpjg)
 summary(mod.lpjgb)
-# trend.lpjg <- emmeans::emtrends(mod.lpjg, "var", var="stab.pdsi")
+# trend.lpjg <- emmeans::emtrends(mod.lpjg, "var", var="var.pdsi")
 # trend.lpjg
 # pairs(trend.lpjg)
 # ------------
 
 # ------------
 # ------------
-# Comparing mean stability relative to FCOMP
-stab.lpjw <- lm(stability ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="LPJ-WSL", ])
-summary(stab.lpjw)
+# Comparing mean var.ecosys relative to FCOMP
+var.lpjw <- lm(var.ecosys ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="LPJ-WSL", ])
+summary(var.lpjw)
 
-mod.lpjw <- lm(stability ~ stab.pdsi*var, data=models.long[models.long$Model=="LPJ-WSL", ])
-mod.lpjwb <- lm(stability ~ stab.pdsi*var-stab.pdsi, data=models.long[models.long$Model=="LPJ-WSL", ]) # Means parameterization
+mod.lpjw <- lm(var.ecosys ~ var.pdsi*var, data=models.long[models.long$Model=="LPJ-WSL", ])
+mod.lpjwb <- lm(var.ecosys ~ var.pdsi*var-var.pdsi, data=models.long[models.long$Model=="LPJ-WSL", ]) # Means parameterization
 summary(mod.lpjw)
 summary(mod.lpjwb)
-# trend.lpjw <- emmeans::emtrends(mod.lpjw, "var", var="stab.pdsi")
+# trend.lpjw <- emmeans::emtrends(mod.lpjw, "var", var="var.pdsi")
 # trend.lpjw
 # pairs(trend.lpjw)
 # ------------
 
 # ------------
 # ------------
-mod.link <- lm(stability ~ stab.pdsi*var, data=models.long[models.long$Model=="LINKAGES", ])
-mod.linkb <- lm(stability ~ stab.pdsi*var-stab.pdsi, data=models.long[models.long$Model=="LINKAGES", ]) # Means parameterization
+mod.link <- lm(var.ecosys ~ var.pdsi*var, data=models.long[models.long$Model=="LINKAGES", ])
+mod.linkb <- lm(var.ecosys ~ var.pdsi*var-var.pdsi, data=models.long[models.long$Model=="LINKAGES", ]) # Means parameterization
 summary(mod.link)
 summary(mod.linkb)
-# trend.link <- emmeans::emtrends(mod.link, "var", var="stab.pdsi")
+# trend.link <- emmeans::emtrends(mod.link, "var", var="var.pdsi")
 # trend.link
 # pairs(trend.link)
 # ------------
 
 # ------------
 # ------------
-mod.triff <- lm(stability ~ stab.pdsi*var, data=models.long[models.long$Model=="TRIFFID", ])
-mod.triffb <- lm(stability ~ stab.pdsi*var-stab.pdsi, data=models.long[models.long$Model=="TRIFFID", ]) # Means parameterization
+mod.triff <- lm(var.ecosys ~ var.pdsi*var, data=models.long[models.long$Model=="TRIFFID", ])
+mod.triffb <- lm(var.ecosys ~ var.pdsi*var-var.pdsi, data=models.long[models.long$Model=="TRIFFID", ]) # Means parameterization
 summary(mod.triff)
 summary(mod.triffb)
-# trend.triff <- emmeans::emtrends(mod.triff, "var", var="stab.pdsi")
+# trend.triff <- emmeans::emtrends(mod.triff, "var", var="var.pdsi")
 # trend.triff
 # pairs(trend.triff)
 # ------------
