@@ -1,8 +1,8 @@
 path.google <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data/"
 
 # Load data from Google Drive
-load(file.path(path.google, 'Current Data/raw_data/ReFAB/ReFAB.all.samps.list.Rdata'))
-load(file.path(path.google, 'Current Data/raw_data/ReFAB/refab.sites.lat.lon.Rdata'))
+load(file.path(path.google, 'Current Data/raw_data/ReFAB/ReFAB.all.samps.list_v2.Rdata'))
+load(file.path(path.google, 'Current Data/raw_data/ReFAB/refab.sites.lat.lon_v2.Rdata'))
 
 ### Andria's function for calculating significance
 prob_sig <- function(x, prob){
@@ -17,7 +17,7 @@ prob_sig <- function(x, prob){
 
 ### loop for getting mean differences and significance for all refab sites
 mean.mat.list <- diff.mat.list <- list()
-refab.mean <- refab.diff.mean <- sig_vals <- matrix(NA, 62, 99)
+refab.mean <- refab.diff.mean <- sig_vals <- matrix(NA, length(all.samps.list), 99)
 for(i in 1:length(all.samps.list)){
   if(length(all.samps.list[[i]]) == 0){
     mean.mat.list[[i]] <- NULL #My dataset is currently missing billy's lake which is in position 2. I can remove this when Billy's Lake is added.
@@ -49,11 +49,11 @@ diff.mean.all = rowMeans(refab.diff.mean[,time.bin],na.rm = F)
 diff.mean.abs.all = rowMeans(abs(refab.diff.mean[,time.bin]),na.rm = F)
 n.signif.all = apply(sig_vals[,time.bin], 1, function(x) sum(!is.na(x)))
 
-lat.lon.df.missing <- matrix(NA,62,2)
-lat.lon.df.missing[1,] <- as.numeric(lat.lon.df[1,])
-lat.lon.df.missing[3:62,] <- as.matrix(lat.lon.df[2:61,])
+lat.lon.df.missing <- matrix(NA,length(all.samps.list),2)
+# lat.lon.df.missing[1,] <- as.numeric(lat.lon.df[1,])
+# lat.lon.df.missing[3:62,] <- as.matrix(lat.lon.df[2:61,])
 
-refab.mean.slope = data.frame(lat = lat.lon.df.missing[,1], lon = lat.lon.df.missing[,2],
+refab.mean.slope = data.frame(lat = lat.lon.df[,1], lon = lat.lon.df[,2],
                               refab.mean.1k = mean.all,
                               refab.mean.slope.1k =diff.mean.all,
                               refab.mean.slope.abs.1k = diff.mean.abs.all,
