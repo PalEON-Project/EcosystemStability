@@ -59,6 +59,8 @@ refab.mean.slope = data.frame(lat = lat.lon.df[,1], lon = lat.lon.df[,2],
                               refab.mean.slope.abs.1k = diff.mean.abs.all,
                               n.signif.1k = n.signif.all)
 
+lat.lon.df[which(is.na(refab.mean.slope$refab.mean.1k)),]
+
 # Adding in the stability just for the period for which we have climate data
 lbda.df <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_LBDA_100.csv"))
 summary(lbda.df)
