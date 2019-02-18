@@ -77,11 +77,27 @@ summary(lbda)
 # -----------
 # STEPPS (empirical composition, centennially-resolved)
 # -----------
+# stepps <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_STEPPS2_iters.csv"))
 stepps <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_STEPPS2.csv"))
+
+stepps.neus <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_STEPPS2_NEUS_iter.csv"))
+
+vars.stepps <- c("stepps.mean.1k", "stepps.diff.1k", "stepps.diff.abs.1k", "stepps.mean.lbda", "stepps.diff.lbda", "stepps.diff.abs.lbda", "lbda.min")
+# stepps <- aggregate(stepps[,vars.stepps],
+#                     by=stepps[,c("lat", "lon", "taxon")],
+#                     FUN=mean)
+
+stepps.neus <- aggregate(stepps.neus[,vars.stepps],
+                         by=stepps.neus[,c("lat", "lon", "taxon")],
+                         FUN=mean)
+stepps$model <- as.factor("STEPPS-UMW")
+stepps.neus$model <- as.factor("STEPPS-NEUS")
+stepps <- rbind(stepps[,names(stepps.neus)], stepps.neus)
 summary(stepps)
 
 # Change names to match up with drivers
-stepps$model <- as.factor("STEPPS")
+stepps$taxon <- toupper(stepps$taxon)
+# stepps$model <- as.factor("STEPPS")
 stepps$class <- as.factor("composition")
 stepps$var <- stepps$taxon
 stepps$type <- as.factor("empirical")
@@ -91,6 +107,13 @@ stepps$stability.lbda <- -log(stepps$stepps.diff.abs.lbda/abs(mean(stepps$stepps
 stepps$variability.1k <- stepps$stepps.diff.abs.1k/abs(mean(stepps$stepps.mean.1k, na.rm=T))
 stepps$variability.lbda <- stepps$stepps.diff.abs.lbda/abs(mean(stepps$stepps.mean.lbda, na.rm=T))
 summary(stepps)
+
+
+unique(stepps$taxon)
+
+ggplot(stepps[stepps$taxon=="OAK",]) +
+  coord_equal() +
+  geom_point(aes(x=lon, y=lat, color=stepps.mean.1k))
 # -----------
 
 # -----------
@@ -243,6 +266,7 @@ for(i in 1:nrow(dat.sites.stepps)){
 }
 dat.sites.stepps$dom.pft.1k <- as.factor(dat.sites.stepps$dom.pft.1k)
 dat.sites.stepps$dom.pft.lbda <- as.factor(dat.sites.stepps$dom.pft.lbda)
+dat.sites.stepps$dataset2 <- as.factor(ifelse(dat.sites.stepps$lon>-80, "STEPPS-NEUS", "STEPPS-UMW"))
 summary(dat.sites.stepps)
 
 dim(dat.sites.stepps); dim(stepps)
@@ -262,14 +286,16 @@ stab.comparison <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat, l
                               dataset = c(rep("ReFAB", nrow(dat.sites.refab)), rep("STEPPS", nrow(dat.sites.stepps)), rep("LBDA", nrow(lbda.stepps))),
                               stability = c(dat.sites.refab$stab.refab.lbda, dat.sites.stepps$stab.stepps.lbda, lbda.stepps$stability.lbda),
                               variability = c(dat.sites.refab$var.refab.lbda, dat.sites.stepps$var.stepps.lbda, lbda.stepps$variability.lbda)
-                              
                               )
+stab.comparison$dataset2 <- as.factor(ifelse(stab.comparison$dataset=="STEPPS" & stab.comparison$lon>-80, "STEPPS-NEUS", paste(stab.comparison$dataset)))
 stab.comparison$dataset <- factor(stab.comparison$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
+stab.comparison$dataset2 <- factor(stab.comparison$dataset2, levels=c("LBDA", "STEPPS", "STEPPS-NEUS", "ReFAB"))
+summary(stab.comparison)
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Comparisons_Histograms.png"), height=6, width=5, units="in", res=320)
 ggplot(data=stab.comparison) +
   facet_grid(dataset~.) +
-  geom_histogram(aes(x=log(variability))) +
+  geom_histogram(aes(x=log(variability), fill=dataset2)) +
   theme_bw()
 dev.off()
 
@@ -290,8 +316,13 @@ climate.comparison.sp <- data.frame(lat=c(refab$lat, stepps$lat, lbda$lat),
                                     stability = c(refab$stability.lbda, stepps$stability.lbda, lbda$stability.lbda),
                                     variability = c(refab$variability.lbda, stepps$variability.lbda, lbda$variability.lbda)
                                     )
+climate.comparison$dataset2 <- as.factor(ifelse(climate.comparison$dataset=="STEPPS" & climate.comparison$lon>-80, "STEPPS-NEUS", paste(climate.comparison$dataset)))
 climate.comparison$dataset <- factor(climate.comparison$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
+climate.comparison$dataset2 <- factor(climate.comparison$dataset2, levels=c("LBDA", "STEPPS", "STEPPS-NEUS", "ReFAB"))
+
+climate.comparison.sp$dataset2 <- as.factor(ifelse(climate.comparison.sp$dataset=="STEPPS" & climate.comparison.sp$lon>-80, "STEPPS-NEUS", paste(climate.comparison.sp$dataset)))
 climate.comparison.sp$dataset <- factor(climate.comparison.sp$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
+climate.comparison.sp$dataset2 <- factor(climate.comparison.sp$dataset2, levels=c("LBDA", "STEPPS", "STEPPS-NEUS", "ReFAB"))
 
 write.csv(climate.comparison, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.csv"), row.names=F)
 write.csv(climate.comparison.sp, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data_Spatial.csv"), row.names=F)
@@ -319,8 +350,8 @@ dev.off()
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Data.png"), height=6, width=6, units="in", res=320)
 ggplot(data=climate.comparison) +
-  geom_point(aes(x=log(var.pdsi), y=log(var.ecosys), color=dataset), size=0.5) +
-  stat_smooth(aes(x=log(var.pdsi), y=log(var.ecosys), color=dataset, fill=dataset), method="lm") +
+  geom_point(aes(x=log(var.pdsi), y=log(var.ecosys), color=dataset2), size=0.5) +
+  stat_smooth(aes(x=log(var.pdsi), y=log(var.ecosys), color=dataset2, fill=dataset2), method="lm") +
   theme_bw()
 dev.off()
 
@@ -342,14 +373,19 @@ bm.pdsi <- lm(stab.refab.lbda ~ stab.lbda, data=dat.sites.refab)
 bm.pdsi2 <- lm(stab.refab.lbda ~ stab.lbda, data=dat.sites.refab[dat.sites.refab$nyrs.lbda>=900,])
 summary(bm.pdsi)
 summary(bm.pdsi2)
+par(mfrow=c(2,2)); plot(bm.pdsi); par(mfrow=c(1,1))
+par(mfrow=c(2,2)); plot(bm.pdsi2); par(mfrow=c(1,1))
 
 # Is composition stability correlated with climate?
 # fcomp.pdsi <- lm(stab.stepps.lbda ~ stab.lbda, data=dat.sites.refab)
 # summary(fcomp.pdsi)
-fcomp.pdsi <- lm(stab.stepps.lbda ~ stab.lbda, data=dat.sites.stepps)
-fcomp.pdsi2 <- lm(stab.stepps.lbda ~ stab.lbda, data=dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$stab.lbda),])
+summary(dat.sites.stepps)
+fcomp.pdsi <- lm(stab.stepps.lbda ~ stab.lbda*dataset2-1, data=dat.sites.stepps)
+fcomp.pdsi2 <- lm(stab.stepps.lbda ~ stab.lbda*dataset2-1, data=dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$stab.lbda),])
 summary(fcomp.pdsi)
 summary(fcomp.pdsi2); 
+par(mfrow=c(2,2)); plot(fcomp.pdsi); par(mfrow=c(1,1))
+par(mfrow=c(2,2)); plot(fcomp.pdsi2); par(mfrow=c(1,1))
 nrow(dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$stab.lbda),])
 nrow(lbda.stepps[lbda.stepps$n.yrs>=900 & !is.na(lbda.stepps$stability.lbda),])
 
@@ -379,6 +415,7 @@ dat.sites <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat),
                         richness = c(dat.sites.refab$richness.1k, dat.sites.stepps$richness.1k),
                         dom.pft = c(paste(dat.sites.refab$dom.pft.1k), paste(dat.sites.stepps$dom.pft.1k))
                         )
+dat.sites$dataset2 <- as.factor(ifelse(dat.sites$dataset=="STEPPS" & dat.sites$lon >- 80, "STEPPS-NEUS", paste(dat.sites$dataset)))
 dat.sites[dat.sites$dom.pft=="NA","dom.pft"] <- NA
 summary(dat.sites)
 
@@ -415,7 +452,7 @@ dev.off()
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Data_Variability_v_Diversity_NoTrendline.png"), height=6, width=6, units="in", res=320)
 ggplot(data=dat.sites) +
-  facet_grid(dataset~., scales="free_y") +
+  facet_grid(dataset2~., scales="free_y") +
   geom_point(aes(x=H.prime, y=log(variability), color=dom.pft)) +
   # stat_smooth(data=dat.sites[dat.sites$dataset=="ReFAB",], aes(x=H.prime, y=stability, color=dataset, fill=dataset), method="lm") +
   # stat_smooth(data=dat.sites[dat.sites$dataset=="STEPPS",], aes(x=H.prime, y=stability, color=dataset, fill=dataset), method="lm") +
@@ -449,6 +486,7 @@ dat.sites[dat.sites$dataset=="STEPPS", "H.prime.quad"] <- predict(lm.diversity2b
 summary(lm.diversity2b)
 
 # Testing residuals for normalcy
+par(mfrow=c(2,2)); plot(lm.diversity2b); par(mfrow=c(1,1))
 plot(predict(lm.diversity2b)~dat.sites.stepps$stab.stepps.1k[!is.na(dat.sites.stepps$H.prime.1k)]); abline(a=0, b=1, col="red")
 plot(resid(lm.diversity2b)~predict(lm.diversity2b))
 hist(resid(lm.diversity2b))
