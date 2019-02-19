@@ -74,11 +74,11 @@ summary(lbda)
 # dev.off()
 # -----------
 
-# -----------
+# -------------------------------------------
 # STEPPS (empirical composition, centennially-resolved)
-# -----------
+# -------------------------------------------
 # stepps <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_STEPPS2_iters.csv"))
-stepps <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_STEPPS2.csv"))
+stepps.umw <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_STEPPS2.csv"))
 
 stepps.neus <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_STEPPS2_NEUS_iter.csv"))
 
@@ -87,12 +87,21 @@ vars.stepps <- c("stepps.mean.1k", "stepps.diff.1k", "stepps.diff.abs.1k", "step
 #                     by=stepps[,c("lat", "lon", "taxon")],
 #                     FUN=mean)
 
+# NEUS has iterations at this point
 stepps.neus <- aggregate(stepps.neus[,vars.stepps],
                          by=stepps.neus[,c("lat", "lon", "taxon")],
                          FUN=mean)
-stepps$model <- as.factor("STEPPS-UMW")
+stepps.umw$model <- as.factor("STEPPS-UMW")
 stepps.neus$model <- as.factor("STEPPS-NEUS")
-stepps <- rbind(stepps[,names(stepps.neus)], stepps.neus)
+
+# stepps.umw$variability.1k.region <- stepps.umw$stepps.diff.abs.1k/abs(mean(stepps.umw$stepps.mean.1k, na.rm=T))
+# stepps.umw$variability.lbda.region <- stepps.umw$stepps.diff.abs.lbda/abs(mean(stepps.umw$stepps.mean.lbda, na.rm=T))
+# stepps.neus$variability.1k.region <- stepps.neus$stepps.diff.abs.1k/abs(mean(stepps.neus$stepps.mean.1k, na.rm=T))
+# stepps.neus$variability.lbda.region <- stepps.neus$stepps.diff.abs.lbda/abs(mean(stepps.neus$stepps.mean.lbda, na.rm=T))
+
+
+# Bind UMW & NEUS together
+stepps <- rbind(stepps.umw[,names(stepps.neus)], stepps.neus)
 summary(stepps)
 
 # Change names to match up with drivers
@@ -102,8 +111,8 @@ stepps$class <- as.factor("composition")
 stepps$var <- stepps$taxon
 stepps$type <- as.factor("empirical")
 stepps$resolution <- as.factor("centennial")
-stepps$stability.1k <- -log(stepps$stepps.diff.abs.1k/abs(mean(stepps$stepps.mean.1k, na.rm=T)))
-stepps$stability.lbda <- -log(stepps$stepps.diff.abs.lbda/abs(mean(stepps$stepps.mean.lbda, na.rm=T)))
+# stepps$stability.1k <- -log(stepps$stepps.diff.abs.1k/abs(mean(stepps$stepps.mean.1k, na.rm=T)))
+# stepps$stability.lbda <- -log(stepps$stepps.diff.abs.lbda/abs(mean(stepps$stepps.mean.lbda, na.rm=T)))
 stepps$variability.1k <- stepps$stepps.diff.abs.1k/abs(mean(stepps$stepps.mean.1k, na.rm=T))
 stepps$variability.lbda <- stepps$stepps.diff.abs.lbda/abs(mean(stepps$stepps.mean.lbda, na.rm=T))
 summary(stepps)
@@ -114,11 +123,99 @@ unique(stepps$taxon)
 ggplot(stepps[stepps$taxon=="OAK",]) +
   coord_equal() +
   geom_point(aes(x=lon, y=lat, color=stepps.mean.1k))
-# -----------
 
-# -----------
+# Parsing down STEPPS
+dat.sites.stepps <- stepps[stepps$taxon=="OAK", c("lon", "lat")]
+# summary(dat.sites.stepps)
+for(i in 1:nrow(dat.sites.stepps)){
+  # ------------
+  # STEPPS Composition
+  # ------------
+  # Find the closest stepps site
+  # stepps.dist <- sqrt((stepps$lon - dat.sites.stepps$lon[i])^2 + (stepps$lat - dat.sites.stepps$lat[i])^2)
+  stepps.ind <- which(stepps$lat==dat.sites.stepps$lat[i] & stepps$lon==dat.sites.stepps$lon[i] & !stepps$taxon %in% c("Deciduous", "Evergreen")) # Don't include generic Decid/Evergreen
+  
+  # Subset to just that site
+  fcomp.tmp.all <- stepps[stepps.ind,]
+  fcomp.tmp <- fcomp.tmp.all[fcomp.tmp.all$stepps.mean.1k>1e-3,]
+  
+  # Find the dominant PFT 
+  ind.fcomp.1k <- which(fcomp.tmp$stepps.mean.1k==max(fcomp.tmp$stepps.mean.1k))
+  
+  dat.sites.stepps[i, "richness.1k"   ] <- nrow(fcomp.tmp)
+  dat.sites.stepps[i, "H.prime.1k"    ] <- - sum(fcomp.tmp$stepps.mean.1k * log(fcomp.tmp$stepps.mean.1k)) # calculate shannon-weiner index
+  dat.sites.stepps[i, "dom.pft.1k"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.1k])
+  dat.sites.stepps[i, "dom.mean.1k"   ] <- fcomp.tmp$stepps.mean.1k[ind.fcomp.1k]
+  dat.sites.stepps[i, "diff.abs.1k"   ] <- fcomp.tmp$stepps.diff.abs.1k[ind.fcomp.1k]
+  # dat.sites.stepps[i, "stab.stepps.1k"] <- fcomp.tmp$stability.1k[ind.fcomp.1k]
+  dat.sites.stepps[i, "var.1k.all"] <- fcomp.tmp$variability.1k[ind.fcomp.1k]
+  
+  fcomp.tmp <- fcomp.tmp.all[fcomp.tmp.all$stepps.mean.lbda>1e-3,]
+  ind.fcomp.lbda <- which(fcomp.tmp$stepps.mean.lbda==max(fcomp.tmp$stepps.mean.lbda))
+  if(length(ind.fcomp.lbda)>0){
+    dat.sites.stepps[i, "richness.lbda"   ] <- nrow(fcomp.tmp)
+    dat.sites.stepps[i, "H.prime.lbda"    ] <- - sum(fcomp.tmp$stepps.mean.lbda * log(fcomp.tmp$stepps.mean.lbda)) # calculate shannon-weiner index
+    dat.sites.stepps[i, "dom.pft.lbda"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.lbda])
+    dat.sites.stepps[i, "dom.mean.lbda"   ] <- fcomp.tmp$stepps.mean.lbda[ind.fcomp.lbda]
+    
+    dat.sites.stepps[i, "diff.abs.lbda"   ] <- fcomp.tmp$stepps.diff.abs.lbda[ind.fcomp.lbda]
+    # dat.sites.stepps[i, "stab.stepps.lbda"] <- fcomp.tmp$stability.lbda[ind.fcomp.lbda]
+    dat.sites.stepps[i, "var.lbda.all"] <- fcomp.tmp$variability.lbda[ind.fcomp.lbda]
+  }
+  # ------------
+  
+  # ------------
+  # Drought Atlas
+  # ------------
+  # Find the closest stepps site
+  lbda.dist <- sqrt((lbda$lon - dat.sites.stepps$lon[i])^2 + (lbda$lat - dat.sites.stepps$lat[i])^2)
+  lbda.ind <- which(lbda.dist==min(lbda.dist, na.rm=T) ) 
+  
+  if(length(lbda.ind)>0){
+    dat.sites.stepps[i, "nyrs.lbda"] <- mean(lbda$n.yrs[lbda.ind]) # If we have 2 equidistant sites, use the mean
+    dat.sites.stepps[i, "stab.lbda"] <- mean(lbda$stability.lbda[lbda.ind]) # If we have 2 equidistant sites, use the mean
+    dat.sites.stepps[i, "var.lbda"] <- mean(lbda$variability.lbda[lbda.ind]) # If we have 2 equidistant sites, use the mean
+  }
+  # ------------
+  
+}
+dat.sites.stepps$dataset2 <- as.factor(ifelse(dat.sites.stepps$lon>-80, "STEPPS-NEUS", "STEPPS-UMW"))
+dat.sites.stepps$dom.pft.1k <- as.factor(dat.sites.stepps$dom.pft.1k)
+dat.sites.stepps$dom.pft.lbda <- as.factor(dat.sites.stepps$dom.pft.lbda)
+dat.sites.stepps$var.stepps.1k <- dat.sites.stepps$diff.abs.1k/abs(mean(dat.sites.stepps$dom.mean.1k, na.rm=T))
+dat.sites.stepps$var.stepps.lbda <- dat.sites.stepps$diff.abs.lbda/abs(mean(dat.sites.stepps$dom.mean.lbda, na.rm=T))
+
+for(REG in unique(dat.sites.stepps$dataset2)){
+  ind.reg <- which(dat.sites.stepps$dataset2==REG)
+  dat.sites.stepps[ind.reg, "var.stepps.1k.region"] <- dat.sites.stepps$diff.abs.1k[ind.reg]/abs(mean(dat.sites.stepps$dom.mean.1k[ind.reg], na.rm=T))
+  dat.sites.stepps[ind.reg, "var.stepps.lbda.region"] <- dat.sites.stepps$diff.abs.lbda[ind.reg]/abs(mean(dat.sites.stepps$dom.mean.lbda[ind.reg], na.rm=T))
+  
+}
+# dat.sites.stepps$var.stepps.lbda <- dat.sites.stepps$diff.abs.lbda/abs(mean(dat.sites.stepps$dom.mean.lbda, na.rm=T))
+
+summary(dat.sites.stepps)
+
+plot(var.1k.all ~ var.stepps.1k, data=dat.sites.stepps)
+par(mfrow=c(2,1)); hist(log(dat.sites.stepps$var.1k.all)); hist(log(dat.sites.stepps$var.stepps.1k)); par(mfrow=c(1,1))
+dim(dat.sites.stepps); dim(stepps)
+
+ggplot(data=dat.sites.stepps) +
+  geom_histogram(aes(x=log(var.stepps.1k), fill=dataset2))
+ggplot(data=dat.sites.stepps) +
+  geom_histogram(aes(x=log(var.stepps.1k.region), fill=dataset2))
+
+ggplot(dat=dat.sites.stepps) +
+  coord_equal() +
+  geom_point(aes(x=lon, y=lat, color=log(var.1k.all))) +
+  scale_color_gradient2(name="Log\nRelative\nvariability", low="#27647B", high="#CA3542", limits=range(log(dat.sites.stepps$var.1k.all), na.rm=T), midpoint=mean(log(dat.sites.stepps$var.1k.all), na.rm=T)) +
+  
+
+write.csv(dat.sites.stepps, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_STEPPS.csv"), row.names=F)
+# -------------------------------------------
+
+# -------------------------------------------
 # ReFAB (empirical biomass, centennially-resolved)
-# -----------
+# -------------------------------------------
 refab <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_ReFAB.csv"))
 # names(refab) <- c("X", "lat", "lon", "diff.mean", "diff.abs", "n.sig")
 summary(refab)
@@ -163,6 +260,10 @@ for(i in 1:nrow(dat.sites.refab)){
   # Find the closest stepps site
   stepps.dist <- sqrt((stepps$lon - dat.sites.refab$lon[i])^2 + (stepps$lat - dat.sites.refab$lat[i])^2)
   stepps.ind <- which(stepps.dist==min(stepps.dist, na.rm=T) & !stepps$taxon %in% c("Deciduous", "Evergreen")) # Don't include generic Decid/Evergreen
+
+  # # Just pull the stability data from the dominant PFT
+  stepps.dist2 <- sqrt((dat.sites.stepps$lon - dat.sites.refab$lon[i])^2 + (dat.sites.stepps$lat - dat.sites.refab$lat[i])^2)
+  stepps.ind2 <- which(stepps.dist2==min(stepps.dist2, na.rm=T))
   
   dist.stepps <- mean(stepps.dist[stepps.ind])
   dat.sites.refab[i, "dist.stepps"] <- dist.stepps
@@ -180,8 +281,10 @@ for(i in 1:nrow(dat.sites.refab)){
     dat.sites.refab[i, "richness.1k"   ] <- nrow(fcomp.tmp)
     dat.sites.refab[i, "H.prime.1k"    ] <- - sum(fcomp.tmp$stepps.mean.1k * log(fcomp.tmp$stepps.mean.1k)) # calculate shannon-weiner index
     dat.sites.refab[i, "dom.pft.1k"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.1k])
-    dat.sites.refab[i, "stab.stepps.1k"] <- fcomp.tmp$stability.1k[ind.fcomp.1k]
-    dat.sites.refab[i, "var.stepps.1k"] <- fcomp.tmp$variability.1k[ind.fcomp.1k]
+    dat.sites.refab[i, "dom.mean.1k"   ] <- fcomp.tmp$stepps.mean.1k[ind.fcomp.1k]
+    # dat.sites.refab[i, "stab.stepps.1k"] <- fcomp.tmp$stability.1k[ind.fcomp.1k]
+    dat.sites.stepps[i, "var.1k.all"] <- fcomp.tmp$variability.1k[ind.fcomp.1k]
+    dat.sites.refab[i, "var.stepps.1k"] <- dat.sites.stepps$var.stepps.1k[stepps.ind2]
     
     fcomp.tmp <- fcomp.tmp.all[fcomp.tmp.all$stepps.mean.lbda>1e-3,]
     ind.fcomp.lbda <- which(fcomp.tmp$stepps.mean.lbda==max(fcomp.tmp$stepps.mean.lbda))
@@ -191,6 +294,7 @@ for(i in 1:nrow(dat.sites.refab)){
       dat.sites.refab[i, "dom.pft.lbda"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.lbda])
       dat.sites.refab[i, "stab.stepps.lbda"] <- fcomp.tmp$stability.lbda[ind.fcomp.lbda]
       dat.sites.refab[i, "var.stepps.lbda"] <- fcomp.tmp$variability.lbda[ind.fcomp.lbda]
+      dat.sites.refab[i, "var.stepps.lbda"] <- dat.sites.stepps$var.stepps.lbda[stepps.ind2]
     }
   }
   # ------------
@@ -214,64 +318,6 @@ dat.sites.refab$dom.pft.1k <- as.factor(dat.sites.refab$dom.pft.1k)
 dat.sites.refab$dom.pft.lbda <- as.factor(dat.sites.refab$dom.pft.lbda)
 summary(dat.sites.refab)
 
-# Parsing down STEPPS
-dat.sites.stepps <- stepps[stepps$taxon=="OAK", c("lon", "lat")]
-# summary(dat.sites.stepps)
-for(i in 1:nrow(dat.sites.stepps)){
-  # ------------
-  # STEPPS Composition
-  # ------------
-  # Find the closest stepps site
-  # stepps.dist <- sqrt((stepps$lon - dat.sites.stepps$lon[i])^2 + (stepps$lat - dat.sites.stepps$lat[i])^2)
-  stepps.ind <- which(stepps$lat==dat.sites.stepps$lat[i] & stepps$lon==dat.sites.stepps$lon[i] & !stepps$taxon %in% c("Deciduous", "Evergreen")) # Don't include generic Decid/Evergreen
-  
-  # Subset to just that site
-  fcomp.tmp.all <- stepps[stepps.ind,]
-  fcomp.tmp <- fcomp.tmp.all[fcomp.tmp.all$stepps.mean.1k>1e-3,]
-  
-  # Find the dominant PFT 
-  ind.fcomp.1k <- which(fcomp.tmp$stepps.mean.1k==max(fcomp.tmp$stepps.mean.1k))
-  
-  dat.sites.stepps[i, "richness.1k"   ] <- nrow(fcomp.tmp)
-  dat.sites.stepps[i, "H.prime.1k"    ] <- - sum(fcomp.tmp$stepps.mean.1k * log(fcomp.tmp$stepps.mean.1k)) # calculate shannon-weiner index
-  dat.sites.stepps[i, "dom.pft.1k"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.1k])
-  dat.sites.stepps[i, "stab.stepps.1k"] <- fcomp.tmp$stability.1k[ind.fcomp.1k]
-  dat.sites.stepps[i, "var.stepps.1k"] <- fcomp.tmp$variability.1k[ind.fcomp.1k]
-  
-  fcomp.tmp <- fcomp.tmp.all[fcomp.tmp.all$stepps.mean.lbda>1e-3,]
-  ind.fcomp.lbda <- which(fcomp.tmp$stepps.mean.lbda==max(fcomp.tmp$stepps.mean.lbda))
-  if(length(ind.fcomp.lbda)>0){
-    dat.sites.stepps[i, "richness.lbda"   ] <- nrow(fcomp.tmp)
-    dat.sites.stepps[i, "H.prime.lbda"    ] <- - sum(fcomp.tmp$stepps.mean.lbda * log(fcomp.tmp$stepps.mean.lbda)) # calculate shannon-weiner index
-    dat.sites.stepps[i, "dom.pft.lbda"    ] <- paste(fcomp.tmp$taxon[ind.fcomp.lbda])
-    dat.sites.stepps[i, "stab.stepps.lbda"] <- fcomp.tmp$stability.lbda[ind.fcomp.lbda]
-    dat.sites.stepps[i, "var.stepps.lbda"] <- fcomp.tmp$variability.lbda[ind.fcomp.lbda]
-  }
-  # ------------
-  
-  # ------------
-  # Drought Atlas
-  # ------------
-  # Find the closest stepps site
-  lbda.dist <- sqrt((lbda$lon - dat.sites.stepps$lon[i])^2 + (lbda$lat - dat.sites.stepps$lat[i])^2)
-  lbda.ind <- which(lbda.dist==min(lbda.dist, na.rm=T) ) 
-  
-  if(length(lbda.ind)>0){
-    dat.sites.stepps[i, "nyrs.lbda"] <- mean(lbda$n.yrs[lbda.ind]) # If we have 2 equidistant sites, use the mean
-    dat.sites.stepps[i, "stab.lbda"] <- mean(lbda$stability.lbda[lbda.ind]) # If we have 2 equidistant sites, use the mean
-    dat.sites.stepps[i, "var.lbda"] <- mean(lbda$variability.lbda[lbda.ind]) # If we have 2 equidistant sites, use the mean
-  }
-  # ------------
-  
-}
-dat.sites.stepps$dom.pft.1k <- as.factor(dat.sites.stepps$dom.pft.1k)
-dat.sites.stepps$dom.pft.lbda <- as.factor(dat.sites.stepps$dom.pft.lbda)
-dat.sites.stepps$dataset2 <- as.factor(ifelse(dat.sites.stepps$lon>-80, "STEPPS-NEUS", "STEPPS-UMW"))
-summary(dat.sites.stepps)
-
-dim(dat.sites.stepps); dim(stepps)
-
-write.csv(dat.sites.stepps, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_STEPPS.csv"), row.names=F)
 write.csv(dat.sites.refab , file.path(path.google, "Current Data/Stability_Synthesis", "Stability_ReFAB.csv"), row.names=F)
 # -----------
 
@@ -284,7 +330,7 @@ summary(lbda.stepps)
 stab.comparison <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat, lbda.stepps$lat),
                               lon=c(dat.sites.refab$lon, dat.sites.stepps$lon, lbda.stepps$lon),
                               dataset = c(rep("ReFAB", nrow(dat.sites.refab)), rep("STEPPS", nrow(dat.sites.stepps)), rep("LBDA", nrow(lbda.stepps))),
-                              stability = c(dat.sites.refab$stab.refab.lbda, dat.sites.stepps$stab.stepps.lbda, lbda.stepps$stability.lbda),
+                              dataset2 = c(rep("ReFAB", nrow(dat.sites.refab)), dat.sites.stepps$dataset2, rep("LBDA", nrow(lbda.stepps))),
                               variability = c(dat.sites.refab$var.refab.lbda, dat.sites.stepps$var.stepps.lbda, lbda.stepps$variability.lbda)
                               )
 stab.comparison$dataset2 <- as.factor(ifelse(stab.comparison$dataset=="STEPPS" & stab.comparison$lon>-80, "STEPPS-NEUS", paste(stab.comparison$dataset)))
@@ -304,23 +350,23 @@ dev.off()
 climate.comparison <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat),
                                  lon=c(dat.sites.refab$lon, dat.sites.stepps$lon),
                                  dataset = c(rep("ReFAB", nrow(dat.sites.refab)), rep("STEPPS", nrow(dat.sites.stepps))),
-                                 stab.ecosys = c(dat.sites.refab$stab.refab.lbda, dat.sites.stepps$stab.stepps.lbda),
-                                 stab.pdsi   = c(dat.sites.refab$stab.lbda, dat.sites.stepps$stab.lbda),
+                                 # stab.ecosys = c(dat.sites.refab$stab.refab.lbda, dat.sites.stepps$stab.stepps.lbda),
+                                 # stab.pdsi   = c(dat.sites.refab$stab.lbda, dat.sites.stepps$stab.lbda),
                                  var.ecosys = c(dat.sites.refab$var.refab.lbda, dat.sites.stepps$var.stepps.lbda),
                                  var.pdsi   = c(dat.sites.refab$var.lbda, dat.sites.stepps$var.lbda)
                                  )
 
-climate.comparison.sp <- data.frame(lat=c(refab$lat, stepps$lat, lbda$lat),
-                                    lon=c(refab$lon, stepps$lon, lbda$lon),
-                                    dataset = c(rep("ReFAB", nrow(refab)), rep("STEPPS", nrow(stepps)), rep("LBDA", nrow(lbda))),
-                                    stability = c(refab$stability.lbda, stepps$stability.lbda, lbda$stability.lbda),
-                                    variability = c(refab$variability.lbda, stepps$variability.lbda, lbda$variability.lbda)
+climate.comparison.sp <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat, lbda$lat),
+                                    lon=c(dat.sites.refab$lon, dat.sites.stepps$lon, lbda$lon),
+                                    dataset = c(rep("ReFAB", nrow(dat.sites.refab)), rep("STEPPS", nrow(dat.sites.stepps)), rep("LBDA", nrow(lbda))),
+                                    # stability = c(refab$stability.lbda, stepps$stability.lbda, lbda$stability.lbda),
+                                    variability = c(dat.sites.refab$var.refab.lbda, dat.sites.stepps$var.stepps.1k, lbda$variability.lbda)
                                     )
-climate.comparison$dataset2 <- as.factor(ifelse(climate.comparison$dataset=="STEPPS" & climate.comparison$lon>-80, "STEPPS-NEUS", paste(climate.comparison$dataset)))
+climate.comparison$dataset2 <- as.factor(ifelse(climate.comparison$dataset=="STEPPS" & climate.comparison$lon>-81, "STEPPS-NEUS", paste(climate.comparison$dataset)))
 climate.comparison$dataset <- factor(climate.comparison$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
 climate.comparison$dataset2 <- factor(climate.comparison$dataset2, levels=c("LBDA", "STEPPS", "STEPPS-NEUS", "ReFAB"))
 
-climate.comparison.sp$dataset2 <- as.factor(ifelse(climate.comparison.sp$dataset=="STEPPS" & climate.comparison.sp$lon>-80, "STEPPS-NEUS", paste(climate.comparison.sp$dataset)))
+climate.comparison.sp$dataset2 <- as.factor(ifelse(climate.comparison.sp$dataset=="STEPPS" & climate.comparison.sp$lon>-81, "STEPPS-NEUS", paste(climate.comparison.sp$dataset)))
 climate.comparison.sp$dataset <- factor(climate.comparison.sp$dataset, levels=c("LBDA", "STEPPS", "ReFAB"))
 climate.comparison.sp$dataset2 <- factor(climate.comparison.sp$dataset2, levels=c("LBDA", "STEPPS", "STEPPS-NEUS", "ReFAB"))
 
@@ -369,36 +415,36 @@ dev.off()
 # Quantitative comparisons with climate
 # -----------
 # Is biomass stability correlated with climate?
-bm.pdsi <- lm(stab.refab.lbda ~ stab.lbda, data=dat.sites.refab)
-bm.pdsi2 <- lm(stab.refab.lbda ~ stab.lbda, data=dat.sites.refab[dat.sites.refab$nyrs.lbda>=900,])
+bm.pdsi <- lm(var.refab.lbda ~ var.lbda, data=dat.sites.refab)
+bm.pdsi2 <- lm(var.refab.lbda ~ var.lbda, data=dat.sites.refab[dat.sites.refab$nyrs.lbda>=900,])
 summary(bm.pdsi)
 summary(bm.pdsi2)
 par(mfrow=c(2,2)); plot(bm.pdsi); par(mfrow=c(1,1))
 par(mfrow=c(2,2)); plot(bm.pdsi2); par(mfrow=c(1,1))
 
-# Is composition stability correlated with climate?
-# fcomp.pdsi <- lm(stab.stepps.lbda ~ stab.lbda, data=dat.sites.refab)
+# Is composition varility correlated with climate?
+# fcomp.pdsi <- lm(var.stepps.lbda ~ var.lbda, data=dat.sites.refab)
 # summary(fcomp.pdsi)
 summary(dat.sites.stepps)
-fcomp.pdsi <- lm(stab.stepps.lbda ~ stab.lbda*dataset2-1, data=dat.sites.stepps)
-fcomp.pdsi2 <- lm(stab.stepps.lbda ~ stab.lbda*dataset2-1, data=dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$stab.lbda),])
-summary(fcomp.pdsi)
-summary(fcomp.pdsi2); 
+fcomp.pdsi <- lm(var.stepps.lbda ~ var.lbda*dataset2-1, data=dat.sites.stepps)
+fcomp.pdsi2 <- lm(var.stepps.lbda ~ var.lbda*dataset2-1-var.lbda, data=dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$var.lbda),])
+summary(fcomp.pdsi); anova(fcomp.pdsi)
+summary(fcomp.pdsi2); anova(fcomp.pdsi2)
 par(mfrow=c(2,2)); plot(fcomp.pdsi); par(mfrow=c(1,1))
 par(mfrow=c(2,2)); plot(fcomp.pdsi2); par(mfrow=c(1,1))
-nrow(dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$stab.lbda),])
-nrow(lbda.stepps[lbda.stepps$n.yrs>=900 & !is.na(lbda.stepps$stability.lbda),])
+nrow(dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$var.lbda),])
+nrow(lbda.stepps[lbda.stepps$n.yrs>=900 & !is.na(lbda.stepps$varility.lbda),])
 
-# Is biomass and/or composition more/less stable than overall climate?
-t.test(dat.sites.refab$stab.refab.lbda, dat.sites.refab$stab.lbda, paired=T)
-# t.test(dat.sites.refab$stab.stepps.lbda, dat.sites.refab$stab.lbda, paired=T)
-t.test(dat.sites.stepps$stab.stepps.lbda, dat.sites.stepps$stab.lbda, paired=T)
+# Is biomass and/or composition more/less varle than overall climate?
+t.test(dat.sites.refab$var.refab.lbda, dat.sites.refab$var.lbda, paired=T)
+# t.test(dat.sites.refab$var.stepps.lbda, dat.sites.refab$var.lbda, paired=T)
+t.test(dat.sites.stepps$var.stepps.lbda, dat.sites.stepps$var.lbda, paired=T)
 
-mean(dat.sites.refab$stab.refab.lbda - dat.sites.refab$stab.lbda, na.rm=T)
-sd(dat.sites.refab$stab.refab.lbda - dat.sites.refab$stab.lbda, na.rm=T)
+mean(dat.sites.refab$var.refab.lbda - dat.sites.refab$var.lbda, na.rm=T)
+sd(dat.sites.refab$var.refab.lbda - dat.sites.refab$var.lbda, na.rm=T)
 
-mean(dat.sites.stepps$stab.stepps.lbda - dat.sites.stepps$stab.lbda, na.rm=T)
-sd(dat.sites.stepps$stab.stepps.lbda - dat.sites.stepps$stab.lbda, na.rm=T)
+mean(dat.sites.stepps$var.stepps.lbda - dat.sites.stepps$var.lbda, na.rm=T)
+sd(dat.sites.stepps$var.stepps.lbda - dat.sites.stepps$var.lbda, na.rm=T)
 
 # -----------
 
