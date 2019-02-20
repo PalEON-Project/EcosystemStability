@@ -2,3 +2,6 @@
 .Rhistory
 
 *.history
+
+data/raw_data/*
+data/YL_JOE_submission_SI.docx

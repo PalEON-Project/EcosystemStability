@@ -18,19 +18,25 @@ prob_sig <- function(x, prob){
 ### loop for getting mean differences and significance for all refab sites
 mean.mat.list <- diff.mat.list <- list()
 refab.mean <- refab.diff.mean <- sig_vals <- matrix(NA, length(all.samps.list), 99)
+# mean.mat.mtx <- 
+mean.mat.mtx <- array(dim=c(length(all.samps.list), nrow(all.samps.list[[1]])))
+diff.mat.mtx <- array(dim=c(length(all.samps.list), ncol(all.samps.list[[1]])-1, nrow(all.samps.list[[1]])))
+# refab.stab <- data.frame(site=1:length(all.samps.list))
 for(i in 1:length(all.samps.list)){
   if(length(all.samps.list[[i]]) == 0){
     mean.mat.list[[i]] <- NULL #My dataset is currently missing billy's lake which is in position 2. I can remove this when Billy's Lake is added.
     diff.mat.list[[i]] <- NULL #My dataset is currently missing billy's lake which is in position 2. I can remove this when Billy's Lake is added.
   } else {
-    mean.mat.list[[i]] <- apply(all.samps.list[[i]], 1, mean, na.rm=FALSE) 
-    diff.mat.list[[i]] <- apply(all.samps.list[[i]], 1, function(x) diff(rev(x)/100, na.rm=FALSE)) 
+    mean.mat.list[[i]] <- apply(all.samps.list[[i]], 1, mean, na.rm=FALSE)
+    diff.mat.list[[i]] <- apply(all.samps.list[[i]], 1, function(x) diff(rev(x)/100, na.rm=FALSE))
+    mean.mat.mtx[i,]  <- apply(all.samps.list[[i]], 1, mean, na.rm=FALSE)
+    diff.mat.mtx[i,,] <- apply(all.samps.list[[i]], 1, function(x) diff(rev(x)/100, na.rm=FALSE)) 
     # dividing by 100 because estimates are cenntennial. 
     # rev() because they are not sequential in time b[1] is present b[100] is 10,000 years BP
     # From here out values go from past to present
     
-    refab.mean[i,] <- mean(mean.mat.list[[i]])
-    refab.diff.mean[i,] <- rowMeans(diff.mat.list[[i]])
+    # refab.mean[i,] <- mean(mean.mat.list[[i]])
+    # refab.diff.mean[i,] <- rowMeans(diff.mat.list[[i]])
     
     sig_vals[i,] <- apply(t(diff.mat.list[[i]]), c(2), prob_sig, prob=.85)
     
@@ -44,10 +50,15 @@ points(refab.diff.mean[1,] ,col='red')
 
 ### summing accross time for significance
 time.bin <- 90:99 ## 850 - 1850 AD : 1000 - 100 years before present
-mean.all = rowMeans(refab.mean[,time.bin],na.rm = F)
-diff.mean.all = rowMeans(refab.diff.mean[,time.bin],na.rm = F)
-diff.mean.abs.all = rowMeans(abs(refab.diff.mean[,time.bin]),na.rm = F)
-n.signif.all = apply(sig_vals[,time.bin], 1, function(x) sum(!is.na(x)))
+# mean.all = rowMeans(refab.mean[,time.bin],na.rm = F)
+# diff.mean.all = rowMeans(refab.diff.mean[,time.bin],na.rm = F)
+# diff.mean.abs.all = rowMeans(abs(refab.diff.mean[,time.bin]),na.rm = F)
+# n.signif.all = apply(sig_vals[,time.bin], 1, function(x) sum(!is.na(x)))
+diff.itrs <- apply(diff.mat.mtx[,time.bin,], c(1,2), function(x) mean(x))
+diff.abs.itrs <- apply(diff.mat.mtx[,time.bin,], c(1,2), function(x) mean(abs(x)))
+diff.mean.sites <- apply(diff.itrs[,],1, mean, na.rm=T)
+diff.mean.abs.sites <- apply(diff.abs.itrs[,],1, mean, na.rm=T)
+mean.sites <- apply(mean.mat.mtx[,], 1, mean, na.rm=T)
 
 lat.lon.df.missing <- matrix(NA,length(all.samps.list),2)
 # lat.lon.df.missing[1,] <- as.numeric(lat.lon.df[1,])
@@ -55,9 +66,9 @@ lat.lon.df.missing <- matrix(NA,length(all.samps.list),2)
 
 refab.mean.slope = data.frame(lat = lat.lon.df[,1], lon = lat.lon.df[,2],
                               refab.mean.1k = mean.all,
-                              refab.mean.slope.1k =diff.mean.all,
-                              refab.mean.slope.abs.1k = diff.mean.abs.all,
-                              n.signif.1k = n.signif.all)
+                              refab.mean.slope.1k =diff.mean.sites,
+                              refab.mean.slope.abs.1k = diff.mean.abs.sites
+                              )
 
 lat.lon.df[which(is.na(refab.mean.slope$refab.mean.1k)),]
 
@@ -67,7 +78,7 @@ summary(lbda.df)
 
 # Loop through each point and get the number of points we should look at
 for(i in 1:nrow(refab.mean.slope)){
-  if(is.na(refab.mean.slope$lat[i])) next 
+  if(length(all.samps.list[[i]])==0) next 
   
   # Find the closest LDBA grid cell
   lon.refab <- refab.mean.slope$lon[i]
@@ -88,9 +99,17 @@ for(i in 1:nrow(refab.mean.slope)){
   
   # Extracting/storing the info for the LBDA period
   refab.mean.slope[i,"n.yrs.lbda"] <- n.yrs
-  refab.mean.slope[i, "refab.mean.lbda"] <-  mean(refab.mean[i,time.bin],na.rm = F)
-  refab.mean.slope[i, "refab.mean.slope.lbda"    ] <-  mean(refab.diff.mean[i,time.bin],na.rm = F)
-  refab.mean.slope[i, "refab.mean.slope.abs.lbda"] <-  mean(abs(refab.diff.mean[i,time.bin]),na.rm = F)
+  mean.sites <-  apply(all.samps.list[[i]][,time.bin], 1, mean, na.rm=FALSE)
+  refab.mean.slope[i, "refab.mean.lbda"] <- mean(mean.sites)
+  
+  diff.itrs <- apply(diff.mat.mtx[i,time.bin,], 2, function(x) mean(x))
+  diff.abs.itrs <- apply(diff.mat.mtx[i,time.bin,], 2, function(x) mean(abs(x)))
+  diff.mean.sites <- mean(diff.itrs, na.rm=T)
+  diff.mean.abs.sites <- mean(diff.abs.itrs, na.rm=T)
+  # mean.sites <- apply(mean.mat.mtx[,], 1, mean, na.rm=T)
+  
+  refab.mean.slope[i, "refab.mean.slope.lbda"    ] <- diff.mean.sites
+  refab.mean.slope[i, "refab.mean.slope.abs.lbda"] <-  diff.mean.abs.sites
 }
 summary(refab.mean.slope)
 
