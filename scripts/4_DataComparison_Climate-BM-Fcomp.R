@@ -209,7 +209,12 @@ ggplot(data=dat.sites.stepps) +
 ggplot(dat=dat.sites.stepps) +
   coord_equal() +
   geom_point(aes(x=lon, y=lat, color=log(var.1k.all))) +
-  scale_color_gradient2(name="Log\nRelative\nvariability", low="#27647B", high="#CA3542", limits=range(log(dat.sites.stepps$var.1k.all), na.rm=T), midpoint=mean(log(dat.sites.stepps$var.1k.all), na.rm=T)) +
+  scale_color_gradient2(name="Log\nRelative\nvariability", low="#27647B", high="#CA3542", limits=range(log(dat.sites.stepps$var.1k.all), na.rm=T), midpoint=mean(log(dat.sites.stepps$var.1k.all), na.rm=T)) 
+  
+ggplot(dat=dat.sites.stepps) +
+  coord_equal() +
+  geom_point(aes(x=lon, y=lat, color=dom.mean.1k)) +
+  scale_color_gradient2(name="Mean\nCover of\nDominant\nPFT", low="#27647B", high="#CA3542", limits=range(dat.sites.stepps$dom.mean.1k, na.rm=T), midpoint=mean(dat.sites.stepps$dom.mean.1k, na.rm=T)) 
   
 
 write.csv(dat.sites.stepps, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_STEPPS.csv"), row.names=F)
@@ -353,6 +358,7 @@ dev.off()
 climate.comparison <- data.frame(lat=c(dat.sites.refab$lat, dat.sites.stepps$lat),
                                  lon=c(dat.sites.refab$lon, dat.sites.stepps$lon),
                                  dataset = c(rep("ReFAB", nrow(dat.sites.refab)), rep("STEPPS", nrow(dat.sites.stepps))),
+                                 # mean.ecosys = c(dat.sites.refab$m)
                                  # var.ecosys = c(dat.sites.refab$var.refab.lbda, dat.sites.stepps$var.stepps.lbda),
                                  # var.pdsi   = c(dat.sites.refab$var.lbda, dat.sites.stepps$var.lbda),
                                  var.ecosys = c(dat.sites.refab$var.refab.lbda, dat.sites.stepps$var.stepps.lbda),
@@ -383,7 +389,7 @@ climate.comparison.sp$dataset <- car::recode(climate.comparison.sp$dataset, "'LB
 climate.comparison.sp$dataset <- factor(climate.comparison.sp$dataset, levels=c("Drought", "Composition", "Biomass"))
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Data_Map.png"), height=5.5, width=5, units="in", res=320)
-ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability),]) +
+ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset!="Drought",]) +
   facet_grid(dataset~.) +
   geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray90") +
   geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
@@ -394,7 +400,8 @@ ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability),]) +
   scale_color_gradient2(name="Log\nRelative\nvariability", low="#27647B", high="#CA3542", limits=range(log(climate.comparison.sp$variability), na.rm=T), midpoint=mean(log(climate.comparison.sp$variability), na.rm=T)) +
   theme_bw() +
   theme(panel.background=element_rect(fill="gray25"),
-        panel.grid = element_blank())
+        panel.grid = element_blank(),
+        legend.position = "top")
 dev.off()  
 
 ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Biomass",]) +
@@ -436,9 +443,9 @@ dev.off()
 # -----------
 # Quantitative comparisons with climate
 # -----------
-# Is biomass stability correlated with climate?
-bm.pdsi <- lm(var.refab.lbda ~ var.lbda, data=dat.sites.refab)
-bm.pdsi2 <- lm(var.refab.lbda ~ var.lbda, data=dat.sites.refab[dat.sites.refab$nyrs.lbda>=900,])
+# Is biomass variability correlated with climate?
+bm.pdsi <- lm(log(var.refab.lbda) ~ log(var.lbda), data=dat.sites.refab)
+bm.pdsi2 <- lm(log(var.refab.lbda) ~ log(var.lbda), data=dat.sites.refab[dat.sites.refab$nyrs.lbda>=900,])
 summary(bm.pdsi)
 summary(bm.pdsi2)
 par(mfrow=c(2,2)); plot(bm.pdsi); par(mfrow=c(1,1))
@@ -448,8 +455,8 @@ par(mfrow=c(2,2)); plot(bm.pdsi2); par(mfrow=c(1,1))
 # fcomp.pdsi <- lm(var.stepps.lbda ~ var.lbda, data=dat.sites.refab)
 # summary(fcomp.pdsi)
 summary(dat.sites.stepps)
-fcomp.pdsi <- lm(var.stepps.lbda ~ var.lbda*dataset2-1, data=dat.sites.stepps)
-fcomp.pdsi2 <- lm(var.stepps.lbda ~ var.lbda*dataset2-1-var.lbda, data=dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$var.lbda),])
+fcomp.pdsi <- lm(log(var.stepps.lbda) ~ log(var.lbda)*dataset2-1, data=dat.sites.stepps)
+fcomp.pdsi2 <- lm(log(var.stepps.lbda) ~ log(var.lbda)*dataset2-1-log(var.lbda), data=dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$var.lbda),])
 summary(fcomp.pdsi); anova(fcomp.pdsi)
 summary(fcomp.pdsi2); anova(fcomp.pdsi2)
 par(mfrow=c(2,2)); plot(fcomp.pdsi); par(mfrow=c(1,1))
@@ -499,6 +506,16 @@ ggplot(data=dat.sites[,]) +
   theme_bw() 
 dev.off()
 
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Map_STEPPS_Richness.png"), height=6, width=6, units="in", res=320)
+ggplot(data=dat.sites[,]) +
+  facet_grid(dataset~.) +
+  geom_point(aes(x=lon, y=lat, color=richness), size=2) +
+  geom_path(data=us, aes(x=long, y=lat, group=group)) +
+  coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
+  # scale_fill_continuous(limits=range(dat.sites$H.prime, na.rm=T)) +
+  theme_bw() 
+dev.off()
+
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Map_STEPPS_DominantPFT.png"), height=6, width=6, units="in", res=320)
 ggplot(data=dat.sites[,]) +
   facet_grid(dataset~.) +
@@ -528,30 +545,44 @@ ggplot(data=dat.sites) +
   theme(legend.position="top")
 dev.off()
 
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Data_Variability_v_Richness_NoTrendline.png"), height=6, width=6, units="in", res=320)
+ggplot(data=dat.sites) +
+  facet_grid(dataset2~., scales="free_y") +
+  geom_point(aes(x=richness, y=log(variability), color=dom.pft)) +
+  # geom_boxplot(aes(x=richness, y=log(variability), fill=dom.pft), position="dodge", alpha=0.5) +
+  # geom_violin(aes(x=richness, y=log(variability), fill=dom.pft), position="dodge", alpha=0.5) +
+  # stat_smooth(data=dat.sites[dat.sites$dataset=="ReFAB",], aes(x=H.prime, y=stability, color=dataset, fill=dataset), method="lm") +
+  # stat_smooth(data=dat.sites[dat.sites$dataset=="STEPPS",], aes(x=H.prime, y=stability, color=dataset, fill=dataset), method="lm") +
+  theme_bw() +
+  theme(legend.position="top")
+dev.off()
+
 # Comparing means -- is one more stable than the other?
-t.test(dat.sites.refab$var.refab.1k, dat.sites.refab$var.stepps.1k, paired=T)
-mean(dat.sites.refab$var.refab.1k - dat.sites.refab$var.stepps.1k, na.rm=T)
-sd(dat.sites.refab$var.refab.1k - dat.sites.refab$var.stepps.1k, na.rm=T)
+t.test(log(dat.sites.refab$var.refab.1k), log(dat.sites.refab$var.stepps.1k), paired=T)
+mean(log(dat.sites.refab$var.refab.1k) - log(dat.sites.refab$var.stepps.1k), na.rm=T)
+sd(log(dat.sites.refab$var.refab.1k) - log(dat.sites.refab$var.stepps.1k), na.rm=T)
 
 # Is biomass stability correlated with composition stability?
-lm.comp <- lm(var.refab.1k ~ var.stepps.1k, data=dat.sites.refab)
+lm.comp <- lm(log(var.refab.1k) ~ log(var.stepps.1k), data=dat.sites.refab)
 summary(lm.comp)
 
 # Is biomass stability correlated with diversity?
-lm.diversity1 <- lm(var.refab.1k ~ H.prime.1k, data=dat.sites.refab)
+lm.diversity1 <- lm(log(var.refab.1k) ~ H.prime.1k, data=dat.sites.refab)
 summary(lm.diversity1)
 
-lm.diversity1b <- lm(var.refab.1k ~ H.prime.1k + I(H.prime.1k^2), data=dat.sites.refab)
+lm.diversity1b <- lm(log(var.refab.1k) ~ H.prime.1k + I(H.prime.1k^2), data=dat.sites.refab)
 summary(lm.diversity1b)
-dat.sites[dat.sites$dataset=="ReFAB" & !is.na(dat.sites$H.prime), "H.prime.quad"] <- predict(lm.diversity1b)
+# dat.sites[dat.sites$dataset=="ReFAB" & !is.na(dat.sites$H.prime), "H.prime.quad"] <- predict(lm.diversity1b)
+AIC(lm.diversity1, lm.diversity1b)  # Linear model best
 
 # Is composition stability correlated with Diversity
-lm.diversity2 <- lm(var.stepps.1k ~ H.prime.1k + I(H.prime.1k^2), data=dat.sites.stepps)
+lm.diversity2 <- lm(log(var.stepps.1k) ~ H.prime.1k*dataset2-1, data=dat.sites.stepps)
 summary(lm.diversity2)
 
-lm.diversity2b <- lm(var.stepps.1k ~ H.prime.1k + I(H.prime.1k^2), data=dat.sites.stepps)
-dat.sites[dat.sites$dataset=="STEPPS", "H.prime.quad"] <- predict(lm.diversity2b)
+lm.diversity2b <- lm(log(var.stepps.1k) ~ (H.prime.1k + I(H.prime.1k^2))*dataset2-1, data=dat.sites.stepps)
+# dat.sites[dat.sites$dataset=="STEPPS", "H.prime.quad"] <- predict(lm.diversity2b)
 summary(lm.diversity2b)
+AIC(lm.diversity2, lm.diversity2b)
 
 # Testing residuals for normalcy
 par(mfrow=c(2,2)); plot(lm.diversity2b); par(mfrow=c(1,1))

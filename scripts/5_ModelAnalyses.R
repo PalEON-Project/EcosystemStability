@@ -29,9 +29,9 @@ path.data <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 # Path to where data are; lets just pull straight from the Google Drive folder
 path.google <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data/"
 
-dat.colors <- data.frame(model=c("LBDA", "STEPPS", "ReFAB", "drivers", "drivers-modified", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"),
-                         type=c(rep("emipirical", 3), rep("model", 7)),
-                         color=c(rep("#000000", 3), rep("#999999", 2),  "#009E73", "#0072B2", "#D55E00", "#D69F00", "#CC79A7"))
+dat.colors <- data.frame(model=c("LBDA", "ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "drivers", "drivers-modified", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"),
+                         type=c(rep("emipirical", 4), rep("model", 7)),
+                         color=c(rep("#000000", 3), "#7F7F7F", rep("#999999", 2),  "#009E73", "#0072B2", "#D55E00", "#D69F00", "#CC79A7"))
 dat.colors
 
 # -------------------------------------------
@@ -58,6 +58,10 @@ stab.models <- read.csv(file.path(path.google, "Current Data/Stability", "Stabil
 summary(stab.models)
 vars.use <- c("gpp", "npp", "nee", "lai", "bm")
 type.use <- "diff."
+
+# Get rid of sites with no biomass because they're being weird
+stab.models[!is.na(stab.models$mean.bm) & stab.models$mean.bm==0,]
+stab.models[!is.na(stab.models$mean.bm) & stab.models$mean.bm==0,!names(stab.models) %in% c("lat", "lon", "latlon", "Model")] <- NA
 
 models.long <- stack(stab.models[,paste0(type.use, vars.use)])
 names(models.long) <- c("diff.abs", "var")
@@ -129,7 +133,15 @@ summary(models.long)
 # Met -- merge into models.long
 # ------------
 stab.met   <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_Drivers_100.csv"))
+stab.met$var.pdsi <- stab.met$pdsi.diff/mean(stab.met$pdsi.diff)
 summary(stab.met)
+
+hist(log(stab.met$var.pdsi))
+
+ggplot(data=stab.met) +
+  coord_equal() +
+  geom_tile(aes(x=lon, y=lat, fill=log(var.pdsi)))
+
 
 # Merge the met drivers into models.long
 models.long <- merge(models.long, stab.met[,c("lon", "lat", "pdsi.diff", "tair.diff", "precip.diff", "pdsi.mean", "tair.mean", "precip.mean")])
@@ -149,8 +161,8 @@ for(v in unique(models.long$var)){
     dat.ind <- which(models.long$var==v & models.long$Model==mod & !is.na(models.long$diff.abs))
     dat.tmp <- models.long[dat.ind, ]
     
-    models.long[dat.ind, "stability" ] <- -log(dat.tmp$diff.abs/abs(mean(dat.tmp$val.mean)))
-    models.long[dat.ind, "stab.rel"] <- (models.long[dat.ind, "stability" ]) / mean(models.long[dat.ind, "stability" ]) 
+    # models.long[dat.ind, "stability" ] <- -log(dat.tmp$diff.abs/abs(mean(dat.tmp$val.mean)))
+    # models.long[dat.ind, "stab.rel"] <- (models.long[dat.ind, "stability" ]) / mean(models.long[dat.ind, "stability" ]) 
 
     models.long[dat.ind, "stab.pdsi" ] <- -log(dat.tmp$pdsi.diff/abs(mean(dat.tmp$pdsi.diff)))
     
@@ -172,25 +184,27 @@ write.csv(models.long,  file.path(path.google, "Current Data/Stability_Synthesis
 dat.emp <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.csv"))
 dat.emp$var <- as.factor(ifelse(dat.emp$dataset=="ReFAB", "bm", "fcomp"))
 dat.emp$type <- "Empirical"
+dat.emp$dataset2 <- car::recode(dat.emp$dataset2, "'STEPPS'='STEPPS-UMW'")
 summary(dat.emp)
 # ------------
 
+models.long <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_long.csv"))
 
 # ------------
 # Combining emprirical and model datasets together
 # ------------
 mod.v.dat <- data.frame(lat=c(models.long$lat[models.long$var %in% c("bm", "fcomp")], dat.emp$lat),
                         lon=c(models.long$lon[models.long$var %in% c("bm", "fcomp")], dat.emp$lon),
-                        type=c(models.long$type[models.long$var %in% c("bm", "fcomp")], dat.emp$type),
+                        type=c(paste(models.long$type[models.long$var %in% c("bm", "fcomp")]), dat.emp$type),
                         var=c(paste(models.long$var[models.long$var %in% c("bm", "fcomp")]), paste(dat.emp$var)),
-                        source=c(paste(models.long$Model[models.long$var %in% c("bm", "fcomp")]), paste(dat.emp$dataset)),
-                        stab.ecosys=c(models.long$stability[models.long$var %in% c("bm", "fcomp")], dat.emp$stab.ecosys),
-                        stab.pdsi=c(models.long$stab.pdsi[models.long$var %in% c("bm", "fcomp")], dat.emp$stab.pdsi),
+                        source=c(paste(models.long$Model[models.long$var %in% c("bm", "fcomp")]), paste(dat.emp$dataset2)),
+                        # stab.ecosys=c(models.long$stability[models.long$var %in% c("bm", "fcomp")], dat.emp$stab.ecosys),
+                        # stab.pdsi=c(models.long$stab.pdsi[models.long$var %in% c("bm", "fcomp")], dat.emp$stab.pdsi),
                         var.ecosys=c(models.long$variability[models.long$var %in% c("bm", "fcomp")], dat.emp$var.ecosys),
                         var.pdsi=c(models.long$var.pdsi[models.long$var %in% c("bm", "fcomp")], dat.emp$var.pdsi)
                         )
 
-mod.v.dat$source <- factor(mod.v.dat$source, levels=c("ReFAB", "STEPPS", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
+mod.v.dat$source <- factor(mod.v.dat$source, levels=c("ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
 summary(mod.v.dat)
 
 # Making an additional one that will let us make a pretty scatter plot
@@ -202,8 +216,8 @@ mod.dat2 <- data.frame(lat=c(mod.v.dat$lat, models.long$lat[models.long$var=="fc
                        source=c(paste(mod.v.dat$source), paste(models.long$Model[models.long$var=="fcomp"]), rep("ReFAB", nrow(dat.refab))),
                        var1=c(rep("PDSI", nrow(mod.v.dat)), rep("Composition", nrow(models.long[models.long$var=="fcomp",])+nrow(dat.refab))),
                        var2=c(paste(mod.v.dat$var), rep("bm", nrow(models.long[models.long$var=="fcomp",])+nrow(dat.refab))),
-                       stability1 = c(mod.v.dat$stab.pdsi, models.long$stability[models.long$var=="fcomp"], dat.refab$stab.stepps.1k),
-                       stability2 = c(mod.v.dat$stab.ecosys, rep(NA, length(models.long$stability[models.long$var=="fcomp"])), dat.refab$stab.refab.1k),
+                       # stability1 = c(mod.v.dat$stab.pdsi, models.long$stability[models.long$var=="fcomp"], dat.refab$stab.stepps.1k),
+                       # stability2 = c(mod.v.dat$stab.ecosys, rep(NA, length(models.long$stability[models.long$var=="fcomp"])), dat.refab$stab.refab.1k),
                        variability1 = c(mod.v.dat$var.pdsi, models.long$variability[models.long$var=="fcomp"], dat.refab$var.stepps.1k),
                        variability2 = c(mod.v.dat$var.ecosys, rep(NA, length(models.long$variability[models.long$var=="fcomp"])), dat.refab$var.refab.1k)
                        )
@@ -211,18 +225,18 @@ summary(mod.dat2)
 
 # Looping through to pair model BM & Fcomp stability
 for(i in 1:nrow(mod.dat2)){
-  if(mod.dat2$type[i]=="Empirical" | !is.na(mod.dat2$stability2[i])) next
+  if(mod.dat2$type[i]=="Empirical" | !is.na(mod.dat2$variability2[i])) next
   
-  val.fill <- models.long[models.long$var=="bm" & models.long$Model==paste(mod.dat2$source[i]) & models.long$lat==mod.dat2$lat[i] & models.long$lon==mod.dat2$lon[i], "stability"]
+  # val.fill <- models.long[models.long$var=="bm" & models.long$Model==paste(mod.dat2$source[i]) & models.long$lat==mod.dat2$lat[i] & models.long$lon==mod.dat2$lon[i], "stability"]
   val.fill2 <- models.long[models.long$var=="bm" & models.long$Model==paste(mod.dat2$source[i]) & models.long$lat==mod.dat2$lat[i] & models.long$lon==mod.dat2$lon[i], "variability"]
   
-  if(length(val.fill)==0) next 
+  if(length(val.fill2)==0) next 
   
-  mod.dat2[i,"stability2"] <- val.fill
+  # mod.dat2[i,"stability2"] <- val.fill
   mod.dat2[i,"variability2"] <- val.fill2
 }
 mod.dat2$var2 <- car::recode(mod.dat2$var2, "'bm'='Biomass'; 'fcomp'='Composition'")
-mod.dat2$source <- factor(mod.dat2$source, levels=c("ReFAB", "STEPPS", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
+mod.dat2$source <- factor(mod.dat2$source, levels=c("ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
 summary(mod.dat2)
 
 # write.csv(dat.sites, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Diversity_Data.csv"), row.names=F)
@@ -236,14 +250,16 @@ write.csv(mod.dat2, file.path(path.google, "Current Data/Stability_Synthesis", "
 # Comparing stabiltiy in models versus data
 # -------------------------------------------
 mod.dat2 <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_and_Data.csv"))
-mod.dat2$source <- factor(mod.dat2$source, levels=c("ReFAB", "STEPPS", "ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
+mod.dat2$source <- factor(mod.dat2$source, levels=c("ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
 mod.dat2$var1 <- car::recode(mod.dat2$var1, "'PDSI'='Drought'")
 mod.dat2$var1 <- factor(mod.dat2$var1, levels=c("Drought", "Composition"))
 mod.dat2$var2 <- factor(mod.dat2$var2, levels=c("Composition", "Biomass"))
-mod.dat2[!is.na(mod.dat2$stability1) & mod.dat2$stability1>20, c("stability1", "variability1")] <- NA
-mod.dat2[!is.na(mod.dat2$stability2) & mod.dat2$stability2>20, c("stability2", c("variability2"))] <- NA
+# mod.dat2$var2
+# mod.dat2[!is.na(mod.dat2$variability1) & mod.dat2$variability1>20,]
+# mod.dat2[!is.na(mod.dat2$stability1) & mod.dat2$stability1>20, c("stability1", "variability1")] <- NA
+# mod.dat2[!is.na(mod.dat2$variability2) & mod.dat2$stability2>20, c("stability2", c("variability2"))] <- NA
 
-dat.colors$model <- factor(dat.colors$model, levels=c("drivers", "drivers-modified", "LBDA", "ReFAB", "STEPPS", "ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
+dat.colors$model <- factor(dat.colors$model, levels=c("drivers", "drivers-modified", "LBDA", "ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
 dat.colors <- dat.colors[order(dat.colors$model),]
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Model_v_Data.png"), height=6, width=6, units="in", res=320)
@@ -275,7 +291,7 @@ ggplot(dat=mod.dat2) +
   scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
   scale_x_continuous(name="Log Relative Variability") +
   scale_y_continuous(name="Log Relative Variability") +
-  coord_cartesian(ylim=c(-10,0.25), xlim=c(-10, 2.5)) +
+  coord_cartesian(ylim=c(-10,-1), xlim=c(-10, 2.5)) +
   theme_bw() +
   theme(strip.placement = "outside",
         strip.background = element_blank(),
@@ -291,43 +307,108 @@ summary(models.long)
 # ------------
 # Biomass-PDSI Comparisons
 # ------------
-md.comp.bm.mean <- lm(stab.ecosys ~ source, data=mod.v.dat[mod.v.dat$var=="bm",])
+md.comp.bm.mean <- lm(log(var.ecosys) ~ source, data=mod.v.dat[mod.v.dat$var=="bm",])
 summary(md.comp.bm.mean)
 
-md.comp.bm.sens1 <- lm(stab.ecosys ~ stab.pdsi*source, data=mod.v.dat[mod.v.dat$var=="bm",])
+md.comp.bm.sens1 <- lm(log(var.ecosys) ~ log(var.pdsi)*source, data=mod.v.dat[mod.v.dat$var=="bm",])
 summary(md.comp.bm.sens1)
 
-md.comp.bm.sens2 <- lm(stab.ecosys ~ stab.pdsi*source-stab.pdsi, data=mod.v.dat[mod.v.dat$var=="bm",])
+md.comp.bm.sens2 <- lm(log(var.ecosys) ~ log(var.pdsi)*source-log(var.pdsi), data=mod.v.dat[mod.v.dat$var=="bm",])
 summary(md.comp.bm.sens2)
 # ------------
 
 # ------------
 # Fcomp-PDSI Comparisons
 # ------------
-md.comp.fcomp.mean <- lm(stab.ecosys ~ source, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+mod.v.dat$region <- ifelse(mod.v.dat$source=="STEPPS-UMW", "UMW", ifelse(mod.v.dat$source=="STEPPS-NEUS", "NEUS", "full"))
+mod.v.dat$source2 <- ifelse(substr(mod.v.dat$source, 1, 6)=="STEPPS", "STEPPS", paste(mod.v.dat$source))
+mod.v.dat$source2 <- factor(mod.v.dat$source2, levels=c("UMW", "NEUS", "full"))
+
+
+md.comp.fcomp.mean <- lm(log(var.ecosys) ~ source, data=mod.v.dat[mod.v.dat$var=="fcomp",])
 summary(md.comp.fcomp.mean)
 
-md.comp.fcomp.sens1 <- lm(stab.ecosys ~ stab.pdsi*source, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+md.comp.fcomp.sens1 <- lm(log(var.ecosys) ~ log(var.pdsi)*source-1, data=mod.v.dat[mod.v.dat$var=="fcomp",])
 summary(md.comp.fcomp.sens1)
 
-md.comp.fcomp.sens2 <- lm(stab.ecosys ~ stab.pdsi*source-stab.pdsi, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+md.comp.fcomp.sens1 <- lm(log(var.ecosys) ~ log(var.pdsi)*source2 + region-1, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+summary(md.comp.fcomp.sens1)
+
+md.comp.fcomp.sens2 <- lm(log(var.ecosys) ~ log(var.pdsi)*source-log(var.pdsi)-1, data=mod.v.dat[mod.v.dat$var=="fcomp",])
 summary(md.comp.fcomp.sens2)
+anova(md.comp.fcomp.sens2)
 # ------------
+
+# ------------
+# Quick test to see if the model regions behave the same or different
+# ------------
+lon.umw <- range(mod.v.dat[mod.v.dat$source=="STEPPS-UMW", "lon"])
+lat.umw <- range(mod.v.dat[mod.v.dat$source=="STEPPS-UMW", "lat"])
+lon.neus <- range(mod.v.dat[mod.v.dat$source=="STEPPS-NEUS", "lon"])
+lat.neus <- range(mod.v.dat[mod.v.dat$source=="STEPPS-NEUS", "lat"])
+
+mod.umw <- mod.v.dat[mod.v.dat$lon>=lon.umw[1] & mod.v.dat$lon<=lon.umw[2] &
+                       mod.v.dat$lat>=lat.umw[1] & mod.v.dat$lat<=lat.umw[2],]
+mod.umw$region <- "UMW"
+
+mod.neus <- mod.v.dat[mod.v.dat$lon>=lon.neus[1] & mod.v.dat$lon<=lon.neus[2] &
+                       mod.v.dat$lat>=lat.neus[1] & mod.v.dat$lat<=lat.neus[2],]
+mod.neus$region <- "NEUS"
+mod.region <- rbind(mod.umw, mod.neus)
+mod.region$source <- car::recode(mod.region$source, "'STEPPS-UMW'='STEPPS'; 'STEPPS-NEUS'='STEPPS'")
+summary(mod.region)
+
+fcomp.sens.glob <- lm(log(var.ecosys) ~ log(var.pdsi)*source-1-log(var.pdsi), data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Model",])
+fcomp.sens.reg <- lm(log(var.ecosys) ~ log(var.pdsi)*source*region-1-region*log(var.pdsi) , data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Model",])
+AIC(fcomp.sens.glob, fcomp.sens.reg)
+summary(fcomp.sens.reg)
+anova(fcomp.sens.reg)
+
+stepps.reg <- lm(log(var.ecosys) ~ log(var.pdsi)*region, data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Empirical" & mod.region$source=="STEPPS",])
+stepps.reg2 <- lm(log(var.ecosys) ~ log(var.pdsi) + region, data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Empirical" & mod.region$source=="STEPPS",])
+ed.reg <- lm(log(var.ecosys) ~ log(var.pdsi)*region, data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Model" & mod.region$source=="ED2",])
+link.reg <- lm(log(var.ecosys) ~ log(var.pdsi)*region, data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Model" & mod.region$source=="LINKAGES",])
+lpjg.reg <- lm(log(var.ecosys) ~ log(var.pdsi)*region, data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Model" & mod.region$source=="LPJ-GUESS",])
+lpjw.reg <- lm(log(var.ecosys) ~ log(var.pdsi)*region, data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Model" & mod.region$source=="LPJ-WSL",])
+triff.reg <- lm(log(var.ecosys) ~ log(var.pdsi)*region, data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Model" & mod.region$source=="TRIFFID",])
+summary(stepps.reg)
+summary(stepps.reg2)
+summary(ed.reg)
+summary(link.reg)
+summary(lpjg.reg)
+summary(lpjw.reg)
+summary(triff.reg)
+AIC(stepps.reg, stepps.reg2)
+
+ggplot(data=mod.region[mod.region$var=="fcomp",]) +
+  facet_wrap(~source, scales="free") +
+  geom_histogram(aes(x=log(var.ecosys), fill=region)) + 
+  theme_bw()
+
+ggplot(data=mod.region[mod.region$var=="fcomp",]) +
+  facet_wrap(~source, scales="free") +
+  stat_smooth(aes(x=log(var.pdsi), y=log(var.ecosys)), method="lm", color="black", fill="black") +
+  geom_point(aes(x=log(var.pdsi), y=log(var.ecosys), color=region), size=0.8, alpha=0.8) +
+  stat_smooth(aes(x=log(var.pdsi), y=log(var.ecosys), color=region, fill=region), method="lm") +
+  theme_bw()
+
+# ------------
+
 
 # ------------
 # Fcomp-BM Comparisons
 # ------------
 summary(mod.dat2)
 
-md.comp.v.bm1 <- lm(stability2 ~ stability1*source, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass",])
+md.comp.v.bm1 <- lm(log(variability2) ~ log(variability1)*source, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass",])
 summary(md.comp.v.bm1)
 
-md.comp.v.bm2 <- lm(stability2 ~ stability1*source-stability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass",])
+md.comp.v.bm2 <- lm(log(variability2) ~ log(variability1)*source-log(variability1)-1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass",])
 summary(md.comp.v.bm2)
 
-cvb.link <- lm(stability2 ~ stability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="LINKAGES",])
-cvb.triff <- lm(stability2 ~ stability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="TRIFFID",])
-cvb.lpjw <- lm(stability2 ~ stability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="LPJ-WSL",])
+cvb.link <- lm(variability2 ~ variability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="LINKAGES",])
+cvb.triff <- lm(variability2 ~ variability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="TRIFFID",])
+cvb.lpjw <- lm(variability2 ~ variability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="LPJ-WSL",])
 summary(cvb.link)
 summary(cvb.triff)
 summary(cvb.lpjw)
