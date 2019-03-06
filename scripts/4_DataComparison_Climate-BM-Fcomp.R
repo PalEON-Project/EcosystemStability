@@ -384,14 +384,18 @@ write.csv(climate.comparison, file.path(path.google, "Current Data/Stability_Syn
 write.csv(climate.comparison.sp, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data_Spatial.csv"), row.names=F)
 # -----------------------
 
-# -----------------------
+# -----------------------------------------------------------------------
 # Start here if you're just re-running analyses but don't need to do all the data munging
-# -----------------------
+# -----------------------------------------------------------------------
+stepps <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_STEPPS_aggregated.csv"))
+dat.sites.refab <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_ReFAB.csv"))
+dat.sites.stepps <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_STEPPS.csv"))
 climate.comparison <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.csv"))
 climate.comparison.sp <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data_Spatial.csv"))
 
 climate.comparison.sp$dataset <- car::recode(climate.comparison.sp$dataset, "'LBDA'='Drought'; 'STEPPS'='Composition'; 'ReFAB'='Biomass'")
 climate.comparison.sp$dataset <- factor(climate.comparison.sp$dataset, levels=c("Drought", "Composition", "Biomass"))
+summary(climate.comparison.sp)
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Data_Map.png"), height=5.5, width=5, units="in", res=320)
 ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset!="Drought",]) +
@@ -409,7 +413,7 @@ ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & cl
         legend.position = "top")
 dev.off()  
 
-  library(cowplot)
+library(cowplot)
 plot.lbda <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Drought",]) +
   facet_grid(dataset~.) +
   geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray90") +
@@ -474,6 +478,27 @@ dev.off()
 # -----------
 
 # -----------
+# Comparing mean relative variability
+# -----------
+summary(climate.comparison.sp)
+
+# STEPPS Composition; UMW vs NEUS
+mean(log(climate.comparison.sp$variability[climate.comparison.sp$dataset2=="STEPPS-NEUS"]), na.rm=T); sd(log(climate.comparison.sp$variability[climate.comparison.sp$dataset2=="STEPPS-NEUS"]), na.rm=T)
+mean(log(climate.comparison.sp$variability[climate.comparison.sp$dataset2=="STEPPS"]), na.rm=T); sd(log(climate.comparison.sp$variability[climate.comparison.sp$dataset2=="STEPPS"]), na.rm=T)
+
+t.test(log(climate.comparison.sp$variability[climate.comparison.sp$dataset2=="STEPPS"]), log(climate.comparison.sp$variability[climate.comparison.sp$dataset2=="STEPPS-NEUS"]), na.rm=T)
+
+# Drought Variability
+summary(climate.comparison.sp)
+mean(log(climate.comparison.sp$variability[climate.comparison.sp$dataset2=="LBDA"]), na.rm=T); sd(log(climate.comparison.sp$variability[climate.comparison.sp$dataset2=="LBDA"]), na.rm=T)
+
+# Biomass Variability
+summary(climate.comparison.sp)
+mean(log(climate.comparison.sp$variability[climate.comparison.sp$dataset2=="ReFAB"]), na.rm=T); sd(log(climate.comparison.sp$variability[climate.comparison.sp$dataset2=="ReFAB"]), na.rm=T)
+
+# -----------
+
+# -----------
 # Quantitative comparisons with climate
 # -----------
 # Is biomass variability correlated with climate?
@@ -489,9 +514,11 @@ par(mfrow=c(2,2)); plot(bm.pdsi2); par(mfrow=c(1,1))
 # summary(fcomp.pdsi)
 summary(dat.sites.stepps)
 fcomp.pdsi <- lm(log(var.stepps.lbda) ~ log(var.lbda)*dataset2-1, data=dat.sites.stepps)
-fcomp.pdsi2 <- lm(log(var.stepps.lbda) ~ log(var.lbda)*dataset2-1-log(var.lbda), data=dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$var.lbda),])
+fcomp.pdsi2 <- lm(log(var.stepps.lbda) ~ log(var.lbda)*dataset2-1-log(var.lbda), data=dat.sites.stepps[!is.na(dat.sites.stepps$var.lbda),]) # dat.sites.stepps$nyrs.lbda>=900 & 
+fcomp.pdsi3 <- lm(log(var.stepps.lbda) ~ log(var.lbda)+dataset2-1, data=dat.sites.stepps[!is.na(dat.sites.stepps$var.lbda),]) # dat.sites.stepps$nyrs.lbda>=900 & 
 summary(fcomp.pdsi); anova(fcomp.pdsi)
 summary(fcomp.pdsi2); anova(fcomp.pdsi2)
+summary(fcomp.pdsi3); anova(fcomp.pdsi3)
 par(mfrow=c(2,2)); plot(fcomp.pdsi); par(mfrow=c(1,1))
 par(mfrow=c(2,2)); plot(fcomp.pdsi2); par(mfrow=c(1,1))
 nrow(dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$var.lbda),])
@@ -499,6 +526,7 @@ nrow(lbda.stepps[lbda.stepps$n.yrs>=900 & !is.na(lbda.stepps$varility.lbda),])
 
 # Is biomass and/or composition more/less varle than overall climate?
 t.test(dat.sites.refab$var.refab.lbda, dat.sites.refab$var.lbda, paired=T)
+t.test(log(dat.sites.refab$var.refab.lbda), log(dat.sites.refab$var.lbda), paired=T)
 # t.test(dat.sites.refab$var.stepps.lbda, dat.sites.refab$var.lbda, paired=T)
 t.test(dat.sites.stepps$var.stepps.lbda, dat.sites.stepps$var.lbda, paired=T)
 

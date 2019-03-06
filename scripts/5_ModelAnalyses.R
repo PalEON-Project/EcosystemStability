@@ -318,25 +318,38 @@ summary(md.comp.bm.sens2)
 # ------------
 
 # ------------
-# Fcomp-PDSI Comparisons
+# fcomp-PDSI Comparisons
 # ------------
 mod.v.dat$region <- ifelse(mod.v.dat$source=="STEPPS-UMW", "UMW", ifelse(mod.v.dat$source=="STEPPS-NEUS", "NEUS", "full"))
-mod.v.dat$source2 <- ifelse(substr(mod.v.dat$source, 1, 6)=="STEPPS", "STEPPS", paste(mod.v.dat$source))
-mod.v.dat$source2 <- factor(mod.v.dat$source2, levels=c("UMW", "NEUS", "full"))
+mod.v.dat$region <- factor(mod.v.dat$region, levels=c("UMW", "NEUS", "full"))
+mod.v.dat$source2 <- as.factor(ifelse(substr(mod.v.dat$source, 1, 6)=="STEPPS", "STEPPS", paste(mod.v.dat$source)))
+mod.v.dat$source2 <- factor(mod.v.dat$source2, levels=c("STEPPS", "ReFAB", "ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
+summary(mod.v.dat)
 
+# md.comp.fcomp.mean <- lm(log(var.ecosys) ~ source, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+# summary(md.comp.fcomp.mean)
 
-md.comp.fcomp.mean <- lm(log(var.ecosys) ~ source, data=mod.v.dat[mod.v.dat$var=="fcomp",])
-summary(md.comp.fcomp.mean)
-
-md.comp.fcomp.sens1 <- lm(log(var.ecosys) ~ log(var.pdsi)*source-1, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+# This is the model that allows STEPPS regions to have different intercepts, but a common slope
+md.comp.fcomp.sens1 <- lm(log(var.ecosys) ~ log(var.pdsi)*source2-source2 + source-1, data=mod.v.dat[mod.v.dat$var=="fcomp",])
 summary(md.comp.fcomp.sens1)
 
-md.comp.fcomp.sens1 <- lm(log(var.ecosys) ~ log(var.pdsi)*source2 + region-1, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+# Effects parameterization of above
+md.comp.fcomp.sens1 <- lm(log(var.ecosys) ~ log(var.pdsi)*source2-source2 + source-1 - log(var.pdsi), data=mod.v.dat[mod.v.dat$var=="fcomp",])
 summary(md.comp.fcomp.sens1)
 
-md.comp.fcomp.sens2 <- lm(log(var.ecosys) ~ log(var.pdsi)*source-log(var.pdsi)-1, data=mod.v.dat[mod.v.dat$var=="fcomp",])
-summary(md.comp.fcomp.sens2)
-anova(md.comp.fcomp.sens2)
+# md.comp.fcomp.sens1 <- lm(log(var.ecosys) ~ log(var.pdsi)*source2 + region-1, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+# summary(md.comp.fcomp.sens1)
+
+# md.comp.fcomp.sens2 <- lm(log(var.ecosys) ~ log(var.pdsi)*source-log(var.pdsi)-1, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+# summary(md.comp.fcomp.sens2)
+# anova(md.comp.fcomp.sens2)
+
+# Looking at mean fcomp variability in models
+mean(log(mod.v.dat$var.ecosys[mod.v.dat$source=="ED2"]), na.rm=T); sd(log(mod.v.dat$var.ecosys[mod.v.dat$source=="ED2"]), na.rm=T)
+mean(log(mod.v.dat$var.ecosys[mod.v.dat$source=="LPJ-GUESS"]), na.rm=T); sd(log(mod.v.dat$var.ecosys[mod.v.dat$source=="LPJ-GUESS"]), na.rm=T)
+mean(log(mod.v.dat$var.ecosys[mod.v.dat$source=="LPJ-WSL"]), na.rm=T); sd(log(mod.v.dat$var.ecosys[mod.v.dat$source=="LPJ-WSL"]), na.rm=T)
+mean(log(mod.v.dat$var.ecosys[mod.v.dat$source=="LINKAGES"]), na.rm=T); sd(log(mod.v.dat$var.ecosys[mod.v.dat$source=="LINKAGES"]), na.rm=T)
+mean(log(mod.v.dat$var.ecosys[mod.v.dat$source=="TRIFFID"]), na.rm=T); sd(log(mod.v.dat$var.ecosys[mod.v.dat$source=="TRIFFID"]), na.rm=T)
 # ------------
 
 # ------------
@@ -406,12 +419,16 @@ summary(md.comp.v.bm1)
 md.comp.v.bm2 <- lm(log(variability2) ~ log(variability1)*source-log(variability1)-1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass",])
 summary(md.comp.v.bm2)
 
+cvb.ed2 <- lm(variability2 ~ variability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="ED2",])
+cvb.lpjg <- lm(variability2 ~ variability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="LPJ-GUESS",])
+cvb.lpjw <- lm(variability2 ~ variability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="LPJ-WSL",])
 cvb.link <- lm(variability2 ~ variability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="LINKAGES",])
 cvb.triff <- lm(variability2 ~ variability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="TRIFFID",])
-cvb.lpjw <- lm(variability2 ~ variability1, data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$source=="LPJ-WSL",])
+summary(cvb.ed2)
+summary(cvb.lpjg)
+summary(cvb.lpjw)
 summary(cvb.link)
 summary(cvb.triff)
-summary(cvb.lpjw)
 # ------------
 # -------------------------------------------
 
@@ -487,13 +504,16 @@ dev.off()
 # ------------
 # ED2
 # ------------
-# Comparing mean var.ecosys relative to FCOMP
-var.ed2 <- lm(var.ecosys ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="ED2", ])
+# Comparing mean var.ecosys relative to fcomp
+summary(models.long)
+var.ed2 <- lm(log(var.rel) ~ relevel(var, ref="Composition"), data=models.long[models.long$Model=="ED2", ])
 summary(var.ed2)
 
-mod.ed2 <- lm(var.ecosys ~ var.pdsi*var, data=models.long[models.long$Model=="ED2", ])
-mod.ed2b <- lm(var.ecosys ~ var.pdsi*var-var.pdsi, data=models.long[models.long$Model=="ED2", ]) # Means parameterization
+mod.ed2 <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="ED2", ])
+mod.ed2.2 <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="ED2", ])
+mod.ed2b <- lm(log(var.rel) ~ log(var.pdsi)*var-log(var.pdsi), data=models.long[models.long$Model=="ED2", ]) # Means parameterization
 summary(mod.ed2)
+summary(mod.ed2.2)
 summary(mod.ed2b)
 # trend.ed2 <- emmeans::emtrends(mod.ed2, "var", var="var.pdsi")
 # trend.ed2
@@ -502,15 +522,17 @@ summary(mod.ed2b)
 # ------------
 # LPJ-GUESS
 # ------------
-# Comparing mean var.ecosys relative to FCOMP
-var.lpjg <- lm(var.ecosys ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="LPJ-GUESS", ])
+# Comparing mean var.ecosys relative to fcomp
+var.lpjg <- lm(log(var.rel) ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="LPJ-GUESS", ])
 summary(var.lpjg)
-var.lpjg2 <- lm(var.ecosys ~ relevel(var, ref="gpp"), data=models.long[models.long$Model=="LPJ-GUESS", ])
+var.lpjg2 <- lm(log(var.rel) ~ relevel(var, ref="gpp"), data=models.long[models.long$Model=="LPJ-GUESS", ])
 summary(var.lpjg2)
 
-mod.lpjg <- lm(var.ecosys ~ var.pdsi*var, data=models.long[models.long$Model=="LPJ-GUESS", ])
-mod.lpjgb <- lm(var.ecosys ~ var.pdsi*var-var.pdsi, data=models.long[models.long$Model=="LPJ-GUESS", ]) # Means parameterization
+mod.lpjg <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="LPJ-GUESS", ])
+mod.lpjg2 <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="LPJ-GUESS", ])
+mod.lpjgb <- lm(log(var.rel) ~ log(var.pdsi)*var-log(var.pdsi), data=models.long[models.long$Model=="LPJ-GUESS", ]) # Means parameterization
 summary(mod.lpjg)
+summary(mod.lpjg2)
 summary(mod.lpjgb)
 # trend.lpjg <- emmeans::emtrends(mod.lpjg, "var", var="var.pdsi")
 # trend.lpjg
@@ -519,13 +541,15 @@ summary(mod.lpjgb)
 
 # ------------
 # ------------
-# Comparing mean var.ecosys relative to FCOMP
-var.lpjw <- lm(var.ecosys ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="LPJ-WSL", ])
+# Comparing mean log(var.rel) relative to fcomp
+var.lpjw <- lm(log(var.rel) ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="LPJ-WSL", ])
 summary(var.lpjw)
 
-mod.lpjw <- lm(var.ecosys ~ var.pdsi*var, data=models.long[models.long$Model=="LPJ-WSL", ])
-mod.lpjwb <- lm(var.ecosys ~ var.pdsi*var-var.pdsi, data=models.long[models.long$Model=="LPJ-WSL", ]) # Means parameterization
+mod.lpjw <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="LPJ-WSL", ])
+mod.lpjw2 <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="LPJ-WSL", ])
+mod.lpjwb <- lm(log(var.rel) ~ log(var.pdsi)*var-log(var.pdsi), data=models.long[models.long$Model=="LPJ-WSL", ]) # Means parameterization
 summary(mod.lpjw)
+summary(mod.lpjw2)
 summary(mod.lpjwb)
 # trend.lpjw <- emmeans::emtrends(mod.lpjw, "var", var="var.pdsi")
 # trend.lpjw
@@ -534,9 +558,11 @@ summary(mod.lpjwb)
 
 # ------------
 # ------------
-mod.link <- lm(var.ecosys ~ var.pdsi*var, data=models.long[models.long$Model=="LINKAGES", ])
-mod.linkb <- lm(var.ecosys ~ var.pdsi*var-var.pdsi, data=models.long[models.long$Model=="LINKAGES", ]) # Means parameterization
+mod.link <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="LINKAGES", ])
+mod.link2 <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="LINKAGES", ])
+mod.linkb <- lm(log(var.rel) ~ log(var.pdsi)*var-log(var.pdsi), data=models.long[models.long$Model=="LINKAGES", ]) # Means parameterization
 summary(mod.link)
+summary(mod.link2)
 summary(mod.linkb)
 # trend.link <- emmeans::emtrends(mod.link, "var", var="var.pdsi")
 # trend.link
@@ -545,9 +571,11 @@ summary(mod.linkb)
 
 # ------------
 # ------------
-mod.triff <- lm(var.ecosys ~ var.pdsi*var, data=models.long[models.long$Model=="TRIFFID", ])
-mod.triffb <- lm(var.ecosys ~ var.pdsi*var-var.pdsi, data=models.long[models.long$Model=="TRIFFID", ]) # Means parameterization
+mod.triff <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="TRIFFID", ])
+mod.triff2 <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="TRIFFID", ])
+mod.triffb <- lm(log(var.rel) ~ log(var.pdsi)*var-log(var.pdsi), data=models.long[models.long$Model=="TRIFFID", ]) # Means parameterization
 summary(mod.triff)
+summary(mod.triff2)
 summary(mod.triffb)
 # trend.triff <- emmeans::emtrends(mod.triff, "var", var="var.pdsi")
 # trend.triff
