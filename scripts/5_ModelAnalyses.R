@@ -451,12 +451,13 @@ models.long$var <- factor(models.long$var, levels=c("GPP", "NPP", "NEE", "LAI", 
 dat.emp <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.csv"))
 dat.emp$var <- as.factor(ifelse(dat.emp$dataset=="ReFAB", "Biomass", "Composition"))
 dat.emp$type <- "Empirical"
+dat.emp$dataset2 <- car::recode(dat.emp$dataset2, "'STEPPS'='STEPPS-UMW'")
 dat.emp$Model <- dat.emp$dataset
 summary(dat.emp)
 
 summary(models.long)
 models.long$type <- "model"
-models.long[models.long$diff.abs==1e-20,c("stability", "variability")] <- NA
+models.long[models.long$diff.abs==1e-20,c("variability")] <- NA
 summary(models.long)
 
 models.long$Model <- factor(models.long$Model, levels=c("ED2", "LPJ-GUESS", "LPJ-WSL", "LINKAGES", "TRIFFID"))
@@ -475,13 +476,18 @@ var.comparison$Model <- factor(var.comparison$Model, levels=c("ED2", "LPJ-WSL", 
 var.comparison$var <- factor(var.comparison$var, levels=c("GPP", "NPP", "NEE", "LAI", "Biomass", "Composition"))
 
 summary(var.comparison)
+levels(var.comparison$var)
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Models.png"), height=6, width=8, units="in", res=320)
 ggplot(data=var.comparison, aes(x=log(var.pdsi), y=log(var.ecosys), color=var, fill=var)) +
   labs(x="Log Relative Drought Variability", y="Log Relative Ecosystem Variability") +
   facet_wrap(~Model) +
-  geom_point(size=0.05, alpha=0.2) +
-  stat_smooth(method=lm, alpha=0.5) + 
+  geom_point(data=var.comparison[!(var.comparison$type=="Empirical" & var.comparison$var=="Composition"),], size=0.05, alpha=0.2) +
+  stat_smooth(data=var.comparison[!(var.comparison$type=="Empirical" & var.comparison$var=="Composition"),], method=lm, alpha=0.5) + 
+  geom_point(data=var.comparison[var.comparison$type=="Empirical" & var.comparison$var=="Composition" & var.comparison$lon< -83,], size=0.05, alpha=0.2) +
+  stat_smooth(data=var.comparison[var.comparison$type=="Empirical" & var.comparison$var=="Composition" & var.comparison$lon< -83,], method=lm, alpha=0.5) + 
+  geom_point(data=var.comparison[var.comparison$type=="Empirical" & var.comparison$var=="Composition" & var.comparison$lon> -83,], size=0.05, alpha=0.2) +
+  stat_smooth(data=var.comparison[var.comparison$type=="Empirical" & var.comparison$var=="Composition" & var.comparison$lon> -83,], method=lm, alpha=0.5) + 
   scale_color_manual(values=c("blue4", "darkseagreen4", "turquoise4", "darkgoldenrod2", "darkorange2", "deeppink3")) +
   scale_fill_manual(values=c("blue4", "darkseagreen4", "turquoise4", "darkgoldenrod2", "darkorange2", "deeppink3")) +
   guides(fill=guide_legend(nrow=1), color=guide_legend(nrow=1)) +
@@ -498,7 +504,6 @@ ggplot(data=var.comparison, aes(x=log(var.pdsi), y=log(var.ecosys), color=var, f
         legend.title=element_blank(),
         legend.text = element_text(size=rel(1.25)),
         strip.text = element_text(size=rel(1.5), face="bold"))
-
 dev.off()
 
 # ------------
