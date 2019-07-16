@@ -269,8 +269,8 @@ ggplot(dat=mod.dat2) +
   stat_smooth(aes(x=log(variability1), y=log(variability2), color=source, fill=source), method="lm") +
   scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
   scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
-  scale_x_continuous(name="Log Relative Variability") +
-  scale_y_continuous(name="Log Relative Variability") +
+  scale_x_continuous(name="Log Normalized Variability") +
+  scale_y_continuous(name="Log Normalized Variability") +
   theme_bw() +
   theme(strip.placement = "outside",
         strip.background = element_blank(),
@@ -289,8 +289,8 @@ ggplot(dat=mod.dat2) +
   stat_smooth(aes(x=log(variability1), y=log(variability2), color=source, fill=source), method="lm") +
   scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
   scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
-  scale_x_continuous(name="Log Relative Variability") +
-  scale_y_continuous(name="Log Relative Variability") +
+  scale_x_continuous(name="Log Normalized Variability") +
+  scale_y_continuous(name="Log Normalized Variability") +
   coord_cartesian(ylim=c(-10,-1), xlim=c(-10, 2.5)) +
   theme_bw() +
   theme(strip.placement = "outside",
@@ -488,8 +488,10 @@ ggplot(data=var.comparison, aes(x=log(var.pdsi), y=log(var.ecosys), color=var, f
   stat_smooth(data=var.comparison[var.comparison$type=="Empirical" & var.comparison$var=="Composition" & var.comparison$lon< -83,], method=lm, alpha=0.5) + 
   geom_point(data=var.comparison[var.comparison$type=="Empirical" & var.comparison$var=="Composition" & var.comparison$lon> -83,], size=0.05, alpha=0.2) +
   stat_smooth(data=var.comparison[var.comparison$type=="Empirical" & var.comparison$var=="Composition" & var.comparison$lon> -83,], method=lm, alpha=0.5) + 
-  scale_color_manual(values=c("blue4", "darkseagreen4", "turquoise4", "darkgoldenrod2", "darkorange2", "deeppink3")) +
-  scale_fill_manual(values=c("blue4", "darkseagreen4", "turquoise4", "darkgoldenrod2", "darkorange2", "deeppink3")) +
+  # scale_color_manual(values=c("#016c59", "#008837", "#92c5de", "#4dac26", "#d01c8b", "#7b3294")) +
+  # scale_fill_manual(values=c("#016c59", "#008837", "#92c5de", "#4dac26", "#d01c8b", "#7b3294")) +
+  scale_color_manual(values=c("darkgreen", "darkolivegreen4", "darkslategray3", "darkseagreen3", "maroon2", "purple3")) +
+  scale_fill_manual(values=c("darkgreen", "darkolivegreen4", "darkslategray3", "darkseagreen3", "maroon2", "purple3")) +
   guides(fill=guide_legend(nrow=1), color=guide_legend(nrow=1)) +
   # scale_fill_brewer(palette="Dark2") +
   # scale_color_brewer(palette="Dark2") +

@@ -199,7 +199,7 @@ for(REG in unique(dat.sites.stepps$dataset2)){
 summary(dat.sites.stepps)
 
 plot(var.1k.all ~ var.stepps.1k, data=dat.sites.stepps)
-par(mfrow=c(2,1)); hist(log(dat.sites.stepps$var.1k.all)); hist(log(dat.sites.stepps$var.stepps.1k)); par(mfrow=c(1,1))
+# par(mfrow=c(2,1)); hist(log(dat.sites.stepps$var.1k.all)); hist(log(dat.sites.stepps$var.stepps.1k)); par(mfrow=c(1,1))
 dim(dat.sites.stepps); dim(stepps)
 
 ggplot(data=dat.sites.stepps) +
@@ -225,6 +225,7 @@ write.csv(dat.sites.stepps, file.path(path.google, "Current Data/Stability_Synth
 # ReFAB (empirical biomass, centennially-resolved)
 # -------------------------------------------
 refab <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_ReFAB.csv"))
+refab <- refab[!is.na(refab$lat),]
 # names(refab) <- c("X", "lat", "lon", "diff.mean", "diff.abs", "n.sig")
 summary(refab)
 
@@ -349,8 +350,15 @@ summary(var.comparison)
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Comparisons_Histograms.png"), height=6, width=5, units="in", res=320)
 ggplot(data=var.comparison) +
-  facet_grid(dataset~.) +
+  facet_grid(dataset~., scales="free_y") +
   geom_histogram(aes(x=log(variability), fill=dataset2)) +
+  theme_bw()
+dev.off()
+
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Comparisons_Density.png"), height=6, width=5, units="in", res=320)
+ggplot(data=var.comparison) +
+  facet_grid(dataset~.) +
+  geom_density(aes(x=log(variability), fill=dataset2), alpha=0.8) +
   theme_bw()
 dev.off()
 
@@ -414,47 +422,66 @@ ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & cl
 dev.off()  
 
 library(cowplot)
-plot.lbda <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Drought",]) +
-  facet_grid(dataset~.) +
-  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray90") +
+plot.lbda <-  ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Drought",]) +
+  # facet_grid(dataset~.) +
+  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75") +
   # geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
   geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="Drought" & !is.na(climate.comparison.sp$variability),], aes(x=lon, y=lat, fill=log(variability))) +
   geom_path(data=us, aes(x=long, y=lat, group=group)) +
   coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
-  scale_fill_gradient2(name="Log\nRelative\nvariability", low="#27647B", high="#CA3542", limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Drought"]), na.rm=T), midpoint=mean(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Drought"]), na.rm=T)) +
-  scale_color_gradient2(name="Log\nRelative\nvariability", low="#27647B", high="#CA3542", limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Drought"]), na.rm=T), midpoint=mean(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Drought"]), na.rm=T)) +
-  theme_bw() +
-  theme(panel.background=element_rect(fill="gray25"),
+  scale_fill_gradientn(name="Drought\nVariability", colors=c("#018571","#80cdc1", "#f5f5f5", "#dfc27d", "#a6611a"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Drought"]), na.rm=T)) +
+  scale_y_continuous(breaks=c(40, 45, 50)) +
+  theme(panel.background=element_rect(fill="gray25", color="black", size=1),
         panel.grid = element_blank(),
-        legend.position = "right")
+        axis.ticks.length = unit(-0.5, "lines"),
+        # axis.ticks.margin = unit(0.5, "lines"),
+        axis.text.x = element_text(margin=unit(c(1,1,1,1), "lines"), color="black"),
+        axis.text.y = element_text(margin=unit(c(1,1,1,1), "lines"), color="black"),
+        # axis.text.y = element_text(hjust=-1),
+        axis.title=element_blank(),
+        legend.position = "right",
+        legend.key.height = unit(0.75, "lines"),
+        legend.title= element_text(size=rel(0.75), face="bold"))
 
 plot.stepps <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Composition",]) +
-  facet_grid(dataset~.) +
-  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray90") +
+  # facet_grid(dataset~.) +
+  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75") +
   geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
-  # geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="Drought" & !is.na(climate.comparison.sp$variability),], aes(x=lon, y=lat, fill=log(variability))) +
   geom_path(data=us, aes(x=long, y=lat, group=group)) +
   coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
-  # scale_fill_gradient2(name="Log\nRelative\nvariability", low="#27647B", high="#CA3542", limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Composition"]), na.rm=T), midpoint=mean(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Composition"]), na.rm=T)) +
-  scale_color_gradient2(name="Log\nRelative\nvariability", low="#27647B", high="#CA3542", limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Composition"]), na.rm=T), midpoint=mean(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Composition"]), na.rm=T)) +
-  theme_bw() +
-  theme(panel.background=element_rect(fill="gray25"),
+  scale_color_gradientn(name="Compos.\nVariability", colors=c("#008837","#a6dba0", "#f7f7f7", "#c2a5cf", "#7b3294"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Composition"]), na.rm=T)) +
+  scale_y_continuous(breaks=c(40, 45, 50)) +
+  theme(panel.background=element_rect(fill="gray25", color="black", size=1),
         panel.grid = element_blank(),
-        legend.position = "right")
+        axis.ticks.length = unit(-0.5, "lines"),
+        # axis.ticks.margin = unit(0.5, "lines"),
+        axis.text.x = element_text(margin=unit(c(1,1,1,1), "lines"), color="black"),
+        axis.text.y = element_text(margin=unit(c(1,1,1,1), "lines"), color="black"),
+        # axis.text.y = element_text(hjust=-1),
+        axis.title=element_blank(),
+        legend.position = "right",
+        legend.key.height = unit(0.75, "lines"),
+        legend.title= element_text(size=rel(0.75), face="bold"))
 
 plot.refab <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Biomass",]) +
-  facet_grid(dataset~.) +
-  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray90") +
+  # facet_grid(dataset~.) +
+  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75") +
   geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
-  # geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="Drought" & !is.na(climate.comparison.sp$variability),], aes(x=lon, y=lat, fill=log(variability))) +
   geom_path(data=us, aes(x=long, y=lat, group=group)) +
   coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
-  # scale_fill_gradient2(name="Log\nRelative\nvariability", low="#27647B", high="#CA3542", limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Biomass"]), na.rm=T), midpoint=mean(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Biomass"]), na.rm=T)) +
-  scale_color_gradient2(name="Log\nRelative\nvariability", low="#27647B", high="#CA3542", limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Biomass"]), na.rm=T), midpoint=mean(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Biomass"]), na.rm=T)) +
-  theme_bw() +
-  theme(panel.background=element_rect(fill="gray25"),
+  scale_color_gradientn(name="Biomass\nVariability", colors=c("#4dac26","#b8e186", "#f7f7f7", "#f1b6da", "#d01c8b"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Biomass"]), na.rm=T)) +
+  scale_y_continuous(breaks=c(40, 45, 50)) +
+  theme(panel.background=element_rect(fill="gray25", color="black", size=1),
         panel.grid = element_blank(),
-        legend.position = "right")
+        axis.ticks.length = unit(-0.5, "lines"),
+        # axis.ticks.margin = unit(0.5, "lines"),
+        axis.text.x = element_text(margin=unit(c(1,1,1,1), "lines"), color="black"),
+        axis.text.y = element_text(margin=unit(c(1,1,1,1), "lines"), color="black"),
+        # axis.text.y = element_text(hjust=-1),
+        axis.title=element_blank(),
+        legend.position = "right",
+        legend.key.height = unit(0.75, "lines"),
+        legend.title= element_text(size=rel(0.75), face="bold"))
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Data_Map_FreeColor.png"), height=5, width=6, units="in", res=220)
 plot_grid(plot.lbda, plot.stepps, plot.refab, ncol=1)
