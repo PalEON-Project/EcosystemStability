@@ -89,6 +89,13 @@ summary(fcomp.diff)
 # Adding lat/lon into the fcomp data frames
 fcomp.diff  <- merge(fcomp.diff , paleon[,c("cell", "lon", "lat")], all.x=T)
 
+length(unique(fcomp.diff[fcomp.diff$Model=="LPJ-GUESS" & fcomp.diff$pft.mean>1e-3 & !is.na(fcomp.diff$pft.mean),"PFT"]))
+length(unique(fcomp.diff[fcomp.diff$Model=="LPJ-WSL" & fcomp.diff$pft.mean>1e-3 & !is.na(fcomp.diff$pft.mean),"PFT"]))
+length(unique(fcomp.diff[fcomp.diff$Model=="ED2" & fcomp.diff$pft.mean>1e-3 & !is.na(fcomp.diff$pft.mean),"PFT"]))
+length(unique(fcomp.diff[fcomp.diff$Model=="LINKAGES" & fcomp.diff$pft.mean>1e-3 & !is.na(fcomp.diff$pft.mean),"PFT"]))
+length(unique(fcomp.diff[fcomp.diff$Model=="TRIFFID" & fcomp.diff$pft.mean>1e-3 & !is.na(fcomp.diff$pft.mean),"PFT"]))
+summary(fcomp.diff[fcomp.diff$Model=="TRIFFID" & fcomp.diff$pft.mean>1e-3 & !is.na(fcomp.diff$pft.mean) & fcomp.diff$PFT=="bare",])
+
 # Pulling out just the dominant PFT
 fcomp <- stab.models[,c("lon", "lat", "Model")]
 fcomp$var <- as.factor("fcomp")
@@ -262,11 +269,18 @@ mod.dat2$var2 <- factor(mod.dat2$var2, levels=c("Composition", "Biomass"))
 dat.colors$model <- factor(dat.colors$model, levels=c("drivers", "drivers-modified", "LBDA", "ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
 dat.colors <- dat.colors[order(dat.colors$model),]
 
+panel.labs <- data.frame(var1=c("Drought", "Drought", "Composition"), 
+                         var2=c("Composition", "Biomass", "Biomass"), 
+                         x=c(-6.5, -6.5, -12.0),
+                         y=c(-12.0, -12.5, -12.5),
+                         label=c("a)", "b)", "c)"))
+
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Model_v_Data.png"), height=6, width=6, units="in", res=320)
 ggplot(dat=mod.dat2) +
   facet_grid(var2 ~ var1, scales="free", switch="both") +
   geom_point(aes(x=log(variability1), y=log(variability2), color=source), size=0.1, alpha=0.25) +
   stat_smooth(aes(x=log(variability1), y=log(variability2), color=source, fill=source), method="lm") +
+  geom_text(data=panel.labs, aes(x=x, y=y, label=label), fontface="bold") +
   scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
   scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
   scale_x_continuous(name="Log Relative Variability") +
@@ -279,7 +293,8 @@ ggplot(dat=mod.dat2) +
         axis.title = element_text(size=rel(1.25))
         ) +
   theme(legend.position=c(0.75, 0.75),
-        legend.title=element_blank())
+        legend.title=element_blank(),
+        panel.grid=element_blank())
 dev.off()  
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Model_v_Data_fixedaxes.png"), height=6, width=6, units="in", res=320)

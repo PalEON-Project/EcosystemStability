@@ -456,7 +456,7 @@ plot.refab <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$var
         panel.grid = element_blank(),
         legend.position = "right")
 
-png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Data_Map_FreeColor.png"), height=5, width=6, units="in", res=220)
+png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Data_Map_FreeColor.png"), height=6, width=8, units="in", res=220)
 plot_grid(plot.lbda, plot.stepps, plot.refab, ncol=1)
 dev.off()
 
