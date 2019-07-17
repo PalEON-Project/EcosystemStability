@@ -283,8 +283,8 @@ ggplot(dat=mod.dat2) +
   geom_text(data=panel.labs, aes(x=x, y=y, label=label), fontface="bold") +
   scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
   scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
-  scale_x_continuous(name="Log Relative Variability") +
-  scale_y_continuous(name="Log Relative Variability") +
+  scale_x_continuous(name="Log Normalized Variability") +
+  scale_y_continuous(name="Log Normalized Variability") +
   theme_bw() +
   theme(strip.placement = "outside",
         strip.background = element_blank(),
@@ -304,8 +304,8 @@ ggplot(dat=mod.dat2) +
   stat_smooth(aes(x=log(variability1), y=log(variability2), color=source, fill=source), method="lm") +
   scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
   scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
-  scale_x_continuous(name="Log Relative Variability") +
-  scale_y_continuous(name="Log Relative Variability") +
+  scale_x_continuous(name="Log Normalized Variability") +
+  scale_y_continuous(name="Log Normalized Variability") +
   coord_cartesian(ylim=c(-10,-1), xlim=c(-10, 2.5)) +
   theme_bw() +
   theme(strip.placement = "outside",
@@ -503,8 +503,10 @@ ggplot(data=var.comparison, aes(x=log(var.pdsi), y=log(var.ecosys), color=var, f
   stat_smooth(data=var.comparison[var.comparison$type=="Empirical" & var.comparison$var=="Composition" & var.comparison$lon< -83,], method=lm, alpha=0.5) + 
   geom_point(data=var.comparison[var.comparison$type=="Empirical" & var.comparison$var=="Composition" & var.comparison$lon> -83,], size=0.05, alpha=0.2) +
   stat_smooth(data=var.comparison[var.comparison$type=="Empirical" & var.comparison$var=="Composition" & var.comparison$lon> -83,], method=lm, alpha=0.5) + 
-  scale_color_manual(values=c("blue4", "darkseagreen4", "turquoise4", "darkgoldenrod2", "darkorange2", "deeppink3")) +
-  scale_fill_manual(values=c("blue4", "darkseagreen4", "turquoise4", "darkgoldenrod2", "darkorange2", "deeppink3")) +
+  # scale_color_manual(values=c("#016c59", "#008837", "#92c5de", "#4dac26", "#d01c8b", "#7b3294")) +
+  # scale_fill_manual(values=c("#016c59", "#008837", "#92c5de", "#4dac26", "#d01c8b", "#7b3294")) +
+  scale_color_manual(values=c("darkgreen", "darkolivegreen4", "darkslategray3", "darkseagreen3", "maroon2", "purple3")) +
+  scale_fill_manual(values=c("darkgreen", "darkolivegreen4", "darkslategray3", "darkseagreen3", "maroon2", "purple3")) +
   guides(fill=guide_legend(nrow=1), color=guide_legend(nrow=1)) +
   # scale_fill_brewer(palette="Dark2") +
   # scale_color_brewer(palette="Dark2") +
@@ -529,11 +531,13 @@ summary(models.long)
 var.ed2 <- lm(log(var.rel) ~ relevel(var, ref="Composition"), data=models.long[models.long$Model=="ED2", ])
 summary(var.ed2)
 
-mod.ed2 <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="ED2", ])
-mod.ed2.2 <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="ED2", ])
+mod.ed2.comp <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="ED2", ])
+mod.ed2.bm <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="ED2", ])
+mod.ed2.npp <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="NPP"), data=models.long[models.long$Model=="ED2", ])
 mod.ed2b <- lm(log(var.rel) ~ log(var.pdsi)*var-log(var.pdsi), data=models.long[models.long$Model=="ED2", ]) # Means parameterization
-summary(mod.ed2)
-summary(mod.ed2.2)
+summary(mod.ed2.comp)
+summary(mod.ed2.bm)
+summary(mod.ed2.npp)
 summary(mod.ed2b)
 # trend.ed2 <- emmeans::emtrends(mod.ed2, "var", var="var.pdsi")
 # trend.ed2
@@ -548,11 +552,13 @@ summary(var.lpjg)
 var.lpjg2 <- lm(log(var.rel) ~ relevel(var, ref="gpp"), data=models.long[models.long$Model=="LPJ-GUESS", ])
 summary(var.lpjg2)
 
-mod.lpjg <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="LPJ-GUESS", ])
-mod.lpjg2 <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="LPJ-GUESS", ])
+mod.lpjg.comp <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="LPJ-GUESS", ])
+mod.lpjg.bm <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="LPJ-GUESS", ])
+mod.lpjg.npp <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="NPP"), data=models.long[models.long$Model=="LPJ-GUESS", ])
 mod.lpjgb <- lm(log(var.rel) ~ log(var.pdsi)*var-log(var.pdsi), data=models.long[models.long$Model=="LPJ-GUESS", ]) # Means parameterization
-summary(mod.lpjg)
-summary(mod.lpjg2)
+summary(mod.lpjg.comp)
+summary(mod.lpjg.bm)
+summary(mod.lpjg.npp)
 summary(mod.lpjgb)
 # trend.lpjg <- emmeans::emtrends(mod.lpjg, "var", var="var.pdsi")
 # trend.lpjg
@@ -565,11 +571,13 @@ summary(mod.lpjgb)
 var.lpjw <- lm(log(var.rel) ~ relevel(var, ref="fcomp"), data=models.long[models.long$Model=="LPJ-WSL", ])
 summary(var.lpjw)
 
-mod.lpjw <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="LPJ-WSL", ])
-mod.lpjw2 <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="LPJ-WSL", ])
+mod.lpjw.comp <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="LPJ-WSL", ])
+mod.lpjw.bm <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="LPJ-WSL", ])
+mod.lpjw.npp <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="NPP"), data=models.long[models.long$Model=="LPJ-WSL", ])
 mod.lpjwb <- lm(log(var.rel) ~ log(var.pdsi)*var-log(var.pdsi), data=models.long[models.long$Model=="LPJ-WSL", ]) # Means parameterization
-summary(mod.lpjw)
-summary(mod.lpjw2)
+summary(mod.lpjw.comp)
+summary(mod.lpjw.bm)
+summary(mod.lpjw.npp)
 summary(mod.lpjwb)
 # trend.lpjw <- emmeans::emtrends(mod.lpjw, "var", var="var.pdsi")
 # trend.lpjw
@@ -578,11 +586,13 @@ summary(mod.lpjwb)
 
 # ------------
 # ------------
-mod.link <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="LINKAGES", ])
-mod.link2 <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="LINKAGES", ])
+mod.link.comp <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="LINKAGES", ])
+mod.link.bm <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="LINKAGES", ])
+mod.link.npp <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="NPP"), data=models.long[models.long$Model=="LINKAGES", ])
 mod.linkb <- lm(log(var.rel) ~ log(var.pdsi)*var-log(var.pdsi), data=models.long[models.long$Model=="LINKAGES", ]) # Means parameterization
-summary(mod.link)
-summary(mod.link2)
+summary(mod.link.comp)
+summary(mod.link.bm)
+summary(mod.link.npp)
 summary(mod.linkb)
 # trend.link <- emmeans::emtrends(mod.link, "var", var="var.pdsi")
 # trend.link
@@ -591,11 +601,14 @@ summary(mod.linkb)
 
 # ------------
 # ------------
-mod.triff <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="TRIFFID", ])
-mod.triff2 <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="TRIFFID", ])
+mod.triff.comp <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Composition"), data=models.long[models.long$Model=="TRIFFID", ])
+mod.triff.bm <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="Biomass"), data=models.long[models.long$Model=="TRIFFID", ])
+mod.triff.npp <- lm(log(var.rel) ~ log(var.pdsi)*relevel(var, ref="NPP"), data=models.long[models.long$Model=="TRIFFID", ])
 mod.triffb <- lm(log(var.rel) ~ log(var.pdsi)*var-log(var.pdsi), data=models.long[models.long$Model=="TRIFFID", ]) # Means parameterization
-summary(mod.triff)
-summary(mod.triff2)
+summary(mod.triff.comp)
+summary(mod.triff.bm)
+summary(mod.triff.npp)
+
 summary(mod.triffb)
 # trend.triff <- emmeans::emtrends(mod.triff, "var", var="var.pdsi")
 # trend.triff

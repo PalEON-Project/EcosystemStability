@@ -1,8 +1,19 @@
 path.google <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data/"
 
 # Load data from Google Drive
-load(file.path(path.google, 'Current Data/raw_data/ReFAB/ReFAB.all.samps.list_v2.Rdata'))
-load(file.path(path.google, 'Current Data/raw_data/ReFAB/refab.sites.lat.lon_v2.Rdata'))
+# load(file.path(path.google, 'Current Data/raw_data/ReFAB/ReFAB.all.samps.list_v2.Rdata'))
+# site1.v2 <- colMeans(all.samps.list[[1]][,])
+load(file.path(path.google, 'Current Data/raw_data/ReFAB/refab_for_stability_v3.Rdata'))
+# site1.v3 <- colMeans(all.samps.list[[1]][,])
+# load(file.path(path.google, 'Current Data/raw_data/ReFAB/refab.sites.lat.lon_v2.Rdata'))
+
+# pad lat/lon with NAs
+for(i in 1:length(lat)){
+  if(!is.null(lat[[i]])) next
+  lat[[i]] <- NA
+  long[[i]] <- NA
+}
+lat
 
 ### Andria's function for calculating significance
 prob_sig <- function(x, prob){
@@ -19,7 +30,7 @@ prob_sig <- function(x, prob){
 mean.mat.list <- diff.mat.list <- list()
 refab.mean <- refab.diff.mean <- sig_vals <- matrix(NA, length(all.samps.list), 99)
 # mean.mat.mtx <- 
-mean.mat.mtx <- array(dim=c(length(all.samps.list), nrow(all.samps.list[[1]])))
+mean.mat.mtx <- array(dim=c(length(all.samps.list), ncol(all.samps.list[[1]])))
 diff.mat.mtx <- array(dim=c(length(all.samps.list), ncol(all.samps.list[[1]])-1, nrow(all.samps.list[[1]])))
 # refab.stab <- data.frame(site=1:length(all.samps.list))
 for(i in 1:length(all.samps.list)){
@@ -27,9 +38,9 @@ for(i in 1:length(all.samps.list)){
     mean.mat.list[[i]] <- NULL #My dataset is currently missing billy's lake which is in position 2. I can remove this when Billy's Lake is added.
     diff.mat.list[[i]] <- NULL #My dataset is currently missing billy's lake which is in position 2. I can remove this when Billy's Lake is added.
   } else {
-    mean.mat.list[[i]] <- apply(all.samps.list[[i]], 1, mean, na.rm=FALSE)
+    mean.mat.list[[i]] <- rev(apply(all.samps.list[[i]], 1, mean, na.rm=FALSE))
     diff.mat.list[[i]] <- apply(all.samps.list[[i]], 1, function(x) diff(rev(x)/100, na.rm=FALSE))
-    mean.mat.mtx[i,]  <- apply(all.samps.list[[i]], 1, mean, na.rm=FALSE)
+    mean.mat.mtx[i,]  <- rev(apply(all.samps.list[[i]], 2, mean, na.rm=FALSE))
     diff.mat.mtx[i,,] <- apply(all.samps.list[[i]], 1, function(x) diff(rev(x)/100, na.rm=FALSE)) 
     # dividing by 100 because estimates are cenntennial. 
     # rev() because they are not sequential in time b[1] is present b[100] is 10,000 years BP
@@ -42,6 +53,26 @@ for(i in 1:length(all.samps.list)){
     
   }
 }
+# # mean.mat.list[[1]]
+# mean.mat.df <- array(dim=c(length(mean.mat.list[[1]]), length(mean.mat.list)))
+# for(i in 1:length(mean.mat.list)){
+#   if(length(mean.mat.list[[i]])==0) next
+#     
+#   mean.mat.df[,i] <- mean.mat.list[[i]]
+#   
+# }
+# head(mean.mat.df)
+dim(mean.mat.mtx)
+
+summary(t(diff.mat.list[[1]]))
+
+
+# Makign something similar to Ann's figure labeled "[M-3]average.biomass_[DATE].pdf
+for(i in 1:nrow(mean.mat.mtx)){
+  plot(mean.mat.mtx[i,], type="l", ylim=range(mean.mat.mtx, na.rm=T), xlim=c(0,100), lwd=0.25)
+  par(new=T)
+}
+plot(colMeans(mean.mat.mtx, na.rm=T), ylim=range(mean.mat.mtx, na.rm=T), xlim=c(0,100), type="l", lwd=2, col="blue")
 
 ### checking calculations blue and red should match
 boxplot(t(diff.mat.list[[1]]))
@@ -58,19 +89,19 @@ diff.itrs <- apply(diff.mat.mtx[,time.bin,], c(1,2), function(x) mean(x))
 diff.abs.itrs <- apply(diff.mat.mtx[,time.bin,], c(1,2), function(x) mean(abs(x)))
 diff.mean.sites <- apply(diff.itrs[,],1, mean, na.rm=T)
 diff.mean.abs.sites <- apply(diff.abs.itrs[,],1, mean, na.rm=T)
-mean.sites <- apply(mean.mat.mtx[,], 1, mean, na.rm=T)
+mean.sites <- apply(mean.mat.mtx[,time.bin+1], 1, mean, na.rm=T)
 
-lat.lon.df.missing <- matrix(NA,length(all.samps.list),2)
+# lat.lon.df.missing <- matrix(NA,length(all.samps.list),2)
 # lat.lon.df.missing[1,] <- as.numeric(lat.lon.df[1,])
 # lat.lon.df.missing[3:62,] <- as.matrix(lat.lon.df[2:61,])
 
-refab.mean.slope = data.frame(lat = lat.lon.df[,1], lon = lat.lon.df[,2],
-                              refab.mean.1k = mean.all,
+refab.mean.slope = data.frame(lat = unlist(lat), lon = unlist(long),
+                              refab.mean.1k = mean.sites,
                               refab.mean.slope.1k =diff.mean.sites,
                               refab.mean.slope.abs.1k = diff.mean.abs.sites
                               )
 
-lat.lon.df[which(is.na(refab.mean.slope$refab.mean.1k)),]
+refab.mean.slope[is.na(refab.mean.slope),]
 
 # Adding in the stability just for the period for which we have climate data
 lbda.df <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_LBDA_100.csv"))
