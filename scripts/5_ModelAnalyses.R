@@ -315,7 +315,8 @@ ggplot(dat=mod.dat2) +
         axis.title = element_text(size=rel(1.25))
   ) +
   theme(legend.position=c(0.75, 0.75),
-        legend.title=element_blank())
+        legend.title=element_blank(),
+        panel.grid=element_blank())
 dev.off()  
 summary(models.long)
 
@@ -495,7 +496,7 @@ levels(var.comparison$var)
 
 png(file.path(path.google, "Current Figures/Stability_Synthesis", "Variability_Ecosystem_v_Climate_Models.png"), height=6, width=8, units="in", res=320)
 ggplot(data=var.comparison, aes(x=log(var.pdsi), y=log(var.ecosys), color=var, fill=var)) +
-  labs(x="Log Relative Drought Variability", y="Log Relative Ecosystem Variability") +
+  labs(x="Log Normalized Drought Variability", y="Log Normalized Ecosystem Variability") +
   facet_wrap(~Model) +
   geom_point(data=var.comparison[!(var.comparison$type=="Empirical" & var.comparison$var=="Composition"),], size=0.05, alpha=0.2) +
   stat_smooth(data=var.comparison[!(var.comparison$type=="Empirical" & var.comparison$var=="Composition"),], method=lm, alpha=0.5) + 
