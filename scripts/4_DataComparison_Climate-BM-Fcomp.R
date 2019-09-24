@@ -392,9 +392,11 @@ write.csv(climate.comparison, file.path(path.google, "Current Data/Stability_Syn
 write.csv(climate.comparison.sp, file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data_Spatial.csv"), row.names=F)
 # -----------------------
 
+#############################################################################################
 # -----------------------------------------------------------------------
 # Start here if you're just re-running analyses but don't need to do all the data munging
 # -----------------------------------------------------------------------
+#############################################################################################
 stepps <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_STEPPS_aggregated.csv"))
 dat.sites.refab <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_ReFAB.csv"))
 dat.sites.stepps <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_STEPPS.csv"))
@@ -536,6 +538,10 @@ summary(bm.pdsi2)
 par(mfrow=c(2,2)); plot(bm.pdsi); par(mfrow=c(1,1))
 par(mfrow=c(2,2)); plot(bm.pdsi2); par(mfrow=c(1,1))
 
+# Comparing Biomass & Composition variability in STEPPS & REFAB
+bm.fcomp <- lm(log(var.refab.1k) ~ log(var.stepps.1k), data=dat.sites.refab)
+summary(bm.fcomp)
+
 # Is composition varility correlated with climate?
 # fcomp.pdsi <- lm(var.stepps.lbda ~ var.lbda, data=dat.sites.refab)
 # summary(fcomp.pdsi)
@@ -551,7 +557,7 @@ par(mfrow=c(2,2)); plot(fcomp.pdsi2); par(mfrow=c(1,1))
 nrow(dat.sites.stepps[dat.sites.stepps$nyrs.lbda>=900 & !is.na(dat.sites.stepps$var.lbda),])
 nrow(lbda.stepps[lbda.stepps$n.yrs>=900 & !is.na(lbda.stepps$varility.lbda),])
 
-# Is biomass and/or composition more/less varle than overall climate?
+# Is biomass and/or composition more/less variable than overall climate?
 t.test(dat.sites.refab$var.refab.lbda, dat.sites.refab$var.lbda, paired=T)
 t.test(log(dat.sites.refab$var.refab.lbda), log(dat.sites.refab$var.lbda), paired=T)
 # t.test(dat.sites.refab$var.stepps.lbda, dat.sites.refab$var.lbda, paired=T)

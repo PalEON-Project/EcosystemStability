@@ -326,6 +326,10 @@ summary(models.long)
 md.comp.bm.mean <- lm(log(var.ecosys) ~ source, data=mod.v.dat[mod.v.dat$var=="bm",])
 summary(md.comp.bm.mean)
 
+bm.means <- lm(log(var.ecosys) ~ source-1, data=mod.v.dat[mod.v.dat$var=="bm",])
+summary(bm.means)
+
+
 md.comp.bm.sens1 <- lm(log(var.ecosys) ~ log(var.pdsi)*source, data=mod.v.dat[mod.v.dat$var=="bm",])
 summary(md.comp.bm.sens1)
 
@@ -336,6 +340,12 @@ summary(md.comp.bm.sens2)
 # ------------
 # fcomp-PDSI Comparisons
 # ------------
+unique(mod.v.dat$source)
+mod.v.dat$source2 <- car::recode(mod.v.dat$source, "'STEPPS-UMW'='STEPPS'; 'STEPPS-NEUS'='STEPPS'")
+fcomp.means <- lm(log(var.ecosys) ~ source2-1, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+summary(fcomp.means)
+
+
 mod.v.dat$region <- ifelse(mod.v.dat$source=="STEPPS-UMW", "UMW", ifelse(mod.v.dat$source=="STEPPS-NEUS", "NEUS", "full"))
 mod.v.dat$region <- factor(mod.v.dat$region, levels=c("UMW", "NEUS", "full"))
 mod.v.dat$source2 <- as.factor(ifelse(substr(mod.v.dat$source, 1, 6)=="STEPPS", "STEPPS", paste(mod.v.dat$source)))
@@ -395,6 +405,7 @@ anova(fcomp.sens.reg)
 
 stepps.reg <- lm(log(var.ecosys) ~ log(var.pdsi)*region, data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Empirical" & mod.region$source=="STEPPS",])
 stepps.reg2 <- lm(log(var.ecosys) ~ log(var.pdsi) + region, data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Empirical" & mod.region$source=="STEPPS",])
+
 ed.reg <- lm(log(var.ecosys) ~ log(var.pdsi)*region, data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Model" & mod.region$source=="ED2",])
 link.reg <- lm(log(var.ecosys) ~ log(var.pdsi)*region, data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Model" & mod.region$source=="LINKAGES",])
 lpjg.reg <- lm(log(var.ecosys) ~ log(var.pdsi)*region, data=mod.region[mod.region$var=="fcomp" & mod.region$type=="Model" & mod.region$source=="LPJ-GUESS",])
@@ -451,6 +462,7 @@ summary(cvb.triff)
 # -------------------------------------------
 # Comparing stability sensitivity within models --> find where things fall apart
 # -------------------------------------------
+
 models.long <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_long.csv"))
 summary(models.long)
 
@@ -615,5 +627,48 @@ summary(mod.triffb)
 # trend.triff
 # pairs(trend.triff)
 # ------------
+# -------------------------------------------
+
+# -------------------------------------------
+# Alternative visualization method: correlation plots
+# -------------------------------------------
+vars.use <- c("gpp", "npp", "nee", "lai", "bm")
+type.use <- "diff."
+
+stab.models <- read.csv(file.path(path.google, "Current Data/Stability", "Stability_Models_100.csv"))
+summary(stab.models)
+
+corr.all <- data.frame()
+for(MOD in unique(stab.models$Model)){
+  # Subset just the vars that are present
+  vars.mod <- vars.use[which(apply(abs(stab.models[stab.models$Model==MOD, paste0(type.use, vars.use)]), 2, sum, na.rm=T)>0)]
+  
+  corr.mod <- data.frame(cor(stab.models[stab.models$Model==MOD, paste0(type.use, vars.mod)], use="complete.obs"))
+  corr.mod[upper.tri(corr.mod)] <- NA
+  corr.mod.stack <- stack(corr.mod)
+  names(corr.mod.stack) <- c("corr", "var2")
+  corr.mod.stack$var1 <- row.names(corr.mod)
+  corr.mod.stack$model <- MOD
+  
+  corr.all <- rbind(corr.all, corr.mod.stack)
+}
+corr.all$var1 <- gsub("diff.", "", corr.all$var1)
+corr.all$var2 <- gsub("diff.", "", corr.all$var2)
+corr.all$var1 <- factor(corr.all$var1, rev(vars.use))
+corr.all$var2 <- factor(corr.all$var2, vars.use)
+corr.all$model <- as.factor(corr.all$model)
+summary(corr.all)
+
+ggplot(data=corr.all[!is.na(corr.all$corr) & corr.all$var1!=corr.all$var2,]) +
+  facet_wrap(~model) +
+  geom_tile(aes(x=var1, y=var2, fill=corr)) +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation") +
+  theme_bw()
+
+# -------------------------------------------
+
+
 
 # -------------------------------------------

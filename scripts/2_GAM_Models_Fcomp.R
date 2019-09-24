@@ -73,6 +73,32 @@ dim(lpjw.fcomp)
 dim(link.fcomp)
 dim(triff.fcomp)
 
+# Making -9999 equal to NA (will go back to dumy value later)
+link.fcomp[link.fcomp<=-9999] <- NA
+triff.fcomp[triff.fcomp<=-9999] <- NA
+
+# Quick summaries of each fcomp to get number of non-0 PFTs
+ed.pfts    <- apply(ed.fcomp   , 3, sum, na.rm=T)
+lpjg.pfts  <- apply(lpjg.fcomp , 3, sum, na.rm=T)
+lpjw.pfts  <- apply(lpjw.fcomp , 3, sum, na.rm=T)
+link.pfts  <- apply(link.fcomp, 3, sum, na.rm=T)
+triff.pfts <- apply(triff.fcomp, 3, sum, na.rm=T)
+
+pft.table$ED2[which(ed.pfts>0)]
+length(which(ed.pfts>0))
+
+pft.table$LPJ.GUESS[which(lpjg.pfts>0)]
+length(which(lpjg.pfts>0))
+
+pft.table$LPJ.WSL[which(lpjw.pfts>0)]
+length(which(lpjw.pfts>0))
+
+pft.table$LINKAGES[which(link.pfts>0)]
+length(which(link.pfts>0))
+
+pft.table$JULES[which(triff.pfts>0)]
+length(which(triff.pfts>0))
+
 # ED & TRIFFID need months converted to Years
 ed.fcomp.mo <- ed.fcomp
 triff.fcomp.mo <- triff.fcomp[1:dim(ed.fcomp.mo)[1],,]
