@@ -296,7 +296,6 @@ plot.drivers.var <- ggplot(data=stab.met[,]) +
 png(file.path(path.figs, "SupplementalFigure1_Variability_PDSI_LBDA_Models.png"), height=6, width=6, units="in", res=220)
 plot_grid(plot.lbda.yr, plot.lbda.var, plot.drivers.var, ncol=1)
 dev.off()
-
 # -------------------------------------------
 
 
@@ -363,4 +362,189 @@ ggplot(data=dat.sites[!is.na(dat.sites$dom.pft),]) +
         legend.title= element_text(size=rel(0.75), face="bold"),
         legend.text=element_text(face="italic"))
 dev.off()
+# -------------------------------------------
+
+
+# -------------------------------------------
+# Table 1; results in par 1
+# -------------------------------------------
+# ------------
+# Get needed data sets & set up empty data frame to save
+# ------------
+dat.emp <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data.csv"))
+dat.emp$var <- as.factor(ifelse(dat.emp$dataset=="ReFAB", "bm", "fcomp"))
+dat.emp$type <- "Empirical"
+dat.emp$dataset2 <- car::recode(dat.emp$dataset2, "'STEPPS'='STEPPS-UMW'")
+summary(dat.emp)
+
+models.long <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_long.csv"))
+
+mod.v.dat <- data.frame(lat=c(models.long$lat[models.long$var %in% c("bm", "fcomp")], dat.emp$lat),
+                        lon=c(models.long$lon[models.long$var %in% c("bm", "fcomp")], dat.emp$lon),
+                        type=c(paste(models.long$type[models.long$var %in% c("bm", "fcomp")]), dat.emp$type),
+                        var=c(paste(models.long$var[models.long$var %in% c("bm", "fcomp")]), paste(dat.emp$var)),
+                        source=c(paste(models.long$Model[models.long$var %in% c("bm", "fcomp")]), paste(dat.emp$dataset2)),
+                        # stab.ecosys=c(models.long$stability[models.long$var %in% c("bm", "fcomp")], dat.emp$stab.ecosys),
+                        # stab.pdsi=c(models.long$stab.pdsi[models.long$var %in% c("bm", "fcomp")], dat.emp$stab.pdsi),
+                        var.ecosys=c(models.long$variability[models.long$var %in% c("bm", "fcomp")], dat.emp$var.ecosys),
+                        var.pdsi=c(models.long$var.pdsi[models.long$var %in% c("bm", "fcomp")], dat.emp$var.pdsi)
+)
+mod.v.dat$source <- factor(mod.v.dat$source, levels=c("ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
+mod.v.dat$source2 <- as.factor(ifelse(substr(mod.v.dat$source, 1, 6)=="STEPPS", "STEPPS", paste(mod.v.dat$source)))
+mod.v.dat$source2 <- factor(mod.v.dat$source2, levels=c("STEPPS", "ReFAB", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
+summary(mod.v.dat)
+
+ms.table1 <- data.frame(Source=c("Pollen", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"),
+                        Var.Comp=NA, Sens.Comp=NA, Var.Biom=NA, Sens.Biom=NA)
+# ------------
+
+# ------------
+# Composition: Mean & SD
+# ------------
+for(MOD in ms.table1$Source){
+  if(MOD=="Pollen"){
+    mod.mn <- round(mean(log(mod.v.dat$var.ecosys[mod.v.dat$var=="fcomp" & substr(mod.v.dat$source, 1, 6)=="STEPPS"]), na.rm=T), 3)
+    mod.sd <- round(sd(log(mod.v.dat$var.ecosys[mod.v.dat$var=="fcomp" & substr(mod.v.dat$source, 1, 6)=="STEPPS"]), na.rm=T), 3)
+    
+    ms.table1[ms.table1$Source==MOD, "Var.Comp"] <- paste0(stringr::str_pad(mod.mn, ifelse(mod.mn<0, 6, 5), "right", pad=0), " (", stringr::str_pad(mod.sd, 5, "right", pad=0), ")")
+    
+  } else {
+    mod.mn <- round(mean(log(mod.v.dat$var.ecosys[mod.v.dat$var=="fcomp" & mod.v.dat$source==MOD]), na.rm=T), 3)
+    mod.sd <- round(sd(log(mod.v.dat$var.ecosys[mod.v.dat$var=="fcomp" & mod.v.dat$source==MOD]), na.rm=T), 3)
+    
+    ms.table1[ms.table1$Source==MOD, "Var.Comp"] <- paste0(stringr::str_pad(mod.mn, ifelse(mod.mn<0, 6, 5), "right", pad=0), " (", stringr::str_pad(mod.sd, 5, "right", pad=0), ")")
+  }
+  
+}
+# ------------
+
+# ------------
+# Composition-PDSI comparisons
+# ------------
+comp.sens <- lm(log(var.ecosys) ~ log(var.pdsi)*source2-source2 + source -log(var.pdsi) - 1, data=mod.v.dat[mod.v.dat$var=="fcomp",])
+comp.sens.sum <- summary(comp.sens)
+
+comp.sens.est <- round(comp.sens.sum$coefficients[paste0("log(var.pdsi):source2", levels(mod.v.dat$source2)[levels(mod.v.dat$source2) %in% unique(mod.v.dat$source2[mod.v.dat$var=="fcomp"])]),"Estimate"], 3)
+comp.sens.se <- round(comp.sens.sum$coefficients[paste0("log(var.pdsi):source2", levels(mod.v.dat$source2)[levels(mod.v.dat$source2) %in% unique(mod.v.dat$source2[mod.v.dat$var=="fcomp"])]),"Std. Error"], 3)
+comp.sens.p <- ifelse(comp.sens.sum$coefficients[paste0("log(var.pdsi):source2", levels(mod.v.dat$source2)[levels(mod.v.dat$source2) %in% unique(mod.v.dat$source2[mod.v.dat$var=="fcomp"])]),"Pr(>|t|)"]<0.05, "*", "")
+
+ms.table1$Sens.Comp <- paste0(stringr::str_pad(comp.sens.est, ifelse(comp.sens.est<0, 6, 5), "right", pad=0), " (", stringr::str_pad(comp.sens.se, 5, "right", pad=0), ")", comp.sens.p)
+# ms.table1$Sens.Comp.P <- paste0(comp.sens.p)
+
+# ------------
+
+# ------------
+# Biomass: Mean & SD
+# ------------
+for(MOD in ms.table1$Source){
+  if(MOD=="Pollen"){
+    mod.mn <- round(mean(log(mod.v.dat$var.ecosys[mod.v.dat$var=="bm" & substr(mod.v.dat$source, 1, 6)=="ReFAB"]), na.rm=T), 3)
+    mod.sd <- round(sd(log(mod.v.dat$var.ecosys[mod.v.dat$var=="bm" & substr(mod.v.dat$source, 1, 6)=="ReFAB"]), na.rm=T), 3)
+    
+    ms.table1[ms.table1$Source==MOD, "Var.Biom"] <- paste0(stringr::str_pad(mod.mn, ifelse(mod.mn<0, 6, 5), "right", pad=0), " (", stringr::str_pad(mod.sd, 5, "right", pad=0), ")")
+    
+  } else {
+    mod.mn <- round(mean(log(mod.v.dat$var.ecosys[mod.v.dat$var=="bm" & mod.v.dat$source==MOD]), na.rm=T), 3)
+    mod.sd <- round(sd(log(mod.v.dat$var.ecosys[mod.v.dat$var=="bm" & mod.v.dat$source==MOD]), na.rm=T), 3)
+    
+    ms.table1[ms.table1$Source==MOD, "Var.Biom"] <- paste0(stringr::str_pad(mod.mn, ifelse(mod.mn<0, 6, 5), "right", pad=0), " (", stringr::str_pad(mod.sd, 5, "right", pad=0), ")")
+  }
+  
+}
+# ------------
+
+# ------------
+# Biomass-PDSI Comparisons
+# ------------
+bm.sens <- lm(log(var.ecosys) ~ log(var.pdsi)*source-log(var.pdsi), data=mod.v.dat[mod.v.dat$var=="bm",])
+bm.sens.sum <- summary(bm.sens)
+
+bm.sens.est <- round(bm.sens.sum$coefficients[paste0("log(var.pdsi):source", levels(mod.v.dat$source)[levels(mod.v.dat$source) %in% unique(mod.v.dat$source[mod.v.dat$var=="bm"])]),"Estimate"], 3)
+bm.sens.se <- round(bm.sens.sum$coefficients[paste0("log(var.pdsi):source", levels(mod.v.dat$source)[levels(mod.v.dat$source) %in% unique(mod.v.dat$source[mod.v.dat$var=="bm"])]),"Std. Error"], 3)
+bm.sens.p <- ifelse(bm.sens.sum$coefficients[paste0("log(var.pdsi):source", levels(mod.v.dat$source)[levels(mod.v.dat$source) %in% unique(mod.v.dat$source[mod.v.dat$var=="bm"])]),"Pr(>|t|)"]<0.05, "*", "")
+
+ms.table1$Sens.Biom <- paste0(stringr::str_pad(bm.sens.est, ifelse(bm.sens.est<0, 6, 5), "right", pad=0), " (", stringr::str_pad(bm.sens.se, 5, "right", pad=0), ")", bm.sens.p)
+# ms.table1$Sens.Biom.P <- paste0(bm.sens.p)
+# ------------
+
+write.csv(ms.table1, file.path(path.tables, "Table1_Numbers.csv"), row.names=F)
+
+
+# ------------
+# Additional Comparisons for just the empirical data (in text)
+# ------------
+# Composition had the highest mean log-normalized variability, with the northeastern US (NEUS) more variable than the upper midwestern (UMW) US (NEUS: XXX SD XXX; UMW: XXX SD XXX)
+round(mean(log(mod.v.dat$var.ecosys[mod.v.dat$var=="fcomp" & mod.v.dat$source=="STEPPS-NEUS"]), na.rm=T), 3); round(sd(log(mod.v.dat$var.ecosys[mod.v.dat$var=="fcomp" & mod.v.dat$source=="STEPPS-NEUS"]), na.rm=T), 3)
+
+round(mean(log(mod.v.dat$var.ecosys[mod.v.dat$var=="fcomp" & mod.v.dat$source=="STEPPS-UMW"]), na.rm=T), 3); round(sd(log(mod.v.dat$var.ecosys[mod.v.dat$var=="fcomp" & mod.v.dat$source=="STEPPS-UMW"]), na.rm=T), 3)
+
+summary(mod.v.dat)
+
+
+# Compositional variability is weakly sensitive to drought variability in the northeastern US (slope = XXX SE XXX), but this relationship does not significantly differ from the insensitive pattern observed in the upper midwest (slope = XXX SE XXX)
+comp.sens.poll <- lm(log(var.ecosys) ~ log(var.pdsi)*source -log(var.pdsi) -1, data=mod.v.dat[mod.v.dat$var=="fcomp" & mod.v.dat$type=="Empirical",])
+comp.sens.poll.sum <- summary(comp.sens.poll)
+
+comp.sens.poll.est <- round(comp.sens.poll.sum$coefficients[paste0("log(var.pdsi):source", levels(mod.v.dat$source)[levels(mod.v.dat$source) %in% unique(mod.v.dat$source[mod.v.dat$var=="fcomp" & mod.v.dat$type=="Empirical"])]),"Estimate"], 3)
+comp.sens.poll.se <- round(comp.sens.poll.sum$coefficients[paste0("log(var.pdsi):source", levels(mod.v.dat$source)[levels(mod.v.dat$source) %in% unique(mod.v.dat$source[mod.v.dat$var=="fcomp" & mod.v.dat$type=="Empirical"])]),"Std. Error"], 3)
+comp.sens.poll.p <- round(comp.sens.poll.sum$coefficients[paste0("log(var.pdsi):source", levels(mod.v.dat$source)[levels(mod.v.dat$source) %in% unique(mod.v.dat$source[mod.v.dat$var=="fcomp" & mod.v.dat$type=="Empirical"])]),"Pr(>|t|)"], 3)
+
+comp.sens.poll.est
+comp.sens.poll.se
+comp.sens.poll.p
+
+# Effects comparison
+comp.sens.poll2 <- lm(log(var.ecosys) ~ log(var.pdsi)*source , data=mod.v.dat[mod.v.dat$var=="fcomp" & mod.v.dat$type=="Empirical",])
+comp.sens.poll2.sum <- summary(comp.sens.poll2)
+
+# In contrast to composition, drought variability was highest in the UMW (Fig 2), and mean log-normalized variability across both regions was considerably lower 
+round(mean(log(mod.v.dat$var.pdsi[mod.v.dat$var=="fcomp" & mod.v.dat$type=="Empirical"]), na.rm=T), 3); round(sd(log(mod.v.dat$var.pdsi[mod.v.dat$var=="fcomp" & mod.v.dat$type=="Empirical"]), na.rm=T), 3)
+
+round(mean(log(mod.v.dat$var.pdsi[mod.v.dat$var=="fcomp" & mod.v.dat$source=="STEPPS-UMW"]), na.rm=T), 3); round(sd(log(mod.v.dat$var.pdsi[mod.v.dat$var=="fcomp" & mod.v.dat$source=="STEPPS-UMW"]), na.rm=T), 3)
+
+# Biomass variability correlated with compositional variability (Fig. 3c, slope = 0.48 SE 0.19;  R2=0.09;)
+mod.dat2 <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_and_Data.csv"))
+mod.dat2$source <- factor(mod.dat2$source, levels=c("ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
+# mod.dat2$var1 <- car::recode(mod.dat2$var1, "'PDSI'='Drought'")
+mod.dat2$var1 <- factor(mod.dat2$var1, levels=c("PDSI", "Composition"))
+mod.dat2$var2 <- factor(mod.dat2$var2, levels=c("Composition", "Biomass"))
+summary(mod.dat2)
+
+comp.v.bm1 <- lm(log(variability2) ~ log(variability1), data=mod.dat2[mod.dat2$var1=="Composition" & mod.dat2$var2=="Biomass" & mod.dat2$type=="Empirical",])
+summary(comp.v.bm1)
+
+summary(mod.dat2)
+# ------------
+# -------------------------------------------
+
+# -------------------------------------------
+# Supplemental Table 1: Sensitivity of model latent states to PDSI
+# -------------------------------------------
+models.long <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_long.csv"))
+models.long$Model <- factor(models.long$Model, levels=c("ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
+models.long$var <- car::recode(models.long$var, "'gpp'='GPP'; 'npp'='NPP'; 'lai'='LAI'; 'bm'='Biomass'; 'fcomp'='Composition'; 'nee'='NEE'")
+models.long$var <- factor(models.long$var, levels=c("GPP", "NPP", "NEE", "LAI", "Biomass", "Composition"))
+summary(models.long)
+
+supp.table1 <- data.frame(Model=levels(models.long$Model), GPP=NA, NPP=NA, NEE=NA, LAI=NA, Biomass=NA, Composition=NA)
+
+for(VAR in unique(models.long$var)){
+  for(MOD in unique(models.long$Model)){
+    mod.sub <- models.long[models.long$var==VAR & models.long$Model==MOD,]
+    
+    if(nrow(mod.sub)==0) next
+    mod.tmp <- lm(log(var.rel) ~ log(var.pdsi), data=mod.sub)
+    mod.tmp.sum <- summary(mod.tmp)
+    
+    sens.est <- round(mod.tmp.sum$coefficients["log(var.pdsi)","Estimate"], 3)
+    sens.se <- round(mod.tmp.sum$coefficients["log(var.pdsi)","Std. Error"], 3)
+    sens.p <- ifelse(mod.tmp.sum$coefficients["log(var.pdsi)","Pr(>|t|)"]<0.05, "*", "")
+    
+    supp.table1[supp.table1$Model==MOD, VAR] <- paste0(stringr::str_pad(sens.est, ifelse(sens.est<0, 6, 5), "right", pad=0), " (", stringr::str_pad(sens.se, 5, "right", pad=0), ")", sens.p)
+  }
+}
+supp.table1
+
+write.csv(supp.table1, file.path(path.tables, "SupplementalTable1_Numbers.csv"), row.names=F)
+
 # -------------------------------------------
