@@ -5,3 +5,6 @@
 
 data/raw_data/*
 data/YL_JOE_submission_SI.docx
+*.rds
+*.RData
+data/PaperOutput/AdditionalMetadata/PaleonModelProtocol.Phase2.v4.1.pdf
