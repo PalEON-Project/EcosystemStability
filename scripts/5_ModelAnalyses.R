@@ -185,6 +185,12 @@ models.long$type <- "Model"
 write.csv(models.long,  file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_long.csv"), row.names=F)
 # ------------
 
+
+#############################################################################################
+# -----------------------------------------------------------------------
+# Start here if you're just re-running analyses but don't need to do all the data munging
+# -----------------------------------------------------------------------
+#############################################################################################
 # ------------
 # Read in the empirical data from script #4
 # ------------
