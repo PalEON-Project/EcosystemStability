@@ -35,14 +35,16 @@ library(ggplot2); library(cowplot)
 path.data <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 
 # Path to where data are; lets just pull straight from the Google Drive folder
-path.google <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data/"
+path.google <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data"
 
-path.figs <- file.path(path.google, "Manuscript/Figures")
-path.tables <- file.path(path.google, "Manuscript/Tables")
+path.figs <- file.path(path.google, "Manuscript/Nature_Ecology_Evolution_2020-03/Figures")
+path.tables <- file.path(path.google, "Manuscript/Nature_Ecology_Evolution_2020-03/Tables")
+if(!dir.exists(path.figs)) dir.create(path.figs)
+if(!dir.exists(path.tables)) dir.create(path.tables)
 
 # Set up a table with colors for models & data
 # Using a CB palette from here: http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/
-dat.colors <- data.frame(model=c("LBDA", "STEPPS", "ReFAB", "drivers", "drivers-modified", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"),
+dat.colors <- data.frame(model=c("LBDA", "STEPPS", "ReFAB", "drivers", "drivers-modified", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "JULES-TRIFFID"),
                          type=c(rep("emipirical", 3), rep("model", 7)),
                          color=c(rep("#000000", 3), rep("#999999", 2),  "#009E73", "#0072B2", "#D55E00", "#D69F00", "#CC79A7"))
 dat.colors
@@ -69,7 +71,7 @@ plot.lbda <-  ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$var
   geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="Drought" & !is.na(climate.comparison.sp$variability),], aes(x=lon, y=lat, fill=log(variability))) +
   geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15") +
   geom_text(x=-97.75, y=48, label="a)", size=5, fontface="bold") +
-  coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
+  coord_equal(xlim=range(climate.comparison.sp$lon[climate.comparison.sp$dataset=="Composition"], na.rm=T), ylim=range(climate.comparison.sp$lat[climate.comparison.sp$dataset=="Composition"], na.rm=T)) +
   scale_fill_gradientn(name="PDSI\nVariability", colors=c("#018571","#80cdc1", "#f5f5f5", "#dfc27d", "#a6611a"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Drought"]), na.rm=T)) +
   scale_y_continuous(breaks=c(40, 45, 50)) +
   theme(panel.background=element_rect(fill="gray25", color="black", size=1),
@@ -90,7 +92,7 @@ plot.stepps <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$va
   geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
   geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15") +
   geom_text(x=-97.75, y=48, label="b)", size=5, fontface="bold") +
-  coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
+  coord_equal(xlim=range(climate.comparison.sp$lon[climate.comparison.sp$dataset=="Composition"], na.rm=T), ylim=range(climate.comparison.sp$lat[climate.comparison.sp$dataset=="Composition"], na.rm=T)) +
   scale_color_gradientn(name="Comp.\nVariability", colors=c("#008837","#a6dba0", "#f7f7f7", "#c2a5cf", "#7b3294"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Composition"]), na.rm=T)) +
   scale_y_continuous(breaks=c(40, 45, 50)) +
   theme(panel.background=element_rect(fill="gray25", color="black", size=1),
@@ -111,7 +113,7 @@ plot.refab <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$var
   geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
   geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15") +
   geom_text(x=-97.75, y=48, label="c)", size=5, fontface="bold") +
-  coord_equal(xlim=range(stepps$lon, na.rm=T), ylim=range(stepps$lat, na.rm=T)) +
+  coord_equal(xlim=range(climate.comparison.sp$lon[climate.comparison.sp$dataset=="Composition"], na.rm=T), ylim=range(climate.comparison.sp$lat[climate.comparison.sp$dataset=="Composition"], na.rm=T)) +
   scale_color_gradientn(name="Biomass\nVariability", colors=c("#4dac26","#b8e186", "#f7f7f7", "#f1b6da", "#d01c8b"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Biomass"]), na.rm=T)) +
   scale_y_continuous(breaks=c(40, 45, 50)) +
   theme(panel.background=element_rect(fill="gray25", color="black", size=1),
@@ -135,12 +137,13 @@ dev.off()
 # 3. Biomass-Composition-PDSI Correllations (Models + Data)
 # -------------------------------------------
 mod.dat2 <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_and_Data.csv"))
-mod.dat2$source <- factor(mod.dat2$source, levels=c("ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
+mod.dat2$source <- car::recode(mod.dat2$source, "'TRIFFID'='JULES-TRIFFID'")
+mod.dat2$source <- factor(mod.dat2$source, levels=c("ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "JULES-TRIFFID"))
 # mod.dat2$var1 <- car::recode(mod.dat2$var1, "'PDSI'='Drought'")
 mod.dat2$var1 <- factor(mod.dat2$var1, levels=c("PDSI", "Composition"))
 mod.dat2$var2 <- factor(mod.dat2$var2, levels=c("Composition", "Biomass"))
 
-dat.colors$model <- factor(dat.colors$model, levels=c("drivers", "drivers-modified", "LBDA", "ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
+dat.colors$model <- factor(dat.colors$model, levels=c("drivers", "drivers-modified", "LBDA", "ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "JULES-TRIFFID"))
 dat.colors <- dat.colors[order(dat.colors$model),]
 
 panel.labs <- data.frame(var1=c("PDSI", "PDSI", "Composition"), 
@@ -149,7 +152,7 @@ panel.labs <- data.frame(var1=c("PDSI", "PDSI", "Composition"),
                          y=c(-12.0, -12.5, -12.5),
                          label=c("a)", "b)", "c)"))
 
-dat.colors <- data.frame(model=c("LBDA", "ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "drivers", "drivers-modified", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"),
+dat.colors <- data.frame(model=c("LBDA", "ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "drivers", "drivers-modified", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "JULES-TRIFFID"),
                          type=c(rep("emipirical", 4), rep("model", 7)),
                          color=c(rep("#000000", 3), "#7F7F7F", rep("#999999", 2),  "#009E73", "#0072B2", "#D55E00", "#D69F00", "#CC79A7"))
 dat.colors
@@ -182,9 +185,10 @@ dev.off()
 # 4. Model Latent States
 # -------------------------------------------
 models.long <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_long.csv"))
+models.long$Model <- car::recode(models.long$Model, "'TRIFFID'='JULES-TRIFFID'")
 summary(models.long)
 
-models.long$Model <- factor(models.long$Model, levels=c("ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
+models.long$Model <- factor(models.long$Model, levels=c("ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "JULES-TRIFFID"))
 models.long$var <- car::recode(models.long$var, "'gpp'='GPP'; 'npp'='NPP'; 'lai'='LAI'; 'bm'='Biomass'; 'fcomp'='Composition'; 'nee'='NEE'")
 models.long$var <- factor(models.long$var, levels=c("GPP", "NPP", "NEE", "LAI", "Biomass", "Composition"))
 
@@ -378,6 +382,7 @@ dat.emp$dataset2 <- car::recode(dat.emp$dataset2, "'STEPPS'='STEPPS-UMW'")
 summary(dat.emp)
 
 models.long <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_long.csv"))
+models.long$Model <- car::recode(models.long$Model, "'TRIFFID'='JULES-TRIFFID'")
 
 mod.v.dat <- data.frame(lat=c(models.long$lat[models.long$var %in% c("bm", "fcomp")], dat.emp$lat),
                         lon=c(models.long$lon[models.long$var %in% c("bm", "fcomp")], dat.emp$lon),
@@ -389,12 +394,12 @@ mod.v.dat <- data.frame(lat=c(models.long$lat[models.long$var %in% c("bm", "fcom
                         var.ecosys=c(models.long$variability[models.long$var %in% c("bm", "fcomp")], dat.emp$var.ecosys),
                         var.pdsi=c(models.long$var.pdsi[models.long$var %in% c("bm", "fcomp")], dat.emp$var.pdsi)
 )
-mod.v.dat$source <- factor(mod.v.dat$source, levels=c("ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
+mod.v.dat$source <- factor(mod.v.dat$source, levels=c("ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "JULES-TRIFFID"))
 mod.v.dat$source2 <- as.factor(ifelse(substr(mod.v.dat$source, 1, 6)=="STEPPS", "STEPPS", paste(mod.v.dat$source)))
-mod.v.dat$source2 <- factor(mod.v.dat$source2, levels=c("STEPPS", "ReFAB", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"))
+mod.v.dat$source2 <- factor(mod.v.dat$source2, levels=c("STEPPS", "ReFAB", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "JULES-TRIFFID"))
 summary(mod.v.dat)
 
-ms.table1 <- data.frame(Source=c("Pollen", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "TRIFFID"),
+ms.table1 <- data.frame(Source=c("Pollen", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "JULES-TRIFFID"),
                         Var.Comp=NA, Sens.Comp=NA, Var.Biom=NA, Sens.Biom=NA)
 # ------------
 
@@ -521,7 +526,8 @@ summary(mod.dat2)
 # Supplemental Table 1: Sensitivity of model latent states to PDSI
 # -------------------------------------------
 models.long <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Models_long.csv"))
-models.long$Model <- factor(models.long$Model, levels=c("ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "TRIFFID"))
+models.long$Model <- car::recode(models.long$Model, "'TRIFFID'='JULES-TRIFFID'")
+models.long$Model <- factor(models.long$Model, levels=c("ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "JULES-TRIFFID"))
 models.long$var <- car::recode(models.long$var, "'gpp'='GPP'; 'npp'='NPP'; 'lai'='LAI'; 'bm'='Biomass'; 'fcomp'='Composition'; 'nee'='NEE'")
 models.long$var <- factor(models.long$var, levels=c("GPP", "NPP", "NEE", "LAI", "Biomass", "Composition"))
 summary(models.long)
