@@ -37,8 +37,8 @@ path.data <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 # Path to where data are; lets just pull straight from the Google Drive folder
 path.google <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data"
 
-path.figs <- file.path(path.google, "Manuscript/Nature_Ecology_Evolution_2020-03/Figures")
-path.tables <- file.path(path.google, "Manuscript/Nature_Ecology_Evolution_2020-03/Tables")
+path.figs <- file.path(path.google, "Manuscript/EcologyLetters_2020-03-30/Figures")
+path.tables <- file.path(path.google, "Manuscript/EcologyLetters_2020-03-30/Tables")
 if(!dir.exists(path.figs)) dir.create(path.figs)
 if(!dir.exists(path.tables)) dir.create(path.tables)
 
