@@ -152,6 +152,9 @@ panel.labs <- data.frame(var1=c("PDSI", "PDSI", "Composition"),
                          y=c(-12.0, -12.5, -12.5),
                          label=c("a)", "b)", "c)"))
 
+panel.labs$var1 <- factor(panel.labs$var1, levels=c("PDSI", "Composition"))
+panel.labs$var2 <- factor(panel.labs$var2, levels=c("Composition", "Biomass"))
+
 dat.colors <- data.frame(model=c("LBDA", "ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "drivers", "drivers-modified", "ED2", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "JULES-TRIFFID"),
                          type=c(rep("emipirical", 4), rep("model", 7)),
                          color=c(rep("#000000", 3), "#7F7F7F", rep("#999999", 2),  "#009E73", "#0072B2", "#D55E00", "#D69F00", "#CC79A7"))
