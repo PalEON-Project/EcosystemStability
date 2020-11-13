@@ -37,8 +37,8 @@ path.data <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 # Path to where data are; lets just pull straight from the Google Drive folder
 path.google <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data"
 
-path.figs <- file.path(path.google, "Manuscript/EcologyLetters_2020-03-30/Submission 2/Figures")
-path.tables <- file.path(path.google, "Manuscript/EcologyLetters_2020-03-30/Submission 2/Tables")
+path.figs <- file.path(path.google, "Manuscript/EcologyLetters_2020-03-30/Submission 3 (Minor Rev)/Figures")
+path.tables <- file.path(path.google, "Manuscript/EcologyLetters_2020-03-30/Submission 3 (Minor Rev)/Tables")
 if(!dir.exists(path.figs)) dir.create(path.figs)
 if(!dir.exists(path.tables)) dir.create(path.tables)
 
@@ -191,7 +191,7 @@ models.long <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis
 models.long$Model <- car::recode(models.long$Model, "'TRIFFID'='JULES-TRIFFID'")
 summary(models.long)
 
-models.long$Model <- factor(models.long$Model, levels=c("ED2", "LPJ-WSL", "LPJ-GUESS", "LINKAGES", "JULES-TRIFFID"))
+models.long$Model <- factor(models.long$Model, levels=c("LPJ-GUESS", "LINKAGES", "ED2", "LPJ-WSL", "JULES-TRIFFID"))
 models.long$var <- car::recode(models.long$var, "'gpp'='GPP'; 'npp'='NPP'; 'lai'='LAI'; 'bm'='Biomass'; 'fcomp'='Composition'; 'nee'='NEE'")
 models.long$var <- factor(models.long$var, levels=c("GPP", "NPP", "NEE", "LAI", "Biomass", "Composition"))
 
