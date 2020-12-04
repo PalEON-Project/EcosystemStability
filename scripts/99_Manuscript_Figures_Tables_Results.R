@@ -57,7 +57,30 @@ us <- ggplot2::map_data("state")
 
 # -------------------------------------------
 # Figure 2. Map of Empiricial Dataset Variability
+# Note: US EPA Ecoregions: https://www.epa.gov/eco-research/ecoregions 
+#       downloaded from: ftp://newftp.epa.gov/EPADataCommons/ORD/Ecoregions/
 # -------------------------------------------
+library(rgdal); library(sp); library(rgeos); library(raster)
+ecoreg <- readOGR("../data/US_EPA_ecoregions/na_cec_eco_l1/NA_CEC_Eco_Level1.shp")
+ecoreg <- ecoreg[ecoreg$NA_L1NAME!="WATER",]
+ecoreg2 <- spTransform(ecoreg, CRS("+proj=longlat"))
+ecoreg3 <- gBuffer(ecoreg2, byid=T, width=0)
+
+ecoreg4 <- crop(ecoreg3, extent(-100, -60, 35, 50))
+summary(ecoreg4)
+tfort4 <- fortify(ecoreg4)
+dim(tfort4)
+
+
+ecoreg5 <- gSimplify(ecoreg4, tol=0.05, topologyPreserve = T)
+
+tfort5 <- fortify(ecoreg5)
+dim(tfort5)
+
+# ggplot(data=tfort5[,]) +
+#   coord_equal() +
+#   geom_path(aes(x=long, y=lat, group=group))
+
 climate.comparison.sp <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data_Spatial.csv"))
 
 climate.comparison.sp$dataset <- car::recode(climate.comparison.sp$dataset, "'LBDA'='Drought'; 'STEPPS'='Composition'; 'ReFAB'='Biomass'")
@@ -69,7 +92,8 @@ plot.lbda <-  ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$var
   geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75") +
   # geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
   geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="Drought" & !is.na(climate.comparison.sp$variability),], aes(x=lon, y=lat, fill=log(variability))) +
-  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15") +
+  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15", size=0.1) +
+  geom_path(data=tfort5, aes(x=long, y=lat, group=group), color="black", size=0.9) +
   geom_text(x=-97.75, y=48, label="a)", size=5, fontface="bold") +
   coord_equal(xlim=range(climate.comparison.sp$lon[climate.comparison.sp$dataset=="Composition"], na.rm=T), ylim=range(climate.comparison.sp$lat[climate.comparison.sp$dataset=="Composition"], na.rm=T)) +
   scale_fill_gradientn(name="PDSI\nVariability", colors=c("#018571","#80cdc1", "#f5f5f5", "#dfc27d", "#a6611a"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Drought"]), na.rm=T)) +
@@ -90,7 +114,8 @@ plot.stepps <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$va
   # facet_grid(dataset~.) +
   geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75") +
   geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
-  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15") +
+  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15", size=0.1) +
+  geom_path(data=tfort5, aes(x=long, y=lat, group=group), color="black", size=0.9) +
   geom_text(x=-97.75, y=48, label="b)", size=5, fontface="bold") +
   coord_equal(xlim=range(climate.comparison.sp$lon[climate.comparison.sp$dataset=="Composition"], na.rm=T), ylim=range(climate.comparison.sp$lat[climate.comparison.sp$dataset=="Composition"], na.rm=T)) +
   scale_color_gradientn(name="Comp.\nVariability", colors=c("#008837","#a6dba0", "#f7f7f7", "#c2a5cf", "#7b3294"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Composition"]), na.rm=T)) +
@@ -110,8 +135,9 @@ plot.stepps <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$va
 plot.refab <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Biomass",]) +
   # facet_grid(dataset~.) +
   geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75") +
+  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15", size=0.1) +
+  geom_path(data=tfort5, aes(x=long, y=lat, group=group), color="black", size=0.9) +
   geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
-  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15") +
   geom_text(x=-97.75, y=48, label="c)", size=5, fontface="bold") +
   coord_equal(xlim=range(climate.comparison.sp$lon[climate.comparison.sp$dataset=="Composition"], na.rm=T), ylim=range(climate.comparison.sp$lat[climate.comparison.sp$dataset=="Composition"], na.rm=T)) +
   scale_color_gradientn(name="Biomass\nVariability", colors=c("#4dac26","#b8e186", "#f7f7f7", "#f1b6da", "#d01c8b"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Biomass"]), na.rm=T)) +
@@ -128,7 +154,7 @@ plot.refab <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$var
         legend.key.height = unit(0.75, "lines"),
         legend.title= element_text(size=rel(0.75), face="bold"))
 
-png(file.path(path.figs, "Figure2_Variability_Ecosystem_v_Climate_Data_Map_FreeColor.png"), height=6, width=6, units="in", res=220)
+png(file.path(path.figs, "Figure2_Variability_Ecosystem_v_Climate_Data_Map_FreeColor_Ecoregion.png"), height=6, width=6, units="in", res=220)
 plot_grid(plot.lbda, plot.stepps, plot.refab, ncol=1)
 dev.off()
 # -------------------------------------------
@@ -235,13 +261,13 @@ summary(stab.met)
 plot.lbda.yr <- ggplot(data=lbda[,]) +
   geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75") +
   geom_tile(aes(x=lon, y=lat, fill=1850-n.yrs+1)) +
-    
+  
   # geom_tile(aes(x=lon, y=lat, fill=cut(1850-n.yrs+1, breaks=seq(850-0.001, 1850, by=100)))) +
   geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15") +
   geom_text(x=-98.5, y=48, label="a)", size=5, fontface="bold") +
   coord_equal(xlim=range(lbda$lon, na.rm=T), ylim=range(lbda$lat, na.rm=T), expand=0) +
   scale_fill_gradientn(name="LBDA\nEarliest\nYear A.D.", 
-                    colors=c("#034e7b", "#0570b0", "#3690c0", "#74a9cf", "#a6bddb", "#d0d1e6", "#ece7f2", "#fff7fb")) +
+                       colors=c("#034e7b", "#0570b0", "#3690c0", "#74a9cf", "#a6bddb", "#d0d1e6", "#ece7f2", "#fff7fb")) +
   scale_y_continuous(breaks=c(40, 45, 50)) +
   theme(panel.background=element_rect(fill="gray25", color="black", size=1),
         panel.grid = element_blank(),
