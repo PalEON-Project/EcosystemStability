@@ -37,8 +37,8 @@ path.data <- "~/Dropbox/PalEON_CR/PalEON_MIP2_Region/PalEON_Regional_Extract/"
 # Path to where data are; lets just pull straight from the Google Drive folder
 path.google <- "/Volumes/GoogleDrive/My Drive/PalEON_ecosystem-change_models-vs-data"
 
-path.figs <- file.path(path.google, "Manuscript/EcologyLetters_2020-03-30/Submission 3 (Minor Rev)/Figures")
-path.tables <- file.path(path.google, "Manuscript/EcologyLetters_2020-03-30/Submission 3 (Minor Rev)/Tables")
+path.figs <- file.path(path.google, "Manuscript/EcologyLetters_2020-03-30/FINAL/Figures")
+path.tables <- file.path(path.google, "Manuscript/EcologyLetters_2020-03-30/FINAL/Tables")
 if(!dir.exists(path.figs)) dir.create(path.figs)
 if(!dir.exists(path.tables)) dir.create(path.tables)
 
@@ -60,26 +60,26 @@ us <- ggplot2::map_data("state")
 # Note: US EPA Ecoregions: https://www.epa.gov/eco-research/ecoregions 
 #       downloaded from: ftp://newftp.epa.gov/EPADataCommons/ORD/Ecoregions/
 # -------------------------------------------
-library(rgdal); library(sp); library(rgeos); library(raster)
-ecoreg <- readOGR("../data/US_EPA_ecoregions/na_cec_eco_l1/NA_CEC_Eco_Level1.shp")
-ecoreg <- ecoreg[ecoreg$NA_L1NAME!="WATER",]
-ecoreg2 <- spTransform(ecoreg, CRS("+proj=longlat"))
-ecoreg3 <- gBuffer(ecoreg2, byid=T, width=0)
-
-ecoreg4 <- crop(ecoreg3, extent(-100, -60, 35, 50))
-summary(ecoreg4)
-tfort4 <- fortify(ecoreg4)
-dim(tfort4)
-
-
-ecoreg5 <- gSimplify(ecoreg4, tol=0.05, topologyPreserve = T)
-
-tfort5 <- fortify(ecoreg5)
-dim(tfort5)
-
-# ggplot(data=tfort5[,]) +
-#   coord_equal() +
-#   geom_path(aes(x=long, y=lat, group=group))
+# library(rgdal); library(sp); library(rgeos); library(raster)
+# ecoreg <- readOGR("../data/US_EPA_ecoregions/na_cec_eco_l1/NA_CEC_Eco_Level1.shp")
+# ecoreg <- ecoreg[ecoreg$NA_L1NAME!="WATER",]
+# ecoreg2 <- spTransform(ecoreg, CRS("+proj=longlat"))
+# ecoreg3 <- gBuffer(ecoreg2, byid=T, width=0)
+# 
+# ecoreg4 <- crop(ecoreg3, extent(-100, -60, 35, 50))
+# summary(ecoreg4)
+# tfort4 <- fortify(ecoreg4)
+# dim(tfort4)
+# 
+# 
+# ecoreg5 <- gSimplify(ecoreg4, tol=0.05, topologyPreserve = T)
+# 
+# tfort5 <- fortify(ecoreg5)
+# dim(tfort5)
+# 
+# # ggplot(data=tfort5[,]) +
+# #   coord_equal() +
+# #   geom_path(aes(x=long, y=lat, group=group))
 
 climate.comparison.sp <- read.csv(file.path(path.google, "Current Data/Stability_Synthesis", "Stability_Ecosystem_v_Climate_Data_Spatial.csv"))
 
@@ -87,74 +87,172 @@ climate.comparison.sp$dataset <- car::recode(climate.comparison.sp$dataset, "'LB
 climate.comparison.sp$dataset <- factor(climate.comparison.sp$dataset, levels=c("Drought", "Composition", "Biomass"))
 summary(climate.comparison.sp)
 
-plot.lbda <-  ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Drought",]) +
-  # facet_grid(dataset~.) +
-  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75") +
-  # geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
-  geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="Drought" & !is.na(climate.comparison.sp$variability),], aes(x=lon, y=lat, fill=log(variability))) +
-  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15", size=0.1) +
-  geom_path(data=tfort5, aes(x=long, y=lat, group=group), color="black", size=0.9) +
-  geom_text(x=-97.75, y=48, label="a)", size=5, fontface="bold") +
+plot.lbda.sm <-  ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Drought",]) +
+  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75", size=0.0) +
+  geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="Drought" & !is.na(climate.comparison.sp$variability),], aes(x=lon, y=lat, fill=log(variability)), size=0) +
+  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15", size=0.25) +
+  # geom_path(data=tfort5, aes(x=long, y=lat, group=group), color="black", size=0.9) +
+  geom_text(x=-97.75, y=48, label="a)", size=unit(2, "points"), fontface="bold") +
   coord_equal(xlim=range(climate.comparison.sp$lon[climate.comparison.sp$dataset=="Composition"], na.rm=T), ylim=range(climate.comparison.sp$lat[climate.comparison.sp$dataset=="Composition"], na.rm=T)) +
   scale_fill_gradientn(name="PDSI\nVariability", colors=c("#018571","#80cdc1", "#f5f5f5", "#dfc27d", "#a6611a"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Drought"]), na.rm=T)) +
   scale_y_continuous(breaks=c(40, 45, 50)) +
   theme(panel.background=element_rect(fill="gray25", color="black", size=1),
         panel.grid = element_blank(),
-        axis.ticks.length = unit(-0.5, "lines"),
-        # axis.ticks.margin = unit(0.5, "lines"),
-        axis.text.x = element_text(margin=unit(c(1,1,1,1), "lines"), color="black"),
-        axis.text.y = element_text(margin=unit(c(1,1,1,1), "lines"), color="black"),
-        # axis.text.y = element_text(hjust=-1),
+        axis.ticks.length = unit(-0.25, "lines"),
+        axis.ticks.x = element_line(size=0.3),
+        axis.ticks.y = element_line(size=0.3),
+        axis.text.x = element_text(margin=unit(c(1,1,1,1), "lines"), size=unit(6, "points"), color="black"),
+        axis.text.y = element_text(margin=unit(c(1,1,1,1), "lines"), size=unit(6, "points"), color="black"),
         axis.title=element_blank(),
         legend.position = "right",
-        legend.key.height = unit(0.75, "lines"),
-        legend.title= element_text(size=rel(0.75), face="bold"))
+        legend.key.height = unit(0.5, "lines"),
+        legend.key.width=unit(0.75, "lines"),
+        legend.title= element_text(size=unit(6, "points"), face="bold"),
+        legend.text=element_text(size=unit(6, "points")),
+        plot.margin=unit(c(0.5,0,0,0), "lines"))
 
-plot.stepps <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Composition",]) +
+plot.stepps.sm <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Composition",]) +
   # facet_grid(dataset~.) +
-  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75") +
-  geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
-  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15", size=0.1) +
-  geom_path(data=tfort5, aes(x=long, y=lat, group=group), color="black", size=0.9) +
-  geom_text(x=-97.75, y=48, label="b)", size=5, fontface="bold") +
+  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75", size=0.0) +
+  geom_point(aes(x=lon, y=lat, color=log(variability)), size=0.5) +
+  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15", size=0.25) +
+  # geom_path(data=tfort5, aes(x=long, y=lat, group=group), color="black", size=0.9) +
+  geom_text(x=-97.75, y=48, label="b)", size=unit(2, "points"), fontface="bold") +
   coord_equal(xlim=range(climate.comparison.sp$lon[climate.comparison.sp$dataset=="Composition"], na.rm=T), ylim=range(climate.comparison.sp$lat[climate.comparison.sp$dataset=="Composition"], na.rm=T)) +
   scale_color_gradientn(name="Comp.\nVariability", colors=c("#008837","#a6dba0", "#f7f7f7", "#c2a5cf", "#7b3294"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Composition"]), na.rm=T)) +
   scale_y_continuous(breaks=c(40, 45, 50)) +
   theme(panel.background=element_rect(fill="gray25", color="black", size=1),
         panel.grid = element_blank(),
-        axis.ticks.length = unit(-0.5, "lines"),
-        # axis.ticks.margin = unit(0.5, "lines"),
-        axis.text.x = element_text(margin=unit(c(1,1,1,1), "lines"), color="black"),
-        axis.text.y = element_text(margin=unit(c(1,1,1,1), "lines"), color="black"),
-        # axis.text.y = element_text(hjust=-1),
+        axis.ticks.length = unit(-0.25, "lines"),
+        axis.ticks.x = element_line(size=0.3),
+        axis.ticks.y = element_line(size=0.3),
+        axis.text.x = element_text(margin=unit(c(1,1,1,1), "lines"), size=unit(6, "points"), color="black"),
+        axis.text.y = element_text(margin=unit(c(1,1,1,1), "lines"), size=unit(6, "points"), color="black"),
         axis.title=element_blank(),
         legend.position = "right",
-        legend.key.height = unit(0.75, "lines"),
-        legend.title= element_text(size=rel(0.75), face="bold"))
+        legend.key.height = unit(0.5, "lines"),
+        legend.key.width=unit(0.75, "lines"),
+        legend.title= element_text(size=unit(6, "points"), face="bold"),
+        legend.text=element_text(size=unit(6, "points")),
+        plot.margin=unit(c(0.25,0,0.25,0), "lines"))
 
-plot.refab <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Biomass",]) +
+plot.refab.sm <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Biomass",]) +
   # facet_grid(dataset~.) +
-  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75") +
-  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15", size=0.1) +
-  geom_path(data=tfort5, aes(x=long, y=lat, group=group), color="black", size=0.9) +
-  geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
-  geom_text(x=-97.75, y=48, label="c)", size=5, fontface="bold") +
+  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75", size=0.0) +
+  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15", size=0.25) +
+  # geom_path(data=tfort5, aes(x=long, y=lat, group=group), color="black", size=0.9) +
+  geom_point(aes(x=lon, y=lat, color=log(variability)), size=0.75) +
+  geom_text(x=-97.75, y=48, label="c)", size=unit(2, "points"), fontface="bold") +
   coord_equal(xlim=range(climate.comparison.sp$lon[climate.comparison.sp$dataset=="Composition"], na.rm=T), ylim=range(climate.comparison.sp$lat[climate.comparison.sp$dataset=="Composition"], na.rm=T)) +
   scale_color_gradientn(name="Biomass\nVariability", colors=c("#4dac26","#b8e186", "#f7f7f7", "#f1b6da", "#d01c8b"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Biomass"]), na.rm=T)) +
   scale_y_continuous(breaks=c(40, 45, 50)) +
   theme(panel.background=element_rect(fill="gray25", color="black", size=1),
         panel.grid = element_blank(),
-        axis.ticks.length = unit(-0.5, "lines"),
-        # axis.ticks.margin = unit(0.5, "lines"),
-        axis.text.x = element_text(margin=unit(c(1,1,1,1), "lines"), color="black"),
-        axis.text.y = element_text(margin=unit(c(1,1,1,1), "lines"), color="black"),
-        # axis.text.y = element_text(hjust=-1),
+        axis.ticks.length = unit(-0.25, "lines"),
+        axis.ticks.x = element_line(size=0.3),
+        axis.ticks.y = element_line(size=0.3),
+        axis.text.x = element_text(margin=unit(c(1,1,1,1), "lines"), size=unit(6, "points"), color="black"),
+        axis.text.y = element_text(margin=unit(c(1,1,1,1), "lines"), size=unit(6, "points"), color="black"),
         axis.title=element_blank(),
         legend.position = "right",
-        legend.key.height = unit(0.75, "lines"),
-        legend.title= element_text(size=rel(0.75), face="bold"))
+        legend.key.height = unit(0.5, "lines"),
+        legend.key.width=unit(0.75, "lines"),
+        legend.title= element_text(size=unit(6, "points"), face="bold"),
+        legend.text=element_text(size=unit(6, "points")),
+        plot.margin=unit(c(0,0,0.5,0), "lines"))
 
-png(file.path(path.figs, "Figure2_Variability_Ecosystem_v_Climate_Data_Map_FreeColor_Ecoregion.png"), height=6, width=6, units="in", res=220)
+
+png(file.path(path.figs, "Figure_2_small.png"), height=70, width=80, units="mm", res=800)
+plot_grid(plot.lbda.sm, plot.stepps.sm, plot.refab.sm, ncol=1)
+dev.off()
+
+
+pdf(file.path(path.figs, "Figure_2_small.pdf"), height=70/25.4, width=80/25.4)
+plot_grid(plot.lbda.sm, plot.stepps.sm, plot.refab.sm, ncol=1)
+dev.off()
+
+
+
+plot.lbda <-  ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Drought",]) +
+  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75", size=0.0) +
+  geom_tile(data=climate.comparison.sp[climate.comparison.sp$dataset=="Drought" & !is.na(climate.comparison.sp$variability),], aes(x=lon, y=lat, fill=log(variability)), size=0) +
+  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15", size=0.5) +
+  # geom_path(data=tfort5, aes(x=long, y=lat, group=group), color="black", size=0.9) +
+  geom_text(x=-97.75, y=48, label="a)", size=unit(5, "points"), fontface="bold") +
+  coord_equal(xlim=range(climate.comparison.sp$lon[climate.comparison.sp$dataset=="Composition"], na.rm=T), ylim=range(climate.comparison.sp$lat[climate.comparison.sp$dataset=="Composition"], na.rm=T)) +
+  scale_fill_gradientn(name="PDSI\nVariability", colors=c("#018571","#80cdc1", "#f5f5f5", "#dfc27d", "#a6611a"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Drought"]), na.rm=T)) +
+  scale_y_continuous(breaks=c(40, 45, 50)) +
+  theme(panel.background=element_rect(fill="gray25", color="black", size=1),
+        panel.grid = element_blank(),
+        axis.ticks.length = unit(-0.25, "lines"),
+        axis.ticks.x = element_line(size=0.3),
+        axis.ticks.y = element_line(size=0.3),
+        axis.text.x = element_text(margin=unit(c(1,1,1,1), "lines"), size=unit(12, "points"), color="black"),
+        axis.text.y = element_text(margin=unit(c(1,1,1,1), "lines"), size=unit(12, "points"), color="black"),
+        axis.title=element_blank(),
+        legend.position = "right",
+        legend.key.height = unit(1.5, "lines"),
+        legend.key.width=unit(1.25, "lines"),
+        legend.title= element_text(size=unit(12, "points"), face="bold"),
+        legend.text=element_text(size=unit(12, "points")),
+        plot.margin=unit(c(0.5,0,0,0), "lines"))
+
+plot.stepps <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Composition",]) +
+  # facet_grid(dataset~.) +
+  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75", size=0.0) +
+  geom_point(aes(x=lon, y=lat, color=log(variability)), size=1.25) +
+  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15", size=0.5) +
+  # geom_path(data=tfort5, aes(x=long, y=lat, group=group), color="black", size=0.9) +
+  geom_text(x=-97.75, y=48, label="b)", size=unit(5, "points"), fontface="bold") +
+  coord_equal(xlim=range(climate.comparison.sp$lon[climate.comparison.sp$dataset=="Composition"], na.rm=T), ylim=range(climate.comparison.sp$lat[climate.comparison.sp$dataset=="Composition"], na.rm=T)) +
+  scale_color_gradientn(name="Comp.\nVariability", colors=c("#008837","#a6dba0", "#f7f7f7", "#c2a5cf", "#7b3294"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Composition"]), na.rm=T)) +
+  scale_y_continuous(breaks=c(40, 45, 50)) +
+  theme(panel.background=element_rect(fill="gray25", color="black", size=1),
+        panel.grid = element_blank(),
+        axis.ticks.length = unit(-0.25, "lines"),
+        axis.ticks.x = element_line(size=0.3),
+        axis.ticks.y = element_line(size=0.3),
+        axis.text.x = element_text(margin=unit(c(1,1,1,1), "lines"), size=unit(12, "points"), color="black"),
+        axis.text.y = element_text(margin=unit(c(1,1,1,1), "lines"), size=unit(12, "points"), color="black"),
+        axis.title=element_blank(),
+        legend.position = "right",
+        legend.key.height = unit(1.5, "lines"),
+        legend.key.width=unit(1.25, "lines"),
+        legend.title= element_text(size=unit(12, "points"), face="bold"),
+        legend.text=element_text(size=unit(12, "points")),
+        plot.margin=unit(c(0.25,0,0.25,0), "lines"))
+
+plot.refab <- ggplot(data=climate.comparison.sp[!is.na(climate.comparison.sp$variability) & climate.comparison.sp$dataset=="Biomass",]) +
+  # facet_grid(dataset~.) +
+  geom_polygon(data=us, aes(x=long, y=lat, group=group), fill="gray75", size=0.0) +
+  geom_path(data=us, aes(x=long, y=lat, group=group), color="gray15", size=0.5) +
+  # geom_path(data=tfort5, aes(x=long, y=lat, group=group), color="black", size=0.9) +
+  geom_point(aes(x=lon, y=lat, color=log(variability)), size=2) +
+  geom_text(x=-97.75, y=48, label="c)", size=unit(5, "points"), fontface="bold") +
+  coord_equal(xlim=range(climate.comparison.sp$lon[climate.comparison.sp$dataset=="Composition"], na.rm=T), ylim=range(climate.comparison.sp$lat[climate.comparison.sp$dataset=="Composition"], na.rm=T)) +
+  scale_color_gradientn(name="Biomass\nVariability", colors=c("#4dac26","#b8e186", "#f7f7f7", "#f1b6da", "#d01c8b"), limits=range(log(climate.comparison.sp$variability[climate.comparison.sp$dataset=="Biomass"]), na.rm=T)) +
+  scale_y_continuous(breaks=c(40, 45, 50)) +
+  theme(panel.background=element_rect(fill="gray25", color="black", size=1),
+        panel.grid = element_blank(),
+        axis.ticks.length = unit(-0.25, "lines"),
+        axis.ticks.x = element_line(size=0.3),
+        axis.ticks.y = element_line(size=0.3),
+        axis.text.x = element_text(margin=unit(c(1,1,1,1), "lines"), size=unit(12, "points"), color="black"),
+        axis.text.y = element_text(margin=unit(c(1,1,1,1), "lines"), size=unit(12, "points"), color="black"),
+        axis.title=element_blank(),
+        legend.position = "right",
+        legend.key.height = unit(1.5, "lines"),
+        legend.key.width=unit(1.25, "lines"),
+        legend.title= element_text(size=unit(12, "points"), face="bold"),
+        legend.text=element_text(size=unit(12, "points")),
+        plot.margin=unit(c(0,0,0.5,0), "lines"))
+
+
+png(file.path(path.figs, "Figure_2_large.png"), height=180, width=180, units="mm", res=800)
+plot_grid(plot.lbda, plot.stepps, plot.refab, ncol=1)
+dev.off()
+
+pdf(file.path(path.figs, "Figure_2_large.pdf"), height=170/25.4, width=180/25.4)
 plot_grid(plot.lbda, plot.stepps, plot.refab, ncol=1)
 dev.off()
 # -------------------------------------------
@@ -187,26 +285,76 @@ dat.colors <- data.frame(model=c("LBDA", "ReFAB", "STEPPS-UMW", "STEPPS-NEUS", "
 dat.colors
 
 
-png(file.path(path.figs, "Figure3_Variability_Model_v_Data.png"), height=6, width=6, units="in", res=320)
-ggplot(dat=mod.dat2) +
+fig.dat.mod.sm <- ggplot(dat=mod.dat2) +
   facet_grid(var2 ~ var1, scales="free", switch="both") +
-  geom_point(aes(x=log(variability1), y=log(variability2), color=source), size=0.1, alpha=0.25) +
-  stat_smooth(aes(x=log(variability1), y=log(variability2), color=source, fill=source), method="lm") +
-  geom_text(data=panel.labs, aes(x=x, y=y, label=label), fontface="bold") +
+  geom_point(aes(x=log(variability1), y=log(variability2), color=source), size=0.01, alpha=0.25) +
+  stat_smooth(aes(x=log(variability1), y=log(variability2), color=source, fill=source), method="lm", size=0.5) +
+  geom_text(data=panel.labs, aes(x=x, y=y, label=label), size=3, fontface="bold") +
   scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
   scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
-  scale_x_continuous(name="Log Normalized Variability") +
-  scale_y_continuous(name="Log Normalized Variability") +
+  scale_x_continuous(name="Variability") +
+  scale_y_continuous(name="Variability") +
   theme_bw() +
   theme(strip.placement = "outside",
         strip.background = element_blank(),
-        strip.text = element_text(face="bold", size=rel(1)),
-        # axis.title = element_blank()
-        axis.title = element_text(size=rel(1.25))
-  ) +
-  theme(legend.position=c(0.75, 0.75),
+        strip.text.x = element_text(face="bold", size=unit(8, "points"), margin=unit(c(0,0,0,0), "lines"), color="black", lineheight = 0),
+        strip.text.y = element_text(face="bold", size=unit(8, "points"), margin=unit(c(0,0,0,0), "lines"), color="black", lineheight = 0),
+        axis.title.x = element_text(size=unit(10, "points"), margin=unit(c(0.25, 0.25, 0.25, 0.25), "lines")),
+        axis.title.y = element_text(size=unit(10, "points"), margin=unit(c(0.25, 0.25, 0.25, 0.25), "lines")),
+        axis.ticks.length = unit(-0.25, "lines"),
+        axis.ticks.x = element_line(size=0.3),
+        axis.ticks.y = element_line(size=0.3),
+        axis.text.x = element_text(margin=unit(c(1,0.25,0.25,0.25), "lines"), size=unit(6, "points"), color="black"),
+        axis.text.y = element_text(margin=unit(c(0.25,1,0.25,0.25), "lines"), size=unit(6, "points"), color="black"),
+        legend.position=c(0.75, 0.75),
+        legend.key.size=unit(0.5, "lines"),
+        legend.text = element_text(size=unit(6, "points")),
         legend.title=element_blank(),
         panel.grid=element_blank())
+
+
+png(file.path(path.figs, "Figure_3_small.png"), height=80, width=80, units="mm", res=800)
+fig.dat.mod.sm
+dev.off()  
+
+pdf(file.path(path.figs, "Figure_3_small.pdf"), height=80/25.4, width=80/25.4)
+fig.dat.mod.sm
+dev.off()  
+
+fig.dat.mod <- ggplot(dat=mod.dat2) +
+  facet_grid(var2 ~ var1, scales="free", switch="both") +
+  geom_point(aes(x=log(variability1), y=log(variability2), color=source), size=0.2, alpha=0.25) +
+  stat_smooth(aes(x=log(variability1), y=log(variability2), color=source, fill=source), method="lm", size=1) +
+  geom_text(data=panel.labs, aes(x=x, y=y, label=label), size=6, fontface="bold") +
+  scale_fill_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
+  scale_color_manual(values=paste(dat.colors[dat.colors$model %in% unique(mod.dat2$source),"color"])) +
+  scale_x_continuous(name="Variability") +
+  scale_y_continuous(name="Variability") +
+  theme_bw() +
+  theme(strip.placement = "outside",
+        strip.background = element_blank(),
+        strip.text.x = element_text(face="bold", size=unit(14, "points"), margin=unit(c(0,0,0,0), "lines"), color="black", lineheight = 0),
+        strip.text.y = element_text(face="bold", size=unit(14, "points"), margin=unit(c(0,0,0,0), "lines"), color="black", lineheight = 0),
+        axis.title.x = element_text(size=unit(14, "points"), margin=unit(c(0.25, 0.25, 0.25, 0.25), "lines")),
+        axis.title.y = element_text(size=unit(14, "points"), margin=unit(c(0.25, 0.25, 0.25, 0.25), "lines")),
+        axis.ticks.length = unit(-0.25, "lines"),
+        axis.ticks.x = element_line(size=0.3),
+        axis.ticks.y = element_line(size=0.3),
+        axis.text.x = element_text(margin=unit(c(1,0.25,0.25,0.25), "lines"), size=unit(14, "points"), color="black"),
+        axis.text.y = element_text(margin=unit(c(0.25,1,0.25,0.25), "lines"), size=unit(14, "points"), color="black"),
+        legend.position=c(0.75, 0.75),
+        legend.key.size=unit(1.5, "lines"),
+        legend.text = element_text(size=unit(14, "points")),
+        legend.title=element_blank(),
+        panel.grid=element_blank())
+
+
+png(file.path(path.figs, "Figure_3_large.png"), height=180, width=180, units="mm", res=800)
+fig.dat.mod
+dev.off()  
+
+pdf(file.path(path.figs, "Figure_3_large.pdf"), height=180/25.4, width=180/25.4)
+fig.dat.mod
 dev.off()  
 # -------------------------------------------
 
@@ -221,12 +369,12 @@ models.long$Model <- factor(models.long$Model, levels=c("LPJ-GUESS", "LINKAGES",
 models.long$var <- car::recode(models.long$var, "'gpp'='GPP'; 'npp'='NPP'; 'lai'='LAI'; 'bm'='Biomass'; 'fcomp'='Composition'; 'nee'='NEE'")
 models.long$var <- factor(models.long$var, levels=c("GPP", "NPP", "NEE", "LAI", "Biomass", "Composition"))
 
-png(file.path(path.figs, "Figure4_Variability_Ecosystem_v_Climate_Models.png"), height=6, width=8, units="in", res=220)
-ggplot(data=models.long, aes(x=log(var.pdsi), y=log(variability), color=var, fill=var)) +
-  labs(x="Log Normalized PDSI Variability", y="Log Normalized Ecosystem Variability") +
+
+fig.mod.sm <- ggplot(data=models.long, aes(x=log(var.pdsi), y=log(variability), color=var, fill=var)) +
+  labs(x="PDSI Variability", y="Ecosystem Variability") +
   facet_wrap(~Model) +
-  geom_point(size=0.05, alpha=0.2) +
-  stat_smooth(method=lm, alpha=0.5) + 
+  geom_point(size=0.01, alpha=0.2) +
+  stat_smooth(method=lm, size=0.5, alpha=0.5) + 
   scale_color_manual(values=c("darkgreen", "darkolivegreen4", "darkslategray3", "darkseagreen3", "maroon2", "purple3")) +
   scale_fill_manual(values=c("darkgreen", "darkolivegreen4", "darkslategray3", "darkseagreen3", "maroon2", "purple3")) +
   guides(fill=guide_legend(nrow=1), color=guide_legend(nrow=1)) +
@@ -236,14 +384,66 @@ ggplot(data=models.long, aes(x=log(var.pdsi), y=log(variability), color=var, fil
   theme_bw() +
   theme(panel.background=element_blank(),
         panel.grid = element_blank(),
-        axis.text = element_text(size=rel(1.25)),
-        axis.title = element_text(size=rel(1.25), face="bold"),
-        axis.ticks = element_blank(),
+        strip.text = element_text(size=unit(6, "points"), color="black"),
+        axis.title.x = element_text(size=unit(6, "points"), margin=unit(c(0.25, 0.25, 0.25, 0.25), "lines")),
+        axis.title.y = element_text(size=unit(6, "points"), margin=unit(c(0.25, 0.25, 0.25, 0.25), "lines")),
+        axis.ticks.length = unit(-0.25, "lines"),
+        axis.ticks.x = element_line(size=0.3),
+        axis.ticks.y = element_line(size=0.3),
+        axis.text.x = element_text(margin=unit(c(1,0.25,0.25,0.25), "lines"), size=unit(6, "points"), color="black"),
+        axis.text.y = element_text(margin=unit(c(0.25,1,0.25,0.25), "lines"), size=unit(6, "points"), color="black"),
         legend.position="top",
         legend.title=element_blank(),
-        legend.text = element_text(size=rel(1.25)),
-        strip.text = element_text(size=rel(1.5), face="bold"))
+        legend.key.size=unit(0.5, "lines"),
+        legend.spacing.x=unit(0.25, "lines"),
+        legend.text = element_text(size=unit(6, "points")))
+
+
+png(file.path(path.figs, "Figure_4_small.png"), height=70, width=80, units="mm", res=800)
+fig.mod.sm
 dev.off()
+
+pdf(file.path(path.figs, "Figure_4_small.pdf"), height=70/25.4, width=80/25.4)
+fig.mod.sm
+dev.off()
+
+fig.mod <- ggplot(data=models.long, aes(x=log(var.pdsi), y=log(variability), color=var, fill=var)) +
+  labs(x="PDSI Variability", y="Ecosystem Variability") +
+  facet_wrap(~Model) +
+  geom_point(size=0.5, alpha=0.2) +
+  stat_smooth(method=lm, size=1, alpha=0.5) + 
+  scale_color_manual(values=c("darkgreen", "darkolivegreen4", "darkslategray3", "darkseagreen3", "maroon2", "purple3")) +
+  scale_fill_manual(values=c("darkgreen", "darkolivegreen4", "darkslategray3", "darkseagreen3", "maroon2", "purple3")) +
+  guides(fill=guide_legend(nrow=1), color=guide_legend(nrow=1)) +
+  # scale_fill_brewer(palette="Dark2") +
+  # scale_color_brewer(palette="Dark2") +
+  coord_cartesian(ylim=quantile(log(models.long$variability), c(0.001, 0.999)), expand=0) +
+  theme_bw() +
+  theme(panel.background=element_blank(),
+        panel.grid = element_blank(),
+        strip.text = element_text(size=unit(15, "points"), color="black"),
+        axis.title.x = element_text(size=unit(16, "points"), margin=unit(c(0.25, 0.25, 0.25, 0.25), "lines")),
+        axis.title.y = element_text(size=unit(16, "points"), margin=unit(c(0.25, 0.25, 0.25, 0.25), "lines")),
+        axis.ticks.length = unit(-0.25, "lines"),
+        axis.ticks.x = element_line(size=0.3),
+        axis.ticks.y = element_line(size=0.3),
+        axis.text.x = element_text(margin=unit(c(1,0.25,0.25,0.25), "lines"), size=unit(15, "points"), color="black"),
+        axis.text.y = element_text(margin=unit(c(0.25,1,0.25,0.25), "lines"), size=unit(15, "points"), color="black"),
+        legend.position="top",
+        legend.title=element_blank(),
+        legend.key.size=unit(1, "lines"),
+        legend.spacing.x=unit(0.5, "lines"),
+        legend.text = element_text(size=unit(14, "points")))
+
+
+png(file.path(path.figs, "Figure_4_large.png"), height=160, width=180, units="mm", res=800)
+fig.mod
+dev.off()
+
+pdf(file.path(path.figs, "Figure_4_large.pdf"), height=160/25.4, width=180/25.4)
+fig.mod
+dev.off()
+
 # -------------------------------------------
 
 # -------------------------------------------
